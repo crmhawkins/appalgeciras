@@ -1,30 +1,44 @@
 {
   "expo": {
-    "name": "appalgeciras",
-    "slug": "appalgeciras",
+    "name": "Algeciras CF Abonos",
+    "slug": "algeciras-cf-abonos",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
+    "scheme": "algecirascf",
+    "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#ffffff"
+      "backgroundColor": "#1a5c38"
     },
     "ios": {
-      "supportsTablet": true
+      "bundleIdentifier": "es.algecirascf.abonos",
+      "supportsTablet": false
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#1a5c38"
       },
+      "package": "es.algecirascf.abonos",
+      "versionCode": 1,
+      "permissions": ["INTERNET"],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
     "web": {
       "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-web-browser"
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "PENDIENTE-EAS-LOGIN"
+      }
     }
   }
 }
