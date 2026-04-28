@@ -24,7 +24,9 @@
       },
       "package": "es.algecirascf.abonos",
       "versionCode": 1,
-      "permissions": ["INTERNET"],
+      "permissions": [
+        "INTERNET"
+      ],
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false
     },
@@ -37,8 +39,9 @@
     ],
     "extra": {
       "eas": {
-        "projectId": "PENDIENTE-EAS-LOGIN"
+        "projectId": "0516104d-6016-4639-86b5-ace224362fcf"
       }
-    }
+    },
+    "owner": "dani.mefle"
   }
 }
