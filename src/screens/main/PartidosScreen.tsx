@@ -10,6 +10,27 @@ import { Partido } from '../../types';
 
 type Tab = 'proximos' | 'jugados';
 
+function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
+  const [error, setError] = useState(false);
+  const initials = nombre
+    ? nombre.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+    : '?';
+  if (!uri || error) {
+    return (
+      <View style={styles.escudoPlaceholder}>
+        <Text style={styles.escudoInitials}>{initials}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri }}
+      style={styles.escudo}
+      onError={() => setError(true)}
+    />
+  );
+}
+
 export default function PartidosScreen() {
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [loading, setLoading] = useState(true);
@@ -97,11 +118,7 @@ export default function PartidosScreen() {
           <View style={styles.card}>
             <View style={styles.teamsRow}>
               <View style={styles.team}>
-                {item.escudoLocal ? (
-                  <Image source={{ uri: item.escudoLocal }} style={styles.escudo} />
-                ) : (
-                  <View style={styles.escudoPlaceholder} />
-                )}
+                <EscudoImage uri={item.escudoLocal} nombre={item.equipoLocal} />
                 <Text style={styles.teamName} numberOfLines={2}>{item.equipoLocal}</Text>
               </View>
 
@@ -111,18 +128,12 @@ export default function PartidosScreen() {
                 ) : (
                   <Text style={styles.vs}>VS</Text>
                 )}
-                <Text style={styles.fecha}>
-                  {formatFecha(item.fecha)}
-                </Text>
+                <Text style={styles.fecha}>{formatFecha(item.fecha)}</Text>
                 {item.hora ? <Text style={styles.hora}>{item.hora}</Text> : null}
               </View>
 
               <View style={styles.team}>
-                {item.escudoVisitante ? (
-                  <Image source={{ uri: item.escudoVisitante }} style={styles.escudo} />
-                ) : (
-                  <View style={styles.escudoPlaceholder} />
-                )}
+                <EscudoImage uri={item.escudoVisitante} nombre={item.equipoVisitante} />
                 <Text style={styles.teamName} numberOfLines={2}>{item.equipoVisitante}</Text>
               </View>
             </View>
@@ -195,6 +206,13 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: 24,
     backgroundColor: colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  escudoInitials: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
   },
   teamName: {
     fontSize: 12,
