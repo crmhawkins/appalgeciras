@@ -40,7 +40,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const { status } = await Notifications.requestPermissionsAsync();
             if (status === 'granted') {
               const pushToken = await Notifications.getExpoPushTokenAsync();
-              await api.put('/api/usuarios/push-token', { expoPushToken: pushToken.data });
+              await api.put('/api/user/push-token', { expoPushToken: pushToken.data });
             }
           } catch (e) { /* silencioso */ }
         }
@@ -63,7 +63,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const register = useCallback(async (nombre: string, email: string, password: string, dni?: string) => {
-    await api.post('/api/usuarios/create', { nombre, email, password, dni });
+    await api.post('/api/user/create', { nombre, email, password, dni });
     await login(email, password);
   }, [login]);
 
