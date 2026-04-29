@@ -23,6 +23,8 @@ export interface Sector {
   precio: number;
   gradaId: number;
   activo: boolean;
+  asientosDisponibles?: number;
+  imagen?: string;
 }
 
 export type EstadoAsiento = 'disponible' | 'ocupado' | 'liberado';

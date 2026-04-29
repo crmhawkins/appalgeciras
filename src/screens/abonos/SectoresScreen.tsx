@@ -80,7 +80,12 @@ export default function SectoresScreen() {
           !error ? <Text style={styles.empty}>No hay sectores en esta grada</Text> : null
         }
         renderItem={({ item }) => {
-          const sinAsientos = item.asientosDisponibles === 0;
+          const sinCapacidad = item.capacidad === 0;
+          const sinDisponibles = item.asientosDisponibles !== undefined && item.asientosDisponibles !== null
+            ? item.asientosDisponibles === 0
+            : false;
+          const sinAsientos = sinCapacidad || sinDisponibles;
+          const disponibles = item.asientosDisponibles;
           return (
             <TouchableOpacity
               style={sinAsientos ? [styles.card, styles.cardDisabled] : styles.card}
@@ -95,16 +100,16 @@ export default function SectoresScreen() {
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{item.nombre}</Text>
-                <Text style={styles.cardText}>Capacidad: {item.capacidad}</Text>
+                {!sinAsientos && disponibles !== undefined && disponibles !== null && (
+                  <Text style={styles.cardDisponibles}>
+                    {disponibles} {disponibles === 1 ? 'sitio libre' : 'sitios libres'}
+                  </Text>
+                )}
                 <Text style={styles.cardPrice}>{item.precio} € / temporada</Text>
               </View>
-              <View style={[styles.badge, sinAsientos && { backgroundColor: colors.textSecondary }]}>
+              <View style={[styles.badge, sinAsientos && styles.badgeFull]}>
                 <Text style={styles.badgeText}>
-                  {sinAsientos
-                    ? 'Sin asientos'
-                    : item.asientosDisponibles !== undefined
-                      ? `Disponible (${item.asientosDisponibles})`
-                      : 'Disponible'}
+                  {sinAsientos ? 'Sin plazas' : 'Disponible'}
                 </Text>
               </View>
             </TouchableOpacity>
@@ -141,6 +146,8 @@ const styles = StyleSheet.create({
   },
   badgeText: { color: colors.white, fontSize: 12, fontWeight: 'bold' },
   cardDisabled: { opacity: 0.5 },
+  cardDisponibles: { fontSize: 13, color: colors.success, fontWeight: '600', marginTop: 2 },
+  badgeFull: { backgroundColor: '#9e9e9e' },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 12 },
 });

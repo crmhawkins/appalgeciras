@@ -4,14 +4,14 @@
     "slug": "algeciras-cf-abonos",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/icon.png",
+    "icon": "./assets/algeciras_shield.png",
     "scheme": "algecirascf",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/algeciras_shield.png",
       "resizeMode": "contain",
-      "backgroundColor": "#1a5c38"
+      "backgroundColor": "#C8102E"
     },
     "ios": {
       "bundleIdentifier": "es.algecirascf.abonos",
@@ -19,8 +19,8 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#1a5c38"
+        "foregroundImage": "./assets/algeciras_shield.png",
+        "backgroundColor": "#C8102E"
       },
       "package": "es.algecirascf.abonos",
       "versionCode": 1,
