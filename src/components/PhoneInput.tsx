@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, Modal,
   FlatList, StyleSheet,
@@ -229,6 +229,12 @@ export default function PhoneInput({ value, onChange, inputStyle }: Props) {
   const [search, setSearch] = useState('');
   const [customMode, setCustomMode] = useState(false);
   const [customCode, setCustomCode] = useState('');
+
+  useEffect(() => {
+    const p = parseTelefono(value);
+    setPrefix(p.prefix);
+    setNumber(p.number);
+  }, [value]);
 
   const selected = ALL_COUNTRIES.find(c => c.code === prefix);
 
