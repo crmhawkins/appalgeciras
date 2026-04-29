@@ -65,6 +65,7 @@ export default function PhoneInput({ value, onChange, inputStyle }: Props) {
         value={number}
         onChangeText={handleNumberChange}
         placeholder="600 000 000"
+        placeholderTextColor={colors.textSecondary}
         keyboardType="phone-pad"
         returnKeyType="done"
       />
