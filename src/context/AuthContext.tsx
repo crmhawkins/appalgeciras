@@ -18,6 +18,7 @@ interface AuthContextValue {
   login: (email: string, password: string) => Promise<void>;
   register: (nombre: string, email: string, password: string, dni?: string) => Promise<void>;
   logout: () => Promise<void>;
+  updateUser: (updated: Partial<Usuario>) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -73,8 +74,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
+  const updateUser = useCallback(async (updated: Partial<Usuario>) => {
+    setUser(prev => {
+      if (!prev) return prev;
+      const merged = { ...prev, ...updated };
+      saveUser(merged);
+      return merged;
+    });
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, token, loading, login, register, logout }}>
+    <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
       {children}
     </AuthContext.Provider>
   );

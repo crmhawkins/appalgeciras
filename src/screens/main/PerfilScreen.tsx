@@ -11,7 +11,7 @@ import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 
 export default function PerfilScreen() {
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigation = useNavigation<any>();
 
   const [nombre, setNombre] = useState('');
@@ -53,11 +53,12 @@ export default function PerfilScreen() {
     }
     setLoadingProfile(true);
     try {
-      await api.put('/api/user/profile', {
+      const { data } = await api.put('/api/user/profile', {
         nombre: nombre.trim(),
         telefono: telefono.trim(),
         dni: dni.trim(),
       });
+      await updateUser(data.usuario ?? { nombre: nombre.trim(), telefono: telefono.trim(), dni: dni.trim() });
       setProfileSaved(true);
       setTimeout(() => setProfileSaved(false), 2500);
     } catch (e: any) {
