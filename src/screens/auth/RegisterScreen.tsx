@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import PhoneInput from '../../components/PhoneInput';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -106,17 +107,7 @@ export default function RegisterScreen() {
             />
 
             <Text style={styles.label}>Teléfono</Text>
-            <TextInput
-              ref={telefonoRef}
-              style={styles.input}
-              value={telefono}
-              onChangeText={setTelefono}
-              placeholder="+34 600 000 000"
-              keyboardType="phone-pad"
-              returnKeyType="next"
-              onSubmitEditing={() => dniRef.current?.focus()}
-              blurOnSubmit={false}
-            />
+            <PhoneInput value={telefono} onChange={setTelefono} />
 
             <Text style={styles.label}>DNI</Text>
             <TextInput

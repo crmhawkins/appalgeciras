@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import PhoneInput from '../../components/PhoneInput';
 
 export default function PerfilScreen() {
   const { user, logout } = useAuth();
@@ -153,13 +154,7 @@ export default function PerfilScreen() {
             />
 
             <Text style={styles.label}>Teléfono</Text>
-            <TextInput
-              style={styles.input}
-              value={telefono}
-              onChangeText={setTelefono}
-              placeholder="+34 600 000 000"
-              keyboardType="phone-pad"
-            />
+            <PhoneInput value={telefono} onChange={setTelefono} />
 
             <Text style={styles.label}>DNI</Text>
             <TextInput

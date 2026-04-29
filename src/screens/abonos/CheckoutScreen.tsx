@@ -14,16 +14,19 @@ import * as WebBrowser from 'expo-web-browser';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { AbonosStackParamList } from '../../types';
+import { useAuth } from '../../context/AuthContext';
 
 type CheckoutRouteProp = RouteProp<AbonosStackParamList, 'Checkout'>;
 
 export default function CheckoutScreen() {
   const navigation = useNavigation<any>();
   const route = useRoute<CheckoutRouteProp>();
+  const { user } = useAuth();
   const { sectorId, sectorNombre, asientoId, fila, numero, precio } = route.params;
   const [loading, setLoading] = useState(false);
-  const [dni, setDni] = useState('');
+  const [dni, setDni] = useState((user as any)?.dni || '');
   const [dniError, setDniError] = useState<string | null>(null);
+  const dniFromProfile = !!(user as any)?.dni;
 
   const handlePay = async () => {
     if (!dni.trim()) {
@@ -82,6 +85,9 @@ export default function CheckoutScreen() {
             if (text.trim()) setDniError(null);
           }}
         />
+        {dniFromProfile && !dniError && (
+          <Text style={styles.dniHint}>✓ Obtenido de tu perfil</Text>
+        )}
         {dniError && <Text style={styles.dniErrorText}>{dniError}</Text>}
       </View>
 
@@ -156,6 +162,7 @@ const styles = StyleSheet.create({
   },
   dniInputError: { borderColor: colors.error },
   dniErrorText: { color: colors.error, fontSize: 12, marginTop: 4 },
+  dniHint: { color: colors.primary, fontSize: 12, marginTop: 4 },
   footer: { padding: 16 },
   payBtn: {
     backgroundColor: colors.primary,
