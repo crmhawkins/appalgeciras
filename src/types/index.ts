@@ -2,6 +2,8 @@ export interface Usuario {
   id: number;
   nombre?: string;
   email: string;
+  telefono?: string;
+  dni?: string;
 }
 
 export interface LoginResponse {
