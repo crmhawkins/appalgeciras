@@ -15,6 +15,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showPass, setShowPass] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -66,13 +67,20 @@ export default function LoginScreen() {
             />
 
             <Text style={styles.label}>Contraseña</Text>
-            <TextInput
-              style={styles.input}
-              value={password}
-              onChangeText={setPassword}
-              placeholder="••••••••"
-              secureTextEntry
-            />
+            <View style={styles.passRow}>
+              <TextInput
+                style={styles.passInput}
+                value={password}
+                onChangeText={setPassword}
+                placeholder="••••••••"
+                secureTextEntry={!showPass}
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(p => !p)}>
+                <Text style={styles.eyeText}>{showPass ? '🙈' : '👁️'}</Text>
+              </TouchableOpacity>
+            </View>
 
             {error && <Text style={styles.error}>{error}</Text>}
 
@@ -137,7 +145,25 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     backgroundColor: colors.white,
+    color: colors.text,
   },
+  passRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    backgroundColor: colors.white,
+  },
+  passInput: {
+    flex: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    fontSize: 16,
+    color: colors.text,
+  },
+  eyeBtn: { paddingHorizontal: 12, paddingVertical: 10 },
+  eyeText: { fontSize: 18 },
   error: { color: colors.error, marginTop: 12, textAlign: 'center' },
   button: {
     backgroundColor: colors.primary,
