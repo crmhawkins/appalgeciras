@@ -39,8 +39,11 @@ export default function CheckoutScreen() {
       const { data } = await api.post<{ url: string }>('/api/pagos/create-checkout', {
         asientoId,
         sectorId,
-        cantidad: precio,
+        precio,
         dni: dni.trim(),
+        email: (user as any)?.email || '',
+        nombre: (user as any)?.nombre || '',
+        tipo: 'abono',
       });
       if (!data?.url) throw new Error('URL de pago no recibida');
       const result = await WebBrowser.openBrowserAsync(data.url);
@@ -50,6 +53,7 @@ export default function CheckoutScreen() {
       navigation.navigate('Gradas');
     } catch (e: any) {
       const msg =
+        e?.response?.data?.msg ||
         e?.response?.data?.message ||
         e?.message ||
         'No se pudo iniciar el pago';
