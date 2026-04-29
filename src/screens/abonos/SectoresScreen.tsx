@@ -79,27 +79,37 @@ export default function SectoresScreen() {
         ListEmptyComponent={
           !error ? <Text style={styles.empty}>No hay sectores en esta grada</Text> : null
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate('Asientos', {
-                sectorId: item.id,
-                sectorNombre: item.nombre,
-                precio: item.precio,
-              })
-            }
-          >
-            <View style={{ flex: 1 }}>
-              <Text style={styles.cardTitle}>{item.nombre}</Text>
-              <Text style={styles.cardText}>Capacidad: {item.capacidad}</Text>
-              <Text style={styles.cardPrice}>{item.precio} € / temporada</Text>
-            </View>
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>Disponible</Text>
-            </View>
-          </TouchableOpacity>
-        )}
+        renderItem={({ item }) => {
+          const sinAsientos = item.asientosDisponibles === 0;
+          return (
+            <TouchableOpacity
+              style={sinAsientos ? [styles.card, styles.cardDisabled] : styles.card}
+              disabled={sinAsientos}
+              onPress={() =>
+                navigation.navigate('Asientos', {
+                  sectorId: item.id,
+                  sectorNombre: item.nombre,
+                  precio: item.precio,
+                })
+              }
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={styles.cardTitle}>{item.nombre}</Text>
+                <Text style={styles.cardText}>Capacidad: {item.capacidad}</Text>
+                <Text style={styles.cardPrice}>{item.precio} € / temporada</Text>
+              </View>
+              <View style={[styles.badge, sinAsientos && { backgroundColor: colors.textSecondary }]}>
+                <Text style={styles.badgeText}>
+                  {sinAsientos
+                    ? 'Sin asientos'
+                    : item.asientosDisponibles !== undefined
+                      ? `Disponible (${item.asientosDisponibles})`
+                      : 'Disponible'}
+                </Text>
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -130,6 +140,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   badgeText: { color: colors.white, fontSize: 12, fontWeight: 'bold' },
+  cardDisabled: { opacity: 0.5 },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 12 },
 });

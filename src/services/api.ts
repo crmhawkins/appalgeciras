@@ -1,5 +1,5 @@
 import axios, { AxiosInstance } from 'axios';
-import { getToken } from './auth';
+import { getToken, clearSession } from './auth';
 
 export const API_BASE_URL = 'https://backend-algeciras.hawkins.es';
 
@@ -20,5 +20,19 @@ api.interceptors.request.use(async (config) => {
   }
   return config;
 });
+
+let _logoutCallback: (() => void) | null = null;
+export function setLogoutCallback(fn: () => void) { _logoutCallback = fn; }
+
+api.interceptors.response.use(
+  (r) => r,
+  async (error) => {
+    if (error?.response?.status === 401) {
+      await clearSession();
+      _logoutCallback?.();
+    }
+    return Promise.reject(error);
+  }
+);
 
 export default api;

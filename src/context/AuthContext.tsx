@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
-import api from '../services/api';
+import api, { setLogoutCallback } from '../services/api';
 import {
   saveToken,
   saveUser,
@@ -32,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const storedUser = await getUser();
         if (storedToken) setToken(storedToken);
         if (storedUser) setUser(storedUser);
+        setLogoutCallback(() => { setToken(null); setUser(null); });
       } finally {
         setLoading(false);
       }

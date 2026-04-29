@@ -35,7 +35,7 @@ export default function MainTabs() {
       <Tab.Screen
         name="AbonosTab"
         component={AbonosStack}
-        options={{ title: 'Comprar', tabBarIcon: tabIcon('🎟️') }}
+        options={{ title: 'Comprar', tabBarIcon: tabIcon('🛒') }}
       />
       <Tab.Screen
         name="PartidosTab"

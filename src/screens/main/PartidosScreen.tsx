@@ -1,18 +1,21 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, Image,
+  RefreshControl, Image, TouchableOpacity,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
 
+type Tab = 'proximos' | 'jugados';
+
 export default function PartidosScreen() {
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>('proximos');
 
   const load = useCallback(async () => {
     setError(null);
@@ -29,6 +32,18 @@ export default function PartidosScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const today = new Date().toISOString().split('T')[0];
+
+  const proximos = partidos
+    .filter((p) => p.fecha.split('T')[0] >= today)
+    .sort((a, b) => a.fecha.split('T')[0].localeCompare(b.fecha.split('T')[0]));
+
+  const jugados = partidos
+    .filter((p) => p.fecha.split('T')[0] < today)
+    .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0]));
+
+  const data = tab === 'proximos' ? proximos : jugados;
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -44,9 +59,29 @@ export default function PartidosScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Partidos</Text>
       </View>
+
+      <View style={styles.tabBar}>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'proximos' && styles.tabBtnActive]}
+          onPress={() => setTab('proximos')}
+        >
+          <Text style={[styles.tabText, tab === 'proximos' && styles.tabTextActive]}>
+            Por jugar
+          </Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabBtn, tab === 'jugados' && styles.tabBtnActive]}
+          onPress={() => setTab('jugados')}
+        >
+          <Text style={[styles.tabText, tab === 'jugados' && styles.tabTextActive]}>
+            Jugados
+          </Text>
+        </TouchableOpacity>
+      </View>
+
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
-        data={partidos}
+        data={data}
         keyExtractor={(p) => String(p.id)}
         contentContainerStyle={styles.list}
         refreshControl={
@@ -113,6 +148,29 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
+  tabBar: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  tabBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    alignItems: 'center',
+    backgroundColor: colors.white,
+  },
+  tabBtnActive: {
+    backgroundColor: colors.primary,
+  },
+  tabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.textSecondary,
+  },
+  tabTextActive: {
+    color: colors.white,
+  },
   list: { padding: 14 },
   card: {
     backgroundColor: colors.white,
