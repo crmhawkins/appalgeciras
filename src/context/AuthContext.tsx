@@ -1,4 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import { Platform } from 'react-native';
+import * as Notifications from 'expo-notifications';
 import api, { setLogoutCallback } from '../services/api';
 import {
   saveToken,
@@ -33,6 +35,15 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         if (storedToken) setToken(storedToken);
         if (storedUser) setUser(storedUser);
         setLogoutCallback(() => { setToken(null); setUser(null); });
+        if (storedToken) {
+          try {
+            const { status } = await Notifications.requestPermissionsAsync();
+            if (status === 'granted') {
+              const pushToken = await Notifications.getExpoPushTokenAsync();
+              await api.put('/api/usuarios/push-token', { expoPushToken: pushToken.data });
+            }
+          } catch (e) { /* silencioso */ }
+        }
       } finally {
         setLoading(false);
       }

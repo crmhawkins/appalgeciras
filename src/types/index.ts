@@ -56,6 +56,7 @@ export interface Abono {
   activo: boolean;
   fechaInicio: string;
   fechaFin: string;
+  codigoAcceso?: string;
 }
 
 export interface ClasificacionItem {

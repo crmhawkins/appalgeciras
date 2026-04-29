@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Alert,
+  TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -21,14 +22,22 @@ export default function CheckoutScreen() {
   const route = useRoute<CheckoutRouteProp>();
   const { sectorId, sectorNombre, asientoId, fila, numero, precio } = route.params;
   const [loading, setLoading] = useState(false);
+  const [dni, setDni] = useState('');
+  const [dniError, setDniError] = useState<string | null>(null);
 
   const handlePay = async () => {
+    if (!dni.trim()) {
+      setDniError('El DNI es obligatorio para recibir tu código de acceso');
+      return;
+    }
+    setDniError(null);
     setLoading(true);
     try {
       const { data } = await api.post<{ url: string }>('/api/pagos/create-checkout', {
         asientoId,
         sectorId,
         cantidad: precio,
+        dni: dni.trim(),
       });
       if (!data?.url) throw new Error('URL de pago no recibida');
       const result = await WebBrowser.openBrowserAsync(data.url);
@@ -59,6 +68,21 @@ export default function CheckoutScreen() {
         <Row label="Asiento" value={String(numero)} />
         <View style={styles.divider} />
         <Row label="Precio" value={`${precio} €`} highlight />
+      </View>
+
+      <View style={styles.dniContainer}>
+        <Text style={styles.dniLabel}>DNI (obligatorio para entrada al estadio)</Text>
+        <TextInput
+          style={[styles.dniInput, dniError ? styles.dniInputError : null]}
+          placeholder="12345678Z"
+          autoCapitalize="characters"
+          value={dni}
+          onChangeText={(text) => {
+            setDni(text);
+            if (text.trim()) setDniError(null);
+          }}
+        />
+        {dniError && <Text style={styles.dniErrorText}>{dniError}</Text>}
       </View>
 
       <View style={styles.footer}>
@@ -118,6 +142,20 @@ const styles = StyleSheet.create({
   rowValue: { color: colors.text, fontSize: 16, fontWeight: '600' },
   rowValueHighlight: { color: colors.primary, fontSize: 20, fontWeight: 'bold' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
+  dniContainer: { marginHorizontal: 16, marginBottom: 8 },
+  dniLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, fontWeight: '500' },
+  dniInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 16,
+    color: colors.text,
+  },
+  dniInputError: { borderColor: colors.error },
+  dniErrorText: { color: colors.error, fontSize: 12, marginTop: 4 },
   footer: { padding: 16 },
   payBtn: {
     backgroundColor: colors.primary,

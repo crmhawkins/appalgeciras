@@ -119,6 +119,12 @@ export default function MisAbonosScreen() {
             <Row label="Precio" value={`${item.precio} €`} highlight />
             <Row label="Desde" value={formatDate(item.fechaInicio)} />
             <Row label="Hasta" value={formatDate(item.fechaFin)} />
+            {item.codigoAcceso && (
+              <View style={styles.codigoBox}>
+                <Text style={styles.codigoLabel}>Código de acceso</Text>
+                <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
+              </View>
+            )}
           </View>
         )}
       />
@@ -210,4 +216,16 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   registerBtnText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
+  codigoBox: {
+    marginTop: 10,
+    backgroundColor: '#fff5f5',
+    borderRadius: 8,
+    padding: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#C8102E',
+    borderStyle: 'dashed',
+  },
+  codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 4 },
+  codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: '#C8102E' },
 });
