@@ -9,8 +9,8 @@ import RootNavigator from './src/navigation/RootNavigator';
 export default function App() {
   useEffect(() => {
     if (Platform.OS === 'android') {
-      NavigationBar.setBackgroundColorAsync('#C8102E');
-      NavigationBar.setButtonStyleAsync('light');
+      NavigationBar.setVisibilityAsync('hidden');
+      NavigationBar.setBehaviorAsync('overlay-swipe');
     }
   }, []);
 
