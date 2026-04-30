@@ -46,11 +46,23 @@ export default function CheckoutScreen() {
         tipo: 'abono',
       });
       if (!data?.url) throw new Error('URL de pago no recibida');
-      const result = await WebBrowser.openBrowserAsync(data.url);
-      if (result.type === 'cancel' || result.type === 'dismiss') {
-        Alert.alert('Pago', 'Pago cancelado o finalizado. Verifica en tu perfil.');
+      const sessionId = data.sessionId;
+      await WebBrowser.openBrowserAsync(data.url);
+
+      // Verificar estado real del pago tras cerrar el browser
+      try {
+        const { data: statusData } = await api.get<{ completado: boolean }>(`/api/pagos/status?session_id=${sessionId}`);
+        if (statusData?.completado) {
+          Alert.alert('¡Pago completado!', 'Tu abono ha sido procesado. Recibirás confirmación por email.');
+          navigation.navigate('MisAbonos');
+        } else {
+          Alert.alert('Pago no completado', 'Si cerraste antes de terminar, puedes intentarlo de nuevo.');
+          navigation.navigate('Gradas');
+        }
+      } catch {
+        Alert.alert('Pago', 'Si completaste el pago recibirás confirmación por email.');
+        navigation.navigate('Gradas');
       }
-      navigation.navigate('Gradas');
     } catch (e: any) {
       const msg =
         e?.response?.data?.msg ||

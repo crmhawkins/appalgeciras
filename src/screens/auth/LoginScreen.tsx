@@ -26,7 +26,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      navigation.navigate('Main');
+      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e: any) {
       const msg =
         e?.response?.data?.msg ||

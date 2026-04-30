@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import Constants from 'expo-constants';
 import api, { setLogoutCallback } from '../services/api';
 import {
   saveToken,
@@ -16,7 +17,7 @@ interface AuthContextValue {
   token: string | null;
   loading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (nombre: string, email: string, password: string, dni?: string) => Promise<void>;
+  register: (nombre: string, email: string, password: string, dni?: string, telefono?: string) => Promise<void>;
   logout: () => Promise<void>;
   updateUser: (updated: Partial<Usuario>) => Promise<void>;
 }
@@ -40,7 +41,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           try {
             const { status } = await Notifications.requestPermissionsAsync();
             if (status === 'granted') {
-              const pushToken = await Notifications.getExpoPushTokenAsync();
+              const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
+              const pushToken = await Notifications.getExpoPushTokenAsync(projectId ? { projectId } : undefined);
               await api.put('/api/user/push-token', { expoPushToken: pushToken.data });
             }
           } catch (e) { /* silencioso */ }
@@ -63,8 +65,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(data.usuario ?? null);
   }, []);
 
-  const register = useCallback(async (nombre: string, email: string, password: string, dni?: string) => {
-    await api.post('/api/user/create', { nombre, email, password, dni });
+  const register = useCallback(async (nombre: string, email: string, password: string, dni?: string, telefono?: string) => {
+    await api.post('/api/user/create', { nombre, email, password, dni, telefono });
     await login(email, password);
   }, [login]);
 
@@ -75,13 +77,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const updateUser = useCallback(async (updated: Partial<Usuario>) => {
-    setUser(prev => {
-      if (!prev) return prev;
-      const merged = { ...prev, ...updated };
-      saveUser(merged);
-      return merged;
-    });
-  }, []);
+    if (!user) return;
+    const merged = { ...user, ...updated };
+    setUser(merged);
+    await saveUser(merged).catch(() => {});
+  }, [user]);
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>

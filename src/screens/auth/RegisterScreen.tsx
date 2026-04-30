@@ -46,8 +46,8 @@ export default function RegisterScreen() {
     setError(null);
     setLoading(true);
     try {
-      await register(nombre.trim(), email.trim().toLowerCase(), password, dni.trim() || undefined);
-      navigation.navigate('Main');
+      await register(nombre.trim(), email.trim().toLowerCase(), password, dni.trim() || undefined, telefono.trim() || undefined);
+      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e: any) {
       const msg =
         e?.response?.data?.errors?.[0]?.msg ||
