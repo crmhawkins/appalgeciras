@@ -21,9 +21,16 @@ interface PartidoConJugadores extends Partido {
 }
 
 const JUGADORES_ALGECIRAS = [
-  'Nano', 'Marcos Blanco', 'Antoñito', 'Álex Galisteo', 'Juanjo',
-  'Fran Morante', 'Mario Ortiz', 'Cristo', 'Caballero', 'Caye Quintana',
-  'Dani Sánchez',
+  // Porteros
+  'Iván Moreno', 'Samu Casado',
+  // Defensas
+  'Carlos Arauz', 'Joseca', 'Álvaro Mayorga', 'Víctor Ruíz',
+  'Aleix Coch', 'Ángel Gómez', 'Tomás Sánchez', 'Paris Adot',
+  // Centrocampistas
+  'Iván Turrillo', 'Óscar Castro', 'Jony Álamo', 'Joe Riley',
+  'Dani Garrido', 'Eric Montes',
+  // Delanteros
+  'Juanma García', 'Isaac Obeng', 'Rastrojo', 'Manín', 'Andre Nader',
 ];
 
 export default function FanZoneScreen() {
