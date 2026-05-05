@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
@@ -9,6 +9,7 @@ import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
+import { Abono } from '../../types';
 
 export default function PerfilScreen() {
   const { user, logout, updateUser } = useAuth();
@@ -19,6 +20,21 @@ export default function PerfilScreen() {
   const [dni, setDni] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+
+  const [abonos, setAbonos] = useState<Abono[]>([]);
+  const [loadingAbonos, setLoadingAbonos] = useState(false);
+
+  const loadAbonos = useCallback(async () => {
+    if (!user) return;
+    setLoadingAbonos(true);
+    try {
+      const { data } = await api.get<Abono[]>(`/api/abonos/usuario/${user.id}`);
+      setAbonos(Array.isArray(data) ? data : []);
+    } catch {}
+    finally { setLoadingAbonos(false); }
+  }, [user]);
+
+  useEffect(() => { loadAbonos(); }, [loadAbonos]);
 
   const [showPassForm, setShowPassForm] = useState(false);
   const [passActual, setPassActual] = useState('');
@@ -254,6 +270,31 @@ export default function PerfilScreen() {
             </View>
           )}
 
+          {/* Mis Abonos */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Mis Abonos</Text>
+            {loadingAbonos ? (
+              <ActivityIndicator color={colors.primary} />
+            ) : abonos.length === 0 ? (
+              <Text style={styles.label}>No tienes abonos activos</Text>
+            ) : (
+              abonos.map(a => (
+                <View key={a.id} style={styles.abonoRow}>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.abonoNombre}>{a.nombre} {a.apellidos}</Text>
+                    <Text style={styles.abonoDetalle}>Asiento #{a.asientoId} · {a.precio}€</Text>
+                    <Text style={styles.abonoDetalle}>
+                      {new Date(a.fechaInicio).toLocaleDateString()} – {new Date(a.fechaFin).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <View style={[styles.abonoEstado, a.activo ? styles.abonoActivo : styles.abonoInactivo]}>
+                    <Text style={styles.abonoEstadoText}>{a.activo ? 'Activo' : 'Inactivo'}</Text>
+                  </View>
+                </View>
+              ))
+            )}
+          </View>
+
           <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout}>
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
@@ -364,4 +405,14 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   registerBtnText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
+  abonoRow: {
+    flexDirection: 'row', alignItems: 'center',
+    paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border,
+  },
+  abonoNombre: { fontSize: 14, fontWeight: 'bold', color: colors.text },
+  abonoDetalle: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  abonoEstado: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  abonoActivo: { backgroundColor: '#e8f5ee' },
+  abonoInactivo: { backgroundColor: '#fce8e8' },
+  abonoEstadoText: { fontSize: 12, fontWeight: 'bold', color: colors.text },
 });

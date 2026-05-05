@@ -26,6 +26,8 @@ export default function HomeScreen() {
 
   useEffect(() => { loadClasificacion(); }, [loadClasificacion]);
 
+  const [verTodaClasif, setVerTodaClasif] = useState(false);
+
   const goAbonos = () => navigation.navigate('AbonosTab');
   const goPartidos = () => navigation.navigate('PartidosTab');
 
@@ -71,7 +73,7 @@ export default function HomeScreen() {
                 <Text style={[styles.cell, styles.headerCell]}>GC</Text>
                 <Text style={[styles.cell, styles.cellPts, styles.headerCell]}>Pts</Text>
               </View>
-              {clasificacion.slice(0, 10).map((item) => {
+              {(verTodaClasif ? clasificacion : clasificacion.slice(0, 10)).map((item) => {
                 const isAlgeciras = item.equipo?.toLowerCase().includes('algeciras');
                 return (
                   <View
@@ -102,6 +104,13 @@ export default function HomeScreen() {
                 );
               })}
             </View>
+          )}
+          {clasificacion.length > 10 && (
+            <TouchableOpacity style={styles.verTodaBtn} onPress={() => setVerTodaClasif(v => !v)}>
+              <Text style={styles.verTodaText}>
+                {verTodaClasif ? '▲ Ver menos' : `▼ Ver toda la clasificación (${clasificacion.length} equipos)`}
+              </Text>
+            </TouchableOpacity>
           )}
         </View>
       </ScrollView>
@@ -187,4 +196,6 @@ const styles = StyleSheet.create({
   highlightPts: { color: colors.primary, fontWeight: 'bold' },
   equipoCell: { flex: 1, flexDirection: 'row', alignItems: 'center', paddingLeft: 4, gap: 4 },
   escudoSmall: { width: 18, height: 18, resizeMode: 'contain' },
+  verTodaBtn: { marginTop: 10, alignItems: 'center', paddingVertical: 8 },
+  verTodaText: { color: colors.primary, fontWeight: 'bold', fontSize: 13 },
 });

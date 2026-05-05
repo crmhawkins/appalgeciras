@@ -100,8 +100,9 @@ export type AbonosStackParamList = {
 
 export type MainTabParamList = {
   InicioTab: undefined;
+  NoticiasTab: undefined;
   AbonosTab: undefined;
-  PartidosTab: undefined;
-  MisAbonosTab: undefined;
+  FanZoneTab: undefined;
+  TiendaTab: undefined;
   PerfilTab: undefined;
 };

@@ -1,7 +1,7 @@
 {
   "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ssh -i /c/Users/Dani-Mefle/.ssh/hawcert_dani -o StrictHostKeyChecking=no dani@217.160.39.81 \\\"docker exec xccw44c0wc8gw08kgwkwk0wo-161107856325 sh -c 'grep -n \\\\\\\"register\\\\|signup\\\\\\\" /ap...",
-  "error": "Exit code 1",
-  "timestamp": "2026-04-29T09:11:48.556Z",
-  "retry_count": 3
+  "tool_input_preview": "{\"command\":\"ssh -i ~/.ssh/hawcert_dani -o StrictHostKeyChecking=no dani@217.160.39.81 \\\"docker exec xwo8cwsoso4cs4oswgkws40w-082725213393 php artisan tinker --execute=\\\\\\\"\\n\\\\\\\\\\\\$user = new \\\\App\\\\Mo...",
+  "error": "Exit code 1\n   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_NS_SEPARATOR in vendor/psy/psysh/src/Exception/ParseErrorException.php on line 44.",
+  "timestamp": "2026-04-30T08:36:01.860Z",
+  "retry_count": 1
 }

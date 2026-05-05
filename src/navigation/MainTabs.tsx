@@ -2,9 +2,10 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 import HomeScreen from '../screens/main/HomeScreen';
-import PartidosScreen from '../screens/main/PartidosScreen';
+import NoticiasScreen from '../screens/main/NoticiasScreen';
+import FanZoneScreen from '../screens/main/FanZoneScreen';
+import TiendaScreen from '../screens/main/TiendaScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
-import MisAbonosScreen from '../screens/main/MisAbonosScreen';
 import AbonosStack from './AbonosStack';
 import { MainTabParamList } from '../types';
 import { colors } from '../theme/colors';
@@ -25,6 +26,7 @@ export default function MainTabs() {
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
         tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border },
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
       <Tab.Screen
@@ -33,19 +35,24 @@ export default function MainTabs() {
         options={{ title: 'Inicio', tabBarIcon: tabIcon('🏠') }}
       />
       <Tab.Screen
+        name="NoticiasTab"
+        component={NoticiasScreen}
+        options={{ title: 'Noticias', tabBarIcon: tabIcon('📰') }}
+      />
+      <Tab.Screen
         name="AbonosTab"
         component={AbonosStack}
-        options={{ title: 'Comprar', tabBarIcon: tabIcon('🛒') }}
+        options={{ title: 'Comprar', tabBarIcon: tabIcon('🎟️') }}
       />
       <Tab.Screen
-        name="PartidosTab"
-        component={PartidosScreen}
-        options={{ title: 'Partidos', tabBarIcon: tabIcon('⚽') }}
+        name="FanZoneTab"
+        component={FanZoneScreen}
+        options={{ title: 'Fan Zone', tabBarIcon: tabIcon('⭐') }}
       />
       <Tab.Screen
-        name="MisAbonosTab"
-        component={MisAbonosScreen}
-        options={{ title: 'Mis Abonos', tabBarIcon: tabIcon('📋') }}
+        name="TiendaTab"
+        component={TiendaScreen}
+        options={{ title: 'Tienda', tabBarIcon: tabIcon('🛍️') }}
       />
       <Tab.Screen
         name="PerfilTab"
