@@ -105,5 +105,4 @@ export type MainTabParamList = {
   FanZoneTab: undefined;
   TiendaTab: undefined;
   PerfilTab: undefined;
-  PartidosTab: undefined;
 };

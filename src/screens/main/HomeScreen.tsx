@@ -29,7 +29,7 @@ export default function HomeScreen() {
   const [verTodaClasif, setVerTodaClasif] = useState(false);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
-  const goPartidos = () => navigation.navigate('PartidosTab');
+  const goPartidos = () => navigation.navigate('Partidos');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

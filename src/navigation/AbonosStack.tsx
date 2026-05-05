@@ -26,17 +26,17 @@ export default function AbonosStack() {
       <Stack.Screen
         name="Sectores"
         component={SectoresScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Sectores' }}
       />
       <Stack.Screen
         name="Asientos"
         component={AsientosScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Selecciona Asiento' }}
       />
       <Stack.Screen
         name="Checkout"
         component={CheckoutScreen}
-        options={{ headerShown: false }}
+        options={{ title: 'Confirmar Compra' }}
       />
     </Stack.Navigator>
   );
