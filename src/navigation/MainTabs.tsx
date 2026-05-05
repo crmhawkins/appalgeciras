@@ -7,6 +7,7 @@ import FanZoneScreen from '../screens/main/FanZoneScreen';
 import TiendaScreen from '../screens/main/TiendaScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
 import AbonosStack from './AbonosStack';
+import PartidosScreen from '../screens/main/PartidosScreen';
 import { MainTabParamList } from '../types';
 import { colors } from '../theme/colors';
 
@@ -58,6 +59,11 @@ export default function MainTabs() {
         name="PerfilTab"
         component={PerfilScreen}
         options={{ title: 'Perfil', tabBarIcon: tabIcon('👤') }}
+      />
+      <Tab.Screen
+        name="PartidosTab"
+        component={PartidosScreen}
+        options={{ tabBarButton: () => null, tabBarStyle: { display: 'none' } }}
       />
     </Tab.Navigator>
   );
