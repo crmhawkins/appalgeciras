@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 import HomeScreen from '../screens/main/HomeScreen';
 import NoticiasScreen from '../screens/main/NoticiasScreen';
+import PlantillaScreen from '../screens/main/PlantillaScreen';
 import FanZoneScreen from '../screens/main/FanZoneScreen';
 import TiendaScreen from '../screens/main/TiendaScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
@@ -38,6 +39,11 @@ export default function MainTabs() {
         name="NoticiasTab"
         component={NoticiasScreen}
         options={{ title: 'Noticias', tabBarIcon: tabIcon('📰') }}
+      />
+      <Tab.Screen
+        name="PlantillaTab"
+        component={PlantillaScreen}
+        options={{ title: 'Plantilla', tabBarIcon: tabIcon('👥') }}
       />
       <Tab.Screen
         name="AbonosTab"

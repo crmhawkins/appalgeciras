@@ -1,0 +1,328 @@
+import React, { useEffect, useState } from 'react';
+import {
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  ActivityIndicator, Image,
+} from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { colors } from '../../theme/colors';
+import api from '../../services/api';
+
+type JugadorDetalleRouteParams = {
+  JugadorDetalle: { id: number };
+};
+
+interface EstadisticasJugador {
+  goles?: number;
+  asistencias?: number;
+  minutos?: number;
+  partidos?: number;
+  titularidades?: number;
+  tarjetasAmarillas?: number;
+  tarjetasRojas?: number;
+  disparosPuerta?: number;
+  rating?: number;
+}
+
+interface JugadorDetalle {
+  id: number;
+  nombre: string;
+  apellidos?: string;
+  dorsal?: number;
+  posicion?: string;
+  sofascoreId?: number;
+  foto?: string;
+  nacionalidad?: string;
+  edad?: number;
+  altura?: string;
+  peso?: string;
+  estadisticas?: EstadisticasJugador;
+}
+
+interface StatItem {
+  icon: string;
+  label: string;
+  value: number | string;
+}
+
+function fotoUrl(jugador: JugadorDetalle): string | null {
+  if (jugador.foto) return jugador.foto;
+  if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
+  return null;
+}
+
+function nombreCompleto(jugador: JugadorDetalle): string {
+  return jugador.apellidos ? `${jugador.nombre} ${jugador.apellidos}` : jugador.nombre;
+}
+
+function buildStats(est?: EstadisticasJugador): StatItem[] {
+  if (!est) return [];
+  return [
+    { icon: '⚽', label: 'Goles', value: est.goles ?? 0 },
+    { icon: '🅰️', label: 'Asistencias', value: est.asistencias ?? 0 },
+    { icon: '⏱', label: 'Minutos', value: est.minutos ?? 0 },
+    { icon: '📋', label: 'Partidos', value: est.partidos ?? 0 },
+    { icon: '▶️', label: 'Titularidades', value: est.titularidades ?? 0 },
+    { icon: '🟨', label: 'T. Amarillas', value: est.tarjetasAmarillas ?? 0 },
+    { icon: '🟥', label: 'T. Rojas', value: est.tarjetasRojas ?? 0 },
+    { icon: '🎯', label: 'Disparos', value: est.disparosPuerta ?? 0 },
+    { icon: '⭐', label: 'Rating', value: est.rating != null ? Number(est.rating).toFixed(1) : '—' },
+  ];
+}
+
+export default function JugadorDetalleScreen() {
+  const navigation = useNavigation<any>();
+  const route = useRoute<RouteProp<JugadorDetalleRouteParams, 'JugadorDetalle'>>();
+  const { id } = route.params;
+
+  const [jugador, setJugador] = useState<JugadorDetalle | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [fotoError, setFotoError] = useState(false);
+
+  useEffect(() => {
+    api.get<JugadorDetalle>(`/api/jugadores/${id}`)
+      .then(({ data }) => setJugador(data))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!jugador) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backText}>‹ Volver</Text>
+        </TouchableOpacity>
+        <View style={styles.centered}>
+          <Text style={styles.errorText}>No se pudo cargar el jugador</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const url = fotoUrl(jugador);
+  const stats = buildStats(jugador.estadisticas);
+
+  return (
+    <SafeAreaView style={styles.safe} edges={['top']}>
+      <ScrollView contentContainerStyle={styles.scroll}>
+        {/* Header */}
+        <View style={styles.hero}>
+          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.backText}>‹ Volver</Text>
+          </TouchableOpacity>
+
+          {url && !fotoError ? (
+            <Image
+              source={{ uri: url }}
+              style={styles.fotoGrande}
+              onError={() => setFotoError(true)}
+            />
+          ) : (
+            <View style={styles.fotoPlaceholder}>
+              <Text style={styles.fotoPlaceholderText}>{jugador.nombre.charAt(0).toUpperCase()}</Text>
+            </View>
+          )}
+
+          <Text style={styles.nombre}>{nombreCompleto(jugador)}</Text>
+
+          <View style={styles.badgesRow}>
+            {jugador.dorsal != null && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeLabel}>Dorsal</Text>
+                <Text style={styles.badgeValue}>#{jugador.dorsal}</Text>
+              </View>
+            )}
+            {jugador.posicion && (
+              <View style={[styles.badge, styles.badgeSecondary]}>
+                <Text style={styles.badgeLabel}>Posición</Text>
+                <Text style={styles.badgeValueSecondary}>{jugador.posicion}</Text>
+              </View>
+            )}
+            {jugador.edad != null && (
+              <View style={[styles.badge, styles.badgeSecondary]}>
+                <Text style={styles.badgeLabel}>Edad</Text>
+                <Text style={styles.badgeValueSecondary}>{jugador.edad} años</Text>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Info extra */}
+        {(jugador.nacionalidad || jugador.altura || jugador.peso) && (
+          <View style={styles.infoSection}>
+            <Text style={styles.sectionTitle}>Información</Text>
+            <View style={styles.infoRow}>
+              {jugador.nacionalidad && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Nacionalidad</Text>
+                  <Text style={styles.infoValue}>{jugador.nacionalidad}</Text>
+                </View>
+              )}
+              {jugador.altura && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Altura</Text>
+                  <Text style={styles.infoValue}>{jugador.altura}</Text>
+                </View>
+              )}
+              {jugador.peso && (
+                <View style={styles.infoItem}>
+                  <Text style={styles.infoLabel}>Peso</Text>
+                  <Text style={styles.infoValue}>{jugador.peso}</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* Estadísticas */}
+        {stats.length > 0 && (
+          <View style={styles.statsSection}>
+            <Text style={styles.sectionTitle}>Estadísticas</Text>
+            <View style={styles.statsGrid}>
+              {stats.map((s) => (
+                <View key={s.label} style={styles.statCard}>
+                  <Text style={styles.statIcon}>{s.icon}</Text>
+                  <Text style={styles.statValue}>{s.value}</Text>
+                  <Text style={styles.statLabel}>{s.label}</Text>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {stats.length === 0 && !jugador.estadisticas && (
+          <View style={styles.infoSection}>
+            <Text style={styles.emptyStats}>Sin estadísticas disponibles esta temporada</Text>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  safe: { flex: 1, backgroundColor: colors.background },
+  scroll: { paddingBottom: 32 },
+  centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { color: colors.textSecondary, fontSize: 15 },
+
+  hero: {
+    backgroundColor: colors.primary,
+    alignItems: 'center',
+    paddingBottom: 28,
+    paddingTop: 8,
+  },
+  backBtn: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+  },
+  backText: { color: colors.white, fontSize: 16, fontWeight: '600' },
+
+  fotoGrande: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 3,
+    borderColor: colors.white,
+    marginTop: 8,
+    marginBottom: 14,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+  },
+  fotoPlaceholder: {
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderWidth: 3,
+    borderColor: colors.white,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 8,
+    marginBottom: 14,
+  },
+  fotoPlaceholderText: { color: colors.white, fontSize: 42, fontWeight: 'bold' },
+
+  nombre: {
+    color: colors.white,
+    fontSize: 22,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingHorizontal: 20,
+    marginBottom: 14,
+  },
+
+  badgesRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center', paddingHorizontal: 16 },
+  badge: {
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  badgeSecondary: { backgroundColor: 'rgba(255,255,255,0.1)' },
+  badgeLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, marginBottom: 2 },
+  badgeValue: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
+  badgeValueSecondary: { color: colors.white, fontWeight: '600', fontSize: 14 },
+
+  infoSection: {
+    backgroundColor: colors.white,
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 12,
+    padding: 16,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.primary,
+    marginBottom: 12,
+    borderLeftWidth: 3,
+    borderLeftColor: colors.primary,
+    paddingLeft: 8,
+  },
+  infoRow: { flexDirection: 'row', gap: 16 },
+  infoItem: { flex: 1 },
+  infoLabel: { fontSize: 11, color: colors.textSecondary, marginBottom: 2 },
+  infoValue: { fontSize: 14, fontWeight: '600', color: colors.text },
+
+  statsSection: {
+    backgroundColor: colors.white,
+    margin: 16,
+    marginBottom: 0,
+    borderRadius: 12,
+    padding: 16,
+  },
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  statCard: {
+    width: '30%',
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statIcon: { fontSize: 22, marginBottom: 4 },
+  statValue: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 2 },
+  statLabel: { fontSize: 10, color: colors.textSecondary, textAlign: 'center' },
+
+  emptyStats: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 8, fontSize: 13 },
+});
