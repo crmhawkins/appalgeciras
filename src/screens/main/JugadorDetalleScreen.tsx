@@ -80,10 +80,12 @@ export default function JugadorDetalleScreen() {
   const [fotoError, setFotoError] = useState(false);
 
   useEffect(() => {
+    let mounted = true;
     api.get<JugadorDetalle>(`/api/jugadores/${id}`)
-      .then(({ data }) => setJugador(data))
+      .then(({ data }) => { if (mounted) setJugador(data); })
       .catch(() => {})
-      .finally(() => setLoading(false));
+      .finally(() => { if (mounted) setLoading(false); });
+    return () => { mounted = false; };
   }, [id]);
 
   if (loading) {

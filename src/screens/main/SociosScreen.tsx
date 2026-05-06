@@ -144,7 +144,12 @@ export default function SociosScreen() {
               <Text style={styles.ventajaIcon}>{v.icon}</Text>
             </View>
             <View style={styles.ventajaContent}>
-              <Text style={styles.ventajaTitulo}>{v.titulo}</Text>
+              <View style={styles.ventajaTituloRow}>
+                <Text style={styles.ventajaTitulo}>{v.titulo}</Text>
+                <View style={styles.exclusivoBadge}>
+                  <Text style={styles.exclusivoText}>EXCLUSIVO</Text>
+                </View>
+              </View>
               <Text style={styles.ventajaDesc}>{v.descripcion}</Text>
             </View>
             <TouchableOpacity style={styles.verOfertaBtn} disabled>
@@ -208,7 +213,15 @@ const styles = StyleSheet.create({
   },
   ventajaIcon: { fontSize: 24 },
   ventajaContent: { flex: 1 },
+  ventajaTituloRow: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', gap: 6, marginBottom: 2 },
   ventajaTitulo: { fontSize: 15, fontWeight: 'bold', color: colors.text },
+  exclusivoBadge: {
+    backgroundColor: colors.primary,
+    borderRadius: 4,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+  },
+  exclusivoText: { color: colors.white, fontSize: 9, fontWeight: 'bold', letterSpacing: 0.5 },
   ventajaDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   verOfertaBtn: {
     backgroundColor: colors.border,

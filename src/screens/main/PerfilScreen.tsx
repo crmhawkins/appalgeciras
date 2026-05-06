@@ -43,6 +43,7 @@ export default function PerfilScreen() {
   const [passConfirm, setPassConfirm] = useState('');
   const [showPass, setShowPass] = useState(false);
   const [showPassNueva, setShowPassNueva] = useState(false);
+  const [showPassConfirm, setShowPassConfirm] = useState(false);
   const [loadingPass, setLoadingPass] = useState(false);
 
   useEffect(() => {
@@ -250,11 +251,14 @@ export default function PerfilScreen() {
                   style={styles.passInput}
                   value={passConfirm}
                   onChangeText={setPassConfirm}
-                  secureTextEntry={!showPassNueva}
+                  secureTextEntry={!showPassConfirm}
                   placeholder="Repite la contraseña"
                   autoCapitalize="none"
                   autoCorrect={false}
                 />
+                <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPassConfirm(p => !p)}>
+                  <Text style={styles.eyeText}>{showPassConfirm ? '🙈' : '👁️'}</Text>
+                </TouchableOpacity>
               </View>
 
               <TouchableOpacity
@@ -478,11 +482,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.white,
     borderRadius: 14, marginBottom: 14,
     overflow: 'hidden',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.12,
-    shadowRadius: 6,
+    elevation: 8,
+    shadowColor: colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.22,
+    shadowRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(200,16,46,0.15)',
   },
   carnetHeader: {
     backgroundColor: colors.primary,

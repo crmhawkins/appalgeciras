@@ -67,7 +67,8 @@ export default function FanZoneScreen() {
   const loadPartidos = useCallback(async () => {
     try {
       const { data } = await api.get('/api/partidos');
-      const lista: Partido[] = data.partidos ?? [];
+      // API returns array directly (not wrapped in {partidos: []})
+      const lista: Partido[] = Array.isArray(data) ? data : (data.partidos ?? []);
       setPartidos(lista);
       const activo = lista.find(p => p.marcador !== null && p.marcador !== undefined) ?? lista[0] ?? null;
       setPartidoActivo(activo);
@@ -108,15 +109,31 @@ export default function FanZoneScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Scroll al fondo cuando llegan mensajes nuevos
+  useEffect(() => {
+    if (mensajes.length > 0) {
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    }
+  }, [mensajes.length]);
+
   // Socket.io: conectar cuando hay partido activo
   useEffect(() => {
     if (!partidoActivo) return;
 
-    const socket = io(BACKEND_URL, { transports: ['websocket'] });
+    const socket = io(BACKEND_URL, {
+      transports: ['websocket'],
+      reconnection: true,
+      reconnectionAttempts: 5,
+      reconnectionDelay: 2000,
+    });
     socketRef.current = socket;
 
     socket.on('connect', () => {
       socket.emit('join_partido', partidoActivo.id);
+    });
+
+    socket.on('connect_error', (err) => {
+      console.warn('[Chat] Error de conexión:', err.message);
     });
 
     socket.on('history', (history: ChatMessage[]) => {
@@ -127,6 +144,10 @@ export default function FanZoneScreen() {
       setMensajes(prev => [...prev, msg]);
     });
 
+    socket.on('rate_limit', ({ msg }: { msg: string }) => {
+      Alert.alert('Chat', msg);
+    });
+
     return () => {
       socket.disconnect();
       socketRef.current = null;
@@ -134,18 +155,21 @@ export default function FanZoneScreen() {
   }, [partidoActivo?.id]);
 
   const handleEnviarMensaje = () => {
-    if (!inputMensaje.trim() || !socketRef.current || !partidoActivo) return;
+    const texto = inputMensaje.trim();
+    if (!texto || !socketRef.current || !partidoActivo || enviando) return;
 
-    const userName = (user as any)?.nombre || (user as any)?.email || 'Aficionado';
+    const rawName = (user as any)?.nombre || (user as any)?.email || 'Aficionado';
+    const userName = rawName;
 
     setEnviando(true);
+    setInputMensaje('');
     socketRef.current.emit('send_message', {
       partidoId: partidoActivo.id,
-      mensaje: inputMensaje.trim(),
+      mensaje: texto,
       userName,
     });
-    setInputMensaje('');
-    setEnviando(false);
+    // Re-enable after short debounce (server echo via new_message re-enables naturally)
+    setTimeout(() => setEnviando(false), 500);
   };
 
   const formatHora = (iso: string) => {
@@ -189,7 +213,7 @@ export default function FanZoneScreen() {
       <View style={styles.header}><Text style={styles.headerTitle}>⚡ Fan Zone</Text></View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
         <ScrollView
@@ -276,14 +300,20 @@ export default function FanZoneScreen() {
                     data={mensajes}
                     keyExtractor={(item) => item.id}
                     style={styles.chatList}
-                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
-                    renderItem={({ item }) => (
-                      <View style={styles.mensajeRow}>
-                        <Text style={styles.mensajeUsuario}>{item.userName}</Text>
-                        <Text style={styles.mensajeTexto}>{item.mensaje}</Text>
-                        <Text style={styles.mensajeHora}>{formatHora(item.timestamp)}</Text>
-                      </View>
-                    )}
+                    renderItem={({ item }) => {
+                      const esMio = user && (
+                        item.userName === ((user as any)?.nombre || (user as any)?.email)
+                      );
+                      return (
+                        <View style={[styles.mensajeRow, esMio && styles.mensajeRowMio]}>
+                          <Text style={[styles.mensajeUsuario, esMio && styles.mensajeUsuarioMio]}>
+                            {esMio ? 'Tú' : item.userName}
+                          </Text>
+                          <Text style={styles.mensajeTexto}>{item.mensaje}</Text>
+                          <Text style={styles.mensajeHora}>{formatHora(item.timestamp)}</Text>
+                        </View>
+                      );
+                    }}
                   />
                 )}
               </View>
@@ -394,8 +424,10 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   chatList: { flex: 1, padding: 8 },
-  mensajeRow: { marginBottom: 10 },
+  mensajeRow: { marginBottom: 10, paddingHorizontal: 4 },
+  mensajeRowMio: { alignItems: 'flex-end' },
   mensajeUsuario: { fontSize: 12, fontWeight: 'bold', color: colors.primary, marginBottom: 1 },
+  mensajeUsuarioMio: { color: colors.textSecondary },
   mensajeTexto: { fontSize: 14, color: colors.text },
   mensajeHora: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },

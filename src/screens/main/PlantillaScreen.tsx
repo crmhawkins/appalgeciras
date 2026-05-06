@@ -146,7 +146,11 @@ export default function PlantillaScreen() {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <Text style={styles.emptyText}>Sin jugadores disponibles</Text>
+          <View style={styles.emptyContainer}>
+            <Text style={styles.emptyIcon}>👥</Text>
+            <Text style={styles.emptyTitle}>Plantilla no disponible</Text>
+            <Text style={styles.emptyText}>Los jugadores aparecerán aquí cuando se publiquen</Text>
+          </View>
         }
       />
     </SafeAreaView>
@@ -215,5 +219,8 @@ const styles = StyleSheet.create({
   },
   dorsalText: { color: colors.white, fontWeight: 'bold', fontSize: 14 },
   chevron: { color: colors.textSecondary, fontSize: 22, marginLeft: 4 },
-  emptyText: { textAlign: 'center', color: colors.textSecondary, marginTop: 40, fontSize: 14 },
+  emptyContainer: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
+  emptyIcon: { fontSize: 52, marginBottom: 14 },
+  emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.primary, marginBottom: 8, textAlign: 'center' },
+  emptyText: { textAlign: 'center', color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
 });

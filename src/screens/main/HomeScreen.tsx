@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image,
+  ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -67,7 +67,16 @@ export default function HomeScreen() {
     loadPartido();
   }, [loadClasificacion, loadPartido]);
 
+  const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    setLoadingClasif(true);
+    setLoadingPartido(true);
+    await Promise.all([loadClasificacion(), loadPartido()]);
+    setRefreshing(false);
+  }, [loadClasificacion, loadPartido]);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
   const goPartidos = () => navigation.navigate('Partidos');
@@ -88,7 +97,10 @@ export default function HomeScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <ScrollView
+        contentContainerStyle={styles.container}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
+      >
         {/* HEADER */}
         <View style={styles.header}>
           {escudoError ? (
