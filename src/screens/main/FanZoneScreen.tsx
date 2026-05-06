@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, RefreshControl,
+  ActivityIndicator, Alert, RefreshControl, FlatList,
+  TextInput, KeyboardAvoidingView, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
@@ -9,6 +10,9 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { Partido } from '../../types';
+import { io, Socket } from 'socket.io-client';
+
+const BACKEND_URL = 'https://backend-algeciras.hawkins.es';
 
 interface VotoResult {
   jugador: string;
@@ -18,6 +22,13 @@ interface VotoResult {
 
 interface PartidoConJugadores extends Partido {
   jugadoresLocales?: string[];
+}
+
+interface ChatMessage {
+  id: string;
+  userName: string;
+  mensaje: string;
+  timestamp: string;
 }
 
 const JUGADORES_ALGECIRAS = [
@@ -45,6 +56,13 @@ export default function FanZoneScreen() {
   const [loading, setLoading] = useState(true);
   const [votando, setVotando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+
+  // Chat state
+  const [mensajes, setMensajes] = useState<ChatMessage[]>([]);
+  const [inputMensaje, setInputMensaje] = useState('');
+  const [enviando, setEnviando] = useState(false);
+  const socketRef = useRef<Socket | null>(null);
+  const flatListRef = useRef<FlatList>(null);
 
   const loadPartidos = useCallback(async () => {
     try {
@@ -90,6 +108,52 @@ export default function FanZoneScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Socket.io: conectar cuando hay partido activo
+  useEffect(() => {
+    if (!partidoActivo) return;
+
+    const socket = io(BACKEND_URL, { transports: ['websocket'] });
+    socketRef.current = socket;
+
+    socket.on('connect', () => {
+      socket.emit('join_partido', partidoActivo.id);
+    });
+
+    socket.on('history', (history: ChatMessage[]) => {
+      setMensajes(history);
+    });
+
+    socket.on('new_message', (msg: ChatMessage) => {
+      setMensajes(prev => [...prev, msg]);
+    });
+
+    return () => {
+      socket.disconnect();
+      socketRef.current = null;
+    };
+  }, [partidoActivo?.id]);
+
+  const handleEnviarMensaje = () => {
+    if (!inputMensaje.trim() || !socketRef.current || !partidoActivo) return;
+
+    const userName = (user as any)?.nombre || (user as any)?.email || 'Aficionado';
+
+    setEnviando(true);
+    socketRef.current.emit('send_message', {
+      partidoId: partidoActivo.id,
+      mensaje: inputMensaje.trim(),
+      userName,
+    });
+    setInputMensaje('');
+    setEnviando(false);
+  };
+
+  const formatHora = (iso: string) => {
+    try {
+      return new Date(iso).toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' });
+    } catch { return ''; }
+  };
+
   const handleVotar = async (jugador: string) => {
     if (!user) {
       Alert.alert('Inicia sesión', 'Necesitas cuenta para votar', [
@@ -123,83 +187,145 @@ export default function FanZoneScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}><Text style={styles.headerTitle}>⚡ Fan Zone</Text></View>
-      <ScrollView
-        contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        {/* Partido activo */}
-        {partidoActivo && (
-          <View style={styles.card}>
-            <Text style={styles.cardLabel}>Partido activo</Text>
-            <View style={styles.matchRow}>
-              <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoLocal}</Text>
-              <View style={styles.scoreBox}>
-                <Text style={styles.score}>{partidoActivo.marcador ?? 'vs'}</Text>
+        <ScrollView
+          contentContainerStyle={styles.container}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
+        >
+          {/* Partido activo */}
+          {partidoActivo && (
+            <View style={styles.card}>
+              <Text style={styles.cardLabel}>Partido activo</Text>
+              <View style={styles.matchRow}>
+                <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoLocal}</Text>
+                <View style={styles.scoreBox}>
+                  <Text style={styles.score}>{partidoActivo.marcador ?? 'vs'}</Text>
+                </View>
+                <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoVisitante}</Text>
               </View>
-              <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoVisitante}</Text>
-            </View>
-          </View>
-        )}
-
-        {/* Fan of the Match */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>⭐ Fan of the Match</Text>
-          <Text style={styles.sectionSubtitle}>
-            {miVoto ? `Tu voto: ${miVoto}` : 'Vota al mejor jugador del partido'}
-          </Text>
-
-          {!partidoActivo ? (
-            <Text style={styles.emptyText}>No hay partido activo para votar</Text>
-          ) : (
-            <View style={styles.jugadoresGrid}>
-              {JUGADORES_ALGECIRAS.map((j) => {
-                const isSelected = miVoto === j;
-                const votoData = votos.find(v => v.jugador === j);
-                return (
-                  <TouchableOpacity
-                    key={j}
-                    style={[styles.jugadorBtn, isSelected && styles.jugadorBtnSelected]}
-                    onPress={() => handleVotar(j)}
-                    disabled={votando}
-                  >
-                    <Text style={[styles.jugadorName, isSelected && styles.jugadorNameSelected]}>{j}</Text>
-                    {votoData && (
-                      <Text style={[styles.jugadorVotos, isSelected && styles.jugadorVotosSelected]}>
-                        {votoData.porcentaje}%
-                      </Text>
-                    )}
-                  </TouchableOpacity>
-                );
-              })}
             </View>
           )}
-        </View>
 
-        {/* Resultados */}
-        {votos.length > 0 && (
+          {/* Fan of the Match */}
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>📊 Resultados ({totalVotos} votos)</Text>
-            {votos.slice(0, 5).map((v, i) => (
-              <View key={v.jugador} style={styles.resultRow}>
-                <Text style={styles.resultPos}>{i + 1}°</Text>
-                <Text style={styles.resultNombre} numberOfLines={1}>{v.jugador}</Text>
-                <View style={styles.barContainer}>
-                  <View style={[styles.bar, { width: `${v.porcentaje}%` as any }]} />
-                </View>
-                <Text style={styles.resultPct}>{v.porcentaje}%</Text>
-              </View>
-            ))}
-          </View>
-        )}
+            <Text style={styles.sectionTitle}>⭐ Fan of the Match</Text>
+            <Text style={styles.sectionSubtitle}>
+              {miVoto ? `Tu voto: ${miVoto}` : 'Vota al mejor jugador del partido'}
+            </Text>
 
-        {/* Fan Zone extra */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>🏟️ Próximamente</Text>
-          <Text style={styles.comingText}>• Predicciones de resultado</Text>
-          <Text style={styles.comingText}>• Ranking de aficionados</Text>
-          <Text style={styles.comingText}>• Quinielas del partido</Text>
-        </View>
-      </ScrollView>
+            {!partidoActivo ? (
+              <Text style={styles.emptyText}>No hay partido activo para votar</Text>
+            ) : (
+              <View style={styles.jugadoresGrid}>
+                {JUGADORES_ALGECIRAS.map((j) => {
+                  const isSelected = miVoto === j;
+                  const votoData = votos.find(v => v.jugador === j);
+                  return (
+                    <TouchableOpacity
+                      key={j}
+                      style={[styles.jugadorBtn, isSelected && styles.jugadorBtnSelected]}
+                      onPress={() => handleVotar(j)}
+                      disabled={votando}
+                    >
+                      <Text style={[styles.jugadorName, isSelected && styles.jugadorNameSelected]}>{j}</Text>
+                      {votoData && (
+                        <Text style={[styles.jugadorVotos, isSelected && styles.jugadorVotosSelected]}>
+                          {votoData.porcentaje}%
+                        </Text>
+                      )}
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+
+          {/* Resultados */}
+          {votos.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>📊 Resultados ({totalVotos} votos)</Text>
+              {votos.slice(0, 5).map((v, i) => (
+                <View key={v.jugador} style={styles.resultRow}>
+                  <Text style={styles.resultPos}>{i + 1}°</Text>
+                  <Text style={styles.resultNombre} numberOfLines={1}>{v.jugador}</Text>
+                  <View style={styles.barContainer}>
+                    <View style={[styles.bar, { width: `${v.porcentaje}%` as any }]} />
+                  </View>
+                  <Text style={styles.resultPct}>{v.porcentaje}%</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Chat en tiempo real */}
+          {partidoActivo && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>💬 Chat</Text>
+
+              {/* Lista mensajes */}
+              <View style={styles.chatContainer}>
+                {mensajes.length === 0 ? (
+                  <Text style={styles.emptyText}>Sin mensajes. ¡Sé el primero!</Text>
+                ) : (
+                  <FlatList
+                    ref={flatListRef}
+                    data={mensajes}
+                    keyExtractor={(item) => item.id}
+                    style={styles.chatList}
+                    onContentSizeChange={() => flatListRef.current?.scrollToEnd({ animated: true })}
+                    renderItem={({ item }) => (
+                      <View style={styles.mensajeRow}>
+                        <Text style={styles.mensajeUsuario}>{item.userName}</Text>
+                        <Text style={styles.mensajeTexto}>{item.mensaje}</Text>
+                        <Text style={styles.mensajeHora}>{formatHora(item.timestamp)}</Text>
+                      </View>
+                    )}
+                  />
+                )}
+              </View>
+
+              {/* Input envío */}
+              {user ? (
+                <View style={styles.chatInputRow}>
+                  <TextInput
+                    style={styles.chatInput}
+                    placeholder="Escribe un mensaje..."
+                    placeholderTextColor={colors.textSecondary}
+                    value={inputMensaje}
+                    onChangeText={setInputMensaje}
+                    onSubmitEditing={handleEnviarMensaje}
+                    returnKeyType="send"
+                    maxLength={200}
+                  />
+                  <TouchableOpacity
+                    style={[styles.sendBtn, (!inputMensaje.trim() || enviando) && styles.sendBtnDisabled]}
+                    onPress={handleEnviarMensaje}
+                    disabled={!inputMensaje.trim() || enviando}
+                  >
+                    <Text style={styles.sendBtnText}>Enviar</Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <TouchableOpacity onPress={() => navigation.navigate('Auth', { screen: 'Login' })}>
+                  <Text style={styles.chatLoginText}>Inicia sesión para participar en el chat</Text>
+                </TouchableOpacity>
+              )}
+            </View>
+          )}
+
+          {/* Fan Zone extra */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>🏟️ Próximamente</Text>
+            <Text style={styles.comingText}>• Predicciones de resultado</Text>
+            <Text style={styles.comingText}>• Ranking de aficionados</Text>
+            <Text style={styles.comingText}>• Quinielas del partido</Text>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
@@ -258,4 +384,45 @@ const styles = StyleSheet.create({
   bar: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
   resultPct: { width: 36, fontSize: 12, color: colors.textSecondary, textAlign: 'right' },
   comingText: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
+  // Chat styles
+  chatContainer: {
+    minHeight: 180,
+    maxHeight: 300,
+    backgroundColor: colors.background,
+    borderRadius: 8,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  chatList: { flex: 1, padding: 8 },
+  mensajeRow: { marginBottom: 10 },
+  mensajeUsuario: { fontSize: 12, fontWeight: 'bold', color: colors.primary, marginBottom: 1 },
+  mensajeTexto: { fontSize: 14, color: colors.text },
+  mensajeHora: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
+  chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  chatInput: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 14,
+    color: colors.text,
+    backgroundColor: colors.background,
+  },
+  sendBtn: {
+    backgroundColor: colors.primary,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  sendBtnDisabled: { opacity: 0.5 },
+  sendBtnText: { color: colors.white, fontWeight: 'bold', fontSize: 14 },
+  chatLoginText: {
+    textAlign: 'center',
+    color: colors.primary,
+    fontSize: 14,
+    paddingVertical: 8,
+    textDecorationLine: 'underline',
+  },
 });
