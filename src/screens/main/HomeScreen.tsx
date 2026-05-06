@@ -10,11 +10,24 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { ClasificacionItem } from '../../types';
 
+interface PartidoAPI {
+  id: number;
+  local: string;
+  visitante: string;
+  fecha: string;
+  resultado_local: number | null;
+  resultado_visitante: number | null;
+  estado: string;
+}
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [clasificacion, setClasificacion] = useState<ClasificacionItem[]>([]);
   const [loadingClasif, setLoadingClasif] = useState(true);
+  const [escudoError, setEscudoError] = useState(false);
+  const [partido, setPartido] = useState<PartidoAPI | null>(null);
+  const [loadingPartido, setLoadingPartido] = useState(true);
 
   const loadClasificacion = useCallback(async () => {
     try {
@@ -24,20 +37,72 @@ export default function HomeScreen() {
     finally { setLoadingClasif(false); }
   }, []);
 
-  useEffect(() => { loadClasificacion(); }, [loadClasificacion]);
+  const loadPartido = useCallback(async () => {
+    try {
+      const { data } = await api.get<PartidoAPI[]>('/api/partidos');
+      if (!data || data.length === 0) return;
+      // Prefer most recent played match
+      const jugados = data.filter(
+        p => p.estado === 'jugado' || p.resultado_local !== null,
+      );
+      if (jugados.length > 0) {
+        // Sort by fecha desc, pick first
+        const sorted = jugados.sort(
+          (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
+        );
+        setPartido(sorted[0]);
+      } else {
+        // No played match — show next upcoming
+        const proximos = data
+          .filter(p => p.estado !== 'jugado' && p.resultado_local === null)
+          .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+        setPartido(proximos[0] ?? null);
+      }
+    } catch (_) {}
+    finally { setLoadingPartido(false); }
+  }, []);
+
+  useEffect(() => {
+    loadClasificacion();
+    loadPartido();
+  }, [loadClasificacion, loadPartido]);
 
   const [verTodaClasif, setVerTodaClasif] = useState(false);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
   const goPartidos = () => navigation.navigate('Partidos');
+  const goNoticias = () => navigation.navigate('NoticiasTab');
+
+  const formatFecha = (fechaStr: string) => {
+    try {
+      const d = new Date(fechaStr);
+      return d.toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' });
+    } catch {
+      return fechaStr;
+    }
+  };
+
+  const partidoJugado =
+    partido !== null &&
+    (partido.estado === 'jugado' || partido.resultado_local !== null);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <ScrollView contentContainerStyle={styles.container}>
+        {/* HEADER */}
         <View style={styles.header}>
-          <View style={styles.escudoPlaceholder}>
-            <Text style={styles.escudoText}>ACF</Text>
-          </View>
+          {escudoError ? (
+            <View style={styles.escudoPlaceholder}>
+              <Text style={styles.escudoText}>ACF</Text>
+            </View>
+          ) : (
+            <Image
+              source={{ uri: 'https://cdn.resfu.com/img_data/equipos/166.png' }}
+              style={styles.escudoImg}
+              resizeMode="contain"
+              onError={() => setEscudoError(true)}
+            />
+          )}
           <View>
             <Text style={styles.clubName}>Algeciras CF</Text>
             <Text style={styles.welcome}>
@@ -46,6 +111,7 @@ export default function HomeScreen() {
           </View>
         </View>
 
+        {/* ACTION BUTTONS */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={goAbonos}>
             <Text style={styles.actionIcon}>🎟️</Text>
@@ -57,6 +123,81 @@ export default function HomeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* ÚLTIMO / PRÓXIMO PARTIDO */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>
+            {partidoJugado ? 'Último Partido' : 'Próximo Partido'}
+          </Text>
+          {loadingPartido ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 12 }} />
+          ) : partido === null ? (
+            <Text style={styles.emptyText}>Sin datos de partidos</Text>
+          ) : partidoJugado ? (
+            /* RESULTADO */
+            <View style={styles.matchCard}>
+              <View style={styles.matchTeamBlock}>
+                <Text style={styles.matchTeam} numberOfLines={2}>{partido.local}</Text>
+              </View>
+              <View style={styles.matchScoreBlock}>
+                <Text style={styles.matchScore}>
+                  {partido.resultado_local} - {partido.resultado_visitante}
+                </Text>
+                <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
+              </View>
+              <View style={styles.matchTeamBlock}>
+                <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
+                  {partido.visitante}
+                </Text>
+              </View>
+            </View>
+          ) : (
+            /* PRÓXIMO */
+            <View style={styles.matchCard}>
+              <View style={styles.matchTeamBlock}>
+                <Text style={styles.matchTeam} numberOfLines={2}>{partido.local}</Text>
+              </View>
+              <View style={styles.matchScoreBlock}>
+                <Text style={styles.matchVs}>VS</Text>
+                <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
+              </View>
+              <View style={styles.matchTeamBlock}>
+                <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
+                  {partido.visitante}
+                </Text>
+              </View>
+            </View>
+          )}
+        </View>
+
+        {/* ÚLTIMAS NOTICIAS */}
+        <TouchableOpacity style={styles.noticiasBanner} onPress={goNoticias} activeOpacity={0.82}>
+          <View style={styles.noticiasInner}>
+            <Text style={styles.noticiasIcon}>📰</Text>
+            <View style={styles.noticiasTextBlock}>
+              <Text style={styles.noticiasTitle}>Últimas Noticias</Text>
+              <Text style={styles.noticiasSub}>Blog oficial del Algeciras CF</Text>
+            </View>
+            <Text style={styles.noticiasArrow}>›</Text>
+          </View>
+        </TouchableOpacity>
+
+        {/* PATROCINADORES */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Patrocinadores</Text>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.sponsorsRow}
+          >
+            {[0, 1, 2].map(i => (
+              <View key={i} style={styles.sponsorBlock}>
+                <Text style={styles.sponsorText}>Espacio{'\n'}patrocinador</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* CLASIFICACIÓN */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Clasificación</Text>
           {loadingClasif ? (
@@ -121,6 +262,8 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { padding: 16 },
+
+  // HEADER
   header: {
     backgroundColor: colors.primary,
     padding: 20,
@@ -131,9 +274,9 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   escudoPlaceholder: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
     backgroundColor: 'rgba(255,255,255,0.2)',
     justifyContent: 'center',
     alignItems: 'center',
@@ -141,8 +284,11 @@ const styles = StyleSheet.create({
     borderColor: colors.secondary,
   },
   escudoText: { color: colors.secondary, fontWeight: 'bold', fontSize: 14 },
+  escudoImg: { width: 60, height: 60 },
   clubName: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   welcome: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+
+  // ACTIONS
   actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   actionBtn: {
     flex: 1,
@@ -159,6 +305,8 @@ const styles = StyleSheet.create({
   actionIcon: { fontSize: 24, marginBottom: 4 },
   actionLabel: { color: colors.white, fontWeight: 'bold', fontSize: 13 },
   actionLabelSecondary: { color: colors.primary },
+
+  // SECTION
   section: {
     backgroundColor: colors.white,
     borderRadius: 12,
@@ -175,6 +323,59 @@ const styles = StyleSheet.create({
     paddingLeft: 8,
   },
   emptyText: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 12 },
+
+  // MATCH CARD
+  matchCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 10,
+    paddingVertical: 14,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  matchTeamBlock: { flex: 1 },
+  matchTeam: { fontSize: 13, fontWeight: 'bold', color: colors.text, textAlign: 'left' },
+  matchTeamRight: { textAlign: 'right' },
+  matchScoreBlock: { alignItems: 'center', paddingHorizontal: 12 },
+  matchScore: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
+  matchVs: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
+  matchFecha: { fontSize: 11, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
+
+  // NOTICIAS BANNER
+  noticiasBanner: {
+    backgroundColor: colors.primary,
+    borderRadius: 12,
+    marginBottom: 16,
+    overflow: 'hidden',
+  },
+  noticiasInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 18,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  noticiasIcon: { fontSize: 28 },
+  noticiasTextBlock: { flex: 1 },
+  noticiasTitle: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
+  noticiasSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  noticiasArrow: { color: colors.secondary, fontSize: 28, fontWeight: 'bold' },
+
+  // SPONSORS
+  sponsorsRow: { gap: 12, paddingVertical: 4 },
+  sponsorBlock: {
+    width: 110,
+    height: 64,
+    backgroundColor: '#e0e0e0',
+    borderRadius: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  sponsorText: { color: '#888', fontSize: 11, textAlign: 'center' },
+
+  // TABLE
   table: { borderRadius: 8, overflow: 'hidden' },
   tableRow: {
     flexDirection: 'row',
