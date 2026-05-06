@@ -54,7 +54,7 @@ export default function CheckoutScreen() {
         const { data: statusData } = await api.get<{ completado: boolean }>(`/api/pagos/status?session_id=${sessionId}`);
         if (statusData?.completado) {
           Alert.alert('¡Pago completado!', 'Tu abono ha sido procesado. Recibirás confirmación por email.');
-          navigation.navigate('MisAbonos');
+          navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
         } else {
           Alert.alert('Pago no completado', 'Si cerraste antes de terminar, puedes intentarlo de nuevo.');
           navigation.navigate('Gradas');
@@ -76,7 +76,7 @@ export default function CheckoutScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resumen del Abono</Text>
       </View>
