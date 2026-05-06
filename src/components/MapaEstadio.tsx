@@ -106,10 +106,9 @@ const ZONES: Record<
     labelY: FY + FH * 0.65 + 2 + FH * 0.2 + 2 + (FH * 0.15 - 4) / 2,
   },
   lateral_este: {
-    x: 4, y: FY, w: FX - 8, h: FH,
-    // hidden — same rect as oeste but never both active simultaneously
+    x: VW - (FX - 8) - 4, y: FY, w: FX - 8, h: FH,
     label: 'L.ESTE',
-    labelX: 4 + (FX - 8) / 2, labelY: FY + FH / 2,
+    labelX: VW - (FX - 8) - 4 + (FX - 8) / 2, labelY: FY + FH / 2,
   },
 };
 
@@ -130,19 +129,17 @@ export default function MapaEstadio({ gradaActiva, onZonaPress }: MapaEstadioPro
   function ZoneRect({ zkey }: { zkey: ZonaKey }) {
     const z = ZONES[zkey];
     const active = activeZona === zkey;
-    // lateral_este rendered on left same as oeste — only when oeste not active
+    // lateral_este rendered on right side using its own coords
     if (zkey === 'lateral_este') {
-      // re-use oeste rect coords but show only when lateral_este is active
-      const zo = ZONES.lateral_oeste;
       if (!active) return null;
       return (
         <G key={zkey}>
           <Rect
-            x={zo.x} y={zo.y} width={zo.w} height={zo.h}
+            x={z.x} y={z.y} width={z.w} height={z.h}
             rx={4} fill={C.zoneActive} stroke={C.zoneActiveBorder} strokeWidth={1.5}
           />
           <SvgText
-            x={zo.labelX} y={zo.labelY}
+            x={z.labelX} y={z.labelY}
             fill={C.zoneText} fontSize={7} fontWeight="bold"
             textAnchor="middle" alignmentBaseline="middle"
           >

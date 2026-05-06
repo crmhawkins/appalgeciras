@@ -42,7 +42,11 @@ export default function SociosScreen() {
   const [loaded, setLoaded] = useState(false);
 
   const loadAbonos = useCallback(async () => {
-    if (!user) return;
+    if (!user) {
+      setLoading(false);
+      setLoaded(true);
+      return;
+    }
     setLoading(true);
     try {
       const { data } = await api.get<Abono[]>(`/api/abonos/usuario/${user.id}`);
