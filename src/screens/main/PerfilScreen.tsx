@@ -353,6 +353,17 @@ export default function PerfilScreen() {
             )}
           </View>
 
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MisAbonos')}>
+            <Text style={styles.menuIcon}>🎟️</Text>
+            <Text style={styles.menuLabel}>Mis Abonos</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('MisEntradas')}>
+            <Text style={styles.menuIcon}>🏟️</Text>
+            <Text style={styles.menuLabel}>Mis Entradas</Text>
+            <Text style={styles.menuArrow}>›</Text>
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.logoutBtn} onPress={confirmLogout}>
             <Text style={styles.logoutText}>Cerrar sesión</Text>
           </TouchableOpacity>
@@ -473,6 +484,23 @@ const styles = StyleSheet.create({
   abonoActivo: { backgroundColor: '#e8f5ee' },
   abonoInactivo: { backgroundColor: '#fce8e8' },
   abonoEstadoText: { fontSize: 12, fontWeight: 'bold', color: colors.text },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    padding: 16,
+    marginHorizontal: 0,
+    marginBottom: 8,
+    borderRadius: 10,
+    elevation: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  menuIcon: { fontSize: 20, marginRight: 12 },
+  menuLabel: { flex: 1, fontSize: 15, color: colors.text, fontWeight: '500' },
+  menuArrow: { fontSize: 20, color: colors.textSecondary },
   // Carnet Digital
   carnetSectionTitle: {
     fontSize: 16, fontWeight: 'bold', color: colors.text,

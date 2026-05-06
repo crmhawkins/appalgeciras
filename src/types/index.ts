@@ -63,6 +63,32 @@ export interface Abono {
   codigoAcceso?: string;
 }
 
+export interface Entrada {
+  id: number;
+  token?: string;
+  qrCode?: string;
+  codigoAcceso?: string;
+  precio: number;
+  estado: 'pendiente' | 'valida' | 'usada' | 'cancelada';
+  tipo?: string;
+  metodoPago?: string;
+  usuarioId: number;
+  partidoId?: number;
+  asientoId?: number;
+  createdAt?: string;
+  Partido?: {
+    equipoLocal: string;
+    equipoVisitante: string;
+    fecha: string;
+    hora?: string;
+  };
+  Asiento?: {
+    numero: string | number;
+    fila: string | number;
+    Sector?: { nombre: string };
+  };
+}
+
 export interface ClasificacionItem {
   id: number;
   posicion: number;
