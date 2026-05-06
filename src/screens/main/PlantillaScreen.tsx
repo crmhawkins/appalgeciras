@@ -24,7 +24,13 @@ const POSICION_ORDEN: PosicionGrupo[] = ['Porteros', 'Defensas', 'Centrocampista
 
 function normalizarPosicion(posicion?: string): PosicionGrupo {
   if (!posicion) return 'Otros';
-  const p = posicion.toLowerCase();
+  const p = posicion.trim().toLowerCase();
+  // Backend single-letter codes: G, D, M, F
+  if (p === 'g') return 'Porteros';
+  if (p === 'd') return 'Defensas';
+  if (p === 'm') return 'Centrocampistas';
+  if (p === 'f') return 'Delanteros';
+  // Verbose forms
   if (p.includes('portero') || p === 'gk' || p === 'goalkeeper') return 'Porteros';
   if (p.includes('defensa') || p === 'df' || p === 'defender' || p.includes('central') || p.includes('lateral')) return 'Defensas';
   if (p.includes('centrocampista') || p === 'mf' || p === 'midfielder' || p.includes('medio') || p.includes('pivote')) return 'Centrocampistas';
@@ -77,7 +83,16 @@ export default function PlantillaScreen() {
 
   const loadPlantilla = useCallback(async () => {
     try {
-      const { data } = await api.get<Jugador[]>('/api/jugadores');
+      const { data } = await api.get<any>('/api/jugadores');
+      // Backend returns { ok, plantilla: { porteros, defensas, centrocampistas, delanteros } }
+      // Flatten all groups into a single array
+      const plantilla = data?.plantilla ?? {};
+      const flat: Jugador[] = [
+        ...(plantilla.porteros ?? []),
+        ...(plantilla.defensas ?? []),
+        ...(plantilla.centrocampistas ?? []),
+        ...(plantilla.delanteros ?? []),
+      ];
       const agrupados: Record<PosicionGrupo, Jugador[]> = {
         Porteros: [],
         Defensas: [],
@@ -85,7 +100,7 @@ export default function PlantillaScreen() {
         Delanteros: [],
         Otros: [],
       };
-      (data ?? []).forEach((j) => {
+      flat.forEach((j) => {
         agrupados[normalizarPosicion(j.posicion)].push(j);
       });
       const result: Section[] = POSICION_ORDEN

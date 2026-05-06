@@ -12,12 +12,15 @@ import { ClasificacionItem } from '../../types';
 
 interface PartidoAPI {
   id: number;
-  local: string;
-  visitante: string;
+  // Backend uses equipoLocal/equipoVisitante (Sequelize model field names)
+  equipoLocal: string;
+  equipoVisitante: string;
+  escudoLocal?: string;
+  escudoVisitante?: string;
   fecha: string;
-  resultado_local: number | null;
-  resultado_visitante: number | null;
-  estado: string;
+  hora?: string;
+  // Backend uses marcador string e.g. "2-1", no separate resultado_local/visitante fields
+  marcador?: string | null;
 }
 
 export default function HomeScreen() {
@@ -41,12 +44,10 @@ export default function HomeScreen() {
     try {
       const { data } = await api.get<PartidoAPI[]>('/api/partidos');
       if (!data || data.length === 0) return;
-      // Prefer most recent played match
-      const jugados = data.filter(
-        p => p.estado === 'jugado' || p.resultado_local !== null,
-      );
+      const today = new Date().toISOString().split('T')[0];
+      // Partidos con marcador = ya jugados
+      const jugados = data.filter(p => p.marcador != null && p.marcador !== '');
       if (jugados.length > 0) {
-        // Sort by fecha desc, pick first
         const sorted = jugados.sort(
           (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
         );
@@ -54,9 +55,9 @@ export default function HomeScreen() {
       } else {
         // No played match — show next upcoming
         const proximos = data
-          .filter(p => p.estado !== 'jugado' && p.resultado_local === null)
+          .filter(p => !p.marcador && p.fecha >= today)
           .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-        setPartido(proximos[0] ?? null);
+        setPartido(proximos[0] ?? data[0] ?? null);
       }
     } catch (_) {}
     finally { setLoadingPartido(false); }
@@ -93,7 +94,7 @@ export default function HomeScreen() {
 
   const partidoJugado =
     partido !== null &&
-    (partido.estado === 'jugado' || partido.resultado_local !== null);
+    (partido.marcador != null && partido.marcador !== '');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -148,17 +149,15 @@ export default function HomeScreen() {
             /* RESULTADO */
             <View style={styles.matchCard}>
               <View style={styles.matchTeamBlock}>
-                <Text style={styles.matchTeam} numberOfLines={2}>{partido.local}</Text>
+                <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
               </View>
               <View style={styles.matchScoreBlock}>
-                <Text style={styles.matchScore}>
-                  {partido.resultado_local} - {partido.resultado_visitante}
-                </Text>
+                <Text style={styles.matchScore}>{partido.marcador}</Text>
                 <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
               </View>
               <View style={styles.matchTeamBlock}>
                 <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
-                  {partido.visitante}
+                  {partido.equipoVisitante}
                 </Text>
               </View>
             </View>
@@ -166,7 +165,7 @@ export default function HomeScreen() {
             /* PRÓXIMO */
             <View style={styles.matchCard}>
               <View style={styles.matchTeamBlock}>
-                <Text style={styles.matchTeam} numberOfLines={2}>{partido.local}</Text>
+                <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
               </View>
               <View style={styles.matchScoreBlock}>
                 <Text style={styles.matchVs}>VS</Text>
@@ -174,7 +173,7 @@ export default function HomeScreen() {
               </View>
               <View style={styles.matchTeamBlock}>
                 <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
-                  {partido.visitante}
+                  {partido.equipoVisitante}
                 </Text>
               </View>
             </View>

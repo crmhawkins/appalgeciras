@@ -3,7 +3,6 @@ import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
   RefreshControl, Image, TouchableOpacity,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
@@ -41,8 +40,8 @@ export default function PartidosScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const { data } = await api.get<{ partidos: Partido[] }>('/api/partidos');
-      setPartidos(data.partidos ?? []);
+      const { data } = await api.get<Partido[] | { partidos: Partido[] }>('/api/partidos');
+      setPartidos(Array.isArray(data) ? data : ((data as any).partidos ?? []));
     } catch (e: any) {
       setError(e?.response?.data?.msg || e?.message || 'Error cargando partidos');
     } finally {
@@ -67,20 +66,16 @@ export default function PartidosScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <View style={styles.safe}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
-      </SafeAreaView>
+      </View>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}>
-        <Text style={styles.headerTitle}>Partidos</Text>
-      </View>
-
+    <View style={styles.safe}>
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'proximos' && styles.tabBtnActive]}
@@ -140,7 +135,7 @@ export default function PartidosScreen() {
           </View>
         )}
       />
-    </SafeAreaView>
+    </View>
   );
 }
 
@@ -157,8 +152,6 @@ function formatFecha(fecha: string): string {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16, backgroundColor: colors.primary },
-  headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   tabBar: {
     flexDirection: 'row',
     backgroundColor: colors.white,

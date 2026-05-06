@@ -73,8 +73,7 @@ export default function FanZoneScreen() {
   const loadPartidos = useCallback(async () => {
     try {
       const { data } = await api.get('/api/partidos');
-      // API returns array directly (not wrapped in {partidos: []})
-      const lista: Partido[] = Array.isArray(data) ? data : (data.partidos ?? []);
+      const lista: Partido[] = Array.isArray(data) ? data : ((data as any).partidos ?? []);
       setPartidos(lista);
       const activo = lista.find(p => p.marcador !== null && p.marcador !== undefined) ?? lista[0] ?? null;
       setPartidoActivo(activo);

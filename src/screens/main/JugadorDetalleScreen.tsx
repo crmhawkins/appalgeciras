@@ -55,18 +55,25 @@ function nombreCompleto(jugador: JugadorDetalle): string {
   return jugador.apellidos ? `${jugador.nombre} ${jugador.apellidos}` : jugador.nombre;
 }
 
-function buildStats(est?: EstadisticasJugador): StatItem[] {
-  if (!est) return [];
+function buildStats(est?: EstadisticasJugador | null, statsArr?: any[]): StatItem[] {
+  // Backend returns jugador.stats as array (hasMany JugadorStats).
+  // Use most recent stats entry if present, fallback to estadisticas object.
+  let s: any = est ?? {};
+  if (!est && statsArr && statsArr.length > 0) {
+    s = statsArr[statsArr.length - 1];
+  }
+  if (!s || Object.keys(s).length === 0) return [];
   return [
-    { icon: '⚽', label: 'Goles', value: est.goles ?? 0 },
-    { icon: '🅰️', label: 'Asistencias', value: est.asistencias ?? 0 },
-    { icon: '⏱', label: 'Minutos', value: est.minutos ?? 0 },
-    { icon: '📋', label: 'Partidos', value: est.partidos ?? 0 },
-    { icon: '▶️', label: 'Titularidades', value: est.titularidades ?? 0 },
-    { icon: '🟨', label: 'T. Amarillas', value: est.tarjetasAmarillas ?? 0 },
-    { icon: '🟥', label: 'T. Rojas', value: est.tarjetasRojas ?? 0 },
-    { icon: '🎯', label: 'Disparos', value: est.disparosPuerta ?? 0 },
-    { icon: '⭐', label: 'Rating', value: est.rating != null ? Number(est.rating).toFixed(1) : '—' },
+    { icon: '⚽', label: 'Goles', value: s.goles ?? 0 },
+    { icon: '🅰️', label: 'Asistencias', value: s.asistencias ?? 0 },
+    // backend field is minutosJugados, screen previously used minutos
+    { icon: '⏱', label: 'Minutos', value: s.minutosJugados ?? s.minutos ?? 0 },
+    { icon: '📋', label: 'Partidos', value: s.partidos ?? 0 },
+    { icon: '▶️', label: 'Titularidades', value: s.titularidades ?? 0 },
+    { icon: '🟨', label: 'T. Amarillas', value: s.tarjetasAmarillas ?? 0 },
+    { icon: '🟥', label: 'T. Rojas', value: s.tarjetasRojas ?? 0 },
+    { icon: '🎯', label: 'Disparos', value: s.disparosPuerta ?? 0 },
+    { icon: '⭐', label: 'Rating', value: s.rating != null ? Number(s.rating).toFixed(1) : '—' },
   ];
 }
 
@@ -81,8 +88,14 @@ export default function JugadorDetalleScreen() {
 
   useEffect(() => {
     let mounted = true;
-    api.get<JugadorDetalle>(`/api/jugadores/${id}`)
-      .then(({ data }) => { if (mounted) setJugador(data); })
+    api.get<any>(`/api/jugadores/${id}`)
+      .then(({ data }) => {
+        if (mounted) {
+          // Backend returns { ok, jugador } — unwrap
+          const j = data?.jugador ?? data;
+          setJugador(j);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
@@ -112,7 +125,7 @@ export default function JugadorDetalleScreen() {
   }
 
   const url = fotoUrl(jugador);
-  const stats = buildStats(jugador.estadisticas);
+  const stats = buildStats(jugador.estadisticas, (jugador as any).stats);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
