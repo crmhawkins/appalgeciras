@@ -44,8 +44,9 @@ export default function MisEntradasScreen() {
     if (!user) { setLoading(false); return; }
     setError(null);
     try {
-      const { data } = await api.get<Entrada[]>(`/api/entradas/usuario/${user.id}`);
-      setEntradas(Array.isArray(data) ? data : []);
+      const { data } = await api.get<{ entradas: Entrada[] }>(`/api/entradas/usuario/${user.id}`);
+      const lista = Array.isArray(data) ? data : ((data as any).entradas ?? []);
+      setEntradas(lista);
     } catch (e: any) {
       setError(e?.response?.data?.msg || e?.message || 'Error cargando entradas');
     } finally {
