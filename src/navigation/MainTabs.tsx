@@ -6,6 +6,7 @@ import NoticiasScreen from '../screens/main/NoticiasScreen';
 import PlantillaScreen from '../screens/main/PlantillaScreen';
 import FanZoneScreen from '../screens/main/FanZoneScreen';
 import TiendaScreen from '../screens/main/TiendaScreen';
+import SociosScreen from '../screens/main/SociosScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
 import AbonosStack from './AbonosStack';
 import { MainTabParamList } from '../types';
@@ -59,6 +60,11 @@ export default function MainTabs() {
         name="TiendaTab"
         component={TiendaScreen}
         options={{ title: 'Tienda', tabBarIcon: tabIcon('🛍️') }}
+      />
+      <Tab.Screen
+        name="SociosTab"
+        component={SociosScreen}
+        options={{ title: 'Socios', tabBarIcon: tabIcon('🏅') }}
       />
       <Tab.Screen
         name="PerfilTab"

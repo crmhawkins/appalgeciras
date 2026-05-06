@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
-  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform,
+  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -10,6 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 import { Abono } from '../../types';
+import QRCode from 'react-native-qrcode-svg';
 
 export default function PerfilScreen() {
   const { user, logout, updateUser } = useAuth();
@@ -270,6 +271,59 @@ export default function PerfilScreen() {
             </View>
           )}
 
+          {/* Carnet Digital */}
+          {abonos.filter(a => a.activo).length > 0 && (
+            <View>
+              <Text style={styles.carnetSectionTitle}>Carnet Digital</Text>
+              {abonos.filter(a => a.activo).map(a => (
+                <View key={`carnet-${a.id}`} style={styles.carnetCard}>
+                  {/* Carnet Header */}
+                  <View style={styles.carnetHeader}>
+                    <Image
+                      source={{ uri: 'https://cdn.resfu.com/img_data/equipos/166.png' }}
+                      style={styles.carnetEscudo}
+                      resizeMode="contain"
+                    />
+                    <View style={styles.carnetHeaderText}>
+                      <Text style={styles.carnetClub}>ALGECIRAS CF</Text>
+                      <Text style={styles.carnetTemporada}>ABONO 2025/26</Text>
+                    </View>
+                  </View>
+                  {/* Carnet Body */}
+                  <View style={styles.carnetBody}>
+                    <View style={styles.carnetInfo}>
+                      <Text style={styles.carnetLabel}>Titular</Text>
+                      <Text style={styles.carnetValue}>{a.nombre} {a.apellidos}</Text>
+                      {(user as any).dni ? (
+                        <>
+                          <Text style={styles.carnetLabel}>DNI</Text>
+                          <Text style={styles.carnetValue}>{(user as any).dni}</Text>
+                        </>
+                      ) : null}
+                      <Text style={styles.carnetLabel}>Asiento</Text>
+                      <Text style={styles.carnetValue}>#{a.asientoId}</Text>
+                      <Text style={styles.carnetLabel}>Válido</Text>
+                      <Text style={styles.carnetValue}>
+                        {new Date(a.fechaInicio).toLocaleDateString('es-ES')} – {new Date(a.fechaFin).toLocaleDateString('es-ES')}
+                      </Text>
+                    </View>
+                    {a.codigoAcceso ? (
+                      <View style={styles.carnetQrWrap}>
+                        <QRCode
+                          value={a.codigoAcceso}
+                          size={120}
+                          color={colors.text}
+                          backgroundColor={colors.white}
+                        />
+                        <Text style={styles.carnetQrLabel}>Acceso</Text>
+                      </View>
+                    ) : null}
+                  </View>
+                </View>
+              ))}
+            </View>
+          )}
+
           {/* Mis Abonos */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Mis Abonos</Text>
@@ -415,4 +469,38 @@ const styles = StyleSheet.create({
   abonoActivo: { backgroundColor: '#e8f5ee' },
   abonoInactivo: { backgroundColor: '#fce8e8' },
   abonoEstadoText: { fontSize: 12, fontWeight: 'bold', color: colors.text },
+  // Carnet Digital
+  carnetSectionTitle: {
+    fontSize: 16, fontWeight: 'bold', color: colors.text,
+    marginBottom: 10, marginTop: 4,
+  },
+  carnetCard: {
+    backgroundColor: colors.white,
+    borderRadius: 14, marginBottom: 14,
+    overflow: 'hidden',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 6,
+  },
+  carnetHeader: {
+    backgroundColor: colors.primary,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16, paddingVertical: 12,
+  },
+  carnetEscudo: { width: 40, height: 40, marginRight: 12 },
+  carnetHeaderText: { flex: 1 },
+  carnetClub: { color: colors.white, fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
+  carnetTemporada: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
+  carnetBody: {
+    flexDirection: 'row', alignItems: 'center',
+    padding: 16,
+  },
+  carnetInfo: { flex: 1 },
+  carnetLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  carnetValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
+  carnetQrWrap: { alignItems: 'center', marginLeft: 16 },
+  carnetQrLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4 },
 });

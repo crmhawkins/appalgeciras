@@ -105,5 +105,6 @@ export type MainTabParamList = {
   AbonosTab: undefined;
   FanZoneTab: undefined;
   TiendaTab: undefined;
+  SociosTab: undefined;
   PerfilTab: undefined;
 };
