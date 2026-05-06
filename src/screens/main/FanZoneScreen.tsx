@@ -31,18 +31,7 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const JUGADORES_ALGECIRAS = [
-  // Porteros
-  'Iván Moreno', 'Samu Casado',
-  // Defensas
-  'Carlos Arauz', 'Joseca', 'Álvaro Mayorga', 'Víctor Ruíz',
-  'Aleix Coch', 'Ángel Gómez', 'Tomás Sánchez', 'Paris Adot',
-  // Centrocampistas
-  'Iván Turrillo', 'Óscar Castro', 'Jony Álamo', 'Joe Riley',
-  'Dani Garrido', 'Eric Montes',
-  // Delanteros
-  'Juanma García', 'Isaac Obeng', 'Rastrojo', 'Manín', 'Andre Nader',
-];
+// Players loaded dynamically from API — see loadJugadores()
 
 export default function FanZoneScreen() {
   const { user } = useAuth();
@@ -50,6 +39,7 @@ export default function FanZoneScreen() {
 
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [partidoActivo, setPartidoActivo] = useState<Partido | null>(null);
+  const [jugadores, setJugadores] = useState<string[]>([]);
   const [votos, setVotos] = useState<VotoResult[]>([]);
   const [miVoto, setMiVoto] = useState<string | null>(null);
   const [totalVotos, setTotalVotos] = useState(0);
@@ -63,6 +53,22 @@ export default function FanZoneScreen() {
   const [enviando, setEnviando] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList>(null);
+
+  const loadJugadores = useCallback(async () => {
+    try {
+      const { data } = await api.get('/api/jugadores');
+      const plantilla = data.plantilla ?? {};
+      const nombres: string[] = [
+        ...(plantilla.porteros ?? []),
+        ...(plantilla.defensas ?? []),
+        ...(plantilla.centrocampistas ?? []),
+        ...(plantilla.delanteros ?? []),
+      ].map((j: any) => j.nombreCorto || j.nombre);
+      if (nombres.length > 0) setJugadores(nombres);
+    } catch {
+      // fallback: keep existing state (empty on first load)
+    }
+  }, []);
 
   const loadPartidos = useCallback(async () => {
     try {
@@ -95,11 +101,12 @@ export default function FanZoneScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     const activo = await loadPartidos();
+    await loadJugadores();
     if (activo) {
       await Promise.all([loadVotos(activo.id), loadMiVoto(activo.id)]);
     }
     setLoading(false);
-  }, [loadPartidos, loadVotos, loadMiVoto]);
+  }, [loadPartidos, loadJugadores, loadVotos, loadMiVoto]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -243,9 +250,11 @@ export default function FanZoneScreen() {
 
             {!partidoActivo ? (
               <Text style={styles.emptyText}>No hay partido activo para votar</Text>
+            ) : jugadores.length === 0 ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
             ) : (
               <View style={styles.jugadoresGrid}>
-                {JUGADORES_ALGECIRAS.map((j) => {
+                {jugadores.map((j) => {
                   const isSelected = miVoto === j;
                   const votoData = votos.find(v => v.jugador === j);
                   return (
