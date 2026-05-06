@@ -13,6 +13,7 @@ import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Grada } from '../../types';
+import MapaEstadio from '../../components/MapaEstadio';
 
 export default function GradasScreen() {
   const navigation = useNavigation<any>();
@@ -20,6 +21,7 @@ export default function GradasScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [gradaSeleccionada, setGradaSeleccionada] = useState<string | null>(null);
 
   const loadGradas = useCallback(async () => {
     setError(null);
@@ -64,34 +66,51 @@ export default function GradasScreen() {
         keyExtractor={(item) => String(item.id)}
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        ListHeaderComponent={
+          <View style={styles.mapaContainer}>
+            <MapaEstadio gradaActiva={gradaSeleccionada ?? undefined} />
+            {gradaSeleccionada && (
+              <Text style={styles.mapaHint}>
+                Zona destacada: <Text style={styles.mapaHintBold}>{gradaSeleccionada}</Text>
+              </Text>
+            )}
+            {!gradaSeleccionada && (
+              <Text style={styles.mapaHint}>Toca una grada para ver su ubicación</Text>
+            )}
+          </View>
+        }
         ListEmptyComponent={
           !error ? <Text style={styles.empty}>No hay gradas disponibles</Text> : null
         }
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={styles.card}
-            onPress={() =>
-              navigation.navigate('Sectores', {
-                gradaId: item.id,
-                gradaNombre: item.nombre,
-              })
-            }
-          >
-            <View style={styles.imagePlaceholder}>
-              <Text style={styles.imagePlaceholderText}>
-                {item.nombre?.charAt(0)?.toUpperCase() ?? 'G'}
-              </Text>
-            </View>
-            <View style={styles.cardBody}>
-              <Text style={styles.cardTitle}>{item.nombre}</Text>
-              {item.descripcion ? (
-                <Text style={styles.cardText} numberOfLines={2}>
-                  {item.descripcion}
+        renderItem={({ item }) => {
+          const isSelected = gradaSeleccionada === item.nombre;
+          return (
+            <TouchableOpacity
+              style={[styles.card, isSelected && styles.cardSelected]}
+              onPress={() => {
+                setGradaSeleccionada(item.nombre);
+                navigation.navigate('Sectores', {
+                  gradaId: item.id,
+                  gradaNombre: item.nombre,
+                });
+              }}
+            >
+              <View style={[styles.imagePlaceholder, isSelected && styles.imagePlaceholderSelected]}>
+                <Text style={styles.imagePlaceholderText}>
+                  {item.nombre?.charAt(0)?.toUpperCase() ?? 'G'}
                 </Text>
-              ) : null}
-            </View>
-          </TouchableOpacity>
-        )}
+              </View>
+              <View style={styles.cardBody}>
+                <Text style={styles.cardTitle}>{item.nombre}</Text>
+                {item.descripcion ? (
+                  <Text style={styles.cardText} numberOfLines={2}>
+                    {item.descripcion}
+                  </Text>
+                ) : null}
+              </View>
+            </TouchableOpacity>
+          );
+        }}
       />
     </SafeAreaView>
   );
@@ -103,12 +122,34 @@ const styles = StyleSheet.create({
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   list: { padding: 16 },
+  mapaContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    backgroundColor: '#1a1a2e',
+  },
+  mapaHint: {
+    textAlign: 'center',
+    color: '#aaaacc',
+    fontSize: 11,
+    paddingVertical: 6,
+    backgroundColor: '#1a1a2e',
+  },
+  mapaHintBold: {
+    color: colors.primary,
+    fontWeight: 'bold',
+  },
   card: {
     flexDirection: 'row',
     backgroundColor: colors.white,
     borderRadius: 12,
     marginBottom: 12,
     overflow: 'hidden',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  cardSelected: {
+    borderColor: colors.primary,
   },
   imagePlaceholder: {
     width: 90,
@@ -116,6 +157,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.primary,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  imagePlaceholderSelected: {
+    backgroundColor: '#8a0b1f',
   },
   imagePlaceholderText: {
     color: colors.white,

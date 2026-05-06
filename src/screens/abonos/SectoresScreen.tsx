@@ -13,6 +13,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Sector, AbonosStackParamList } from '../../types';
+import MapaEstadio from '../../components/MapaEstadio';
 
 type SectoresRouteProp = RouteProp<AbonosStackParamList, 'Sectores'>;
 
@@ -48,7 +49,7 @@ export default function SectoresScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
+      <SafeAreaView style={styles.safe} edges={[]}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -57,7 +58,7 @@ export default function SectoresScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={['top']}>
+    <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{gradaNombre}</Text>
         <Text style={styles.headerSub}>Sectores disponibles</Text>
@@ -75,6 +76,11 @@ export default function SectoresScreen() {
               load();
             }}
           />
+        }
+        ListHeaderComponent={
+          <View style={styles.mapaContainer}>
+            <MapaEstadio gradaActiva={gradaNombre} />
+          </View>
         }
         ListEmptyComponent={
           !error ? <Text style={styles.empty}>No hay sectores en esta grada</Text> : null
@@ -127,6 +133,13 @@ const styles = StyleSheet.create({
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: colors.white, opacity: 0.85, marginTop: 2 },
   list: { padding: 16 },
+  mapaContainer: {
+    marginBottom: 16,
+    borderRadius: 8,
+    overflow: 'hidden',
+    height: 160,
+    backgroundColor: '#1a1a2e',
+  },
   card: {
     flexDirection: 'row',
     backgroundColor: colors.white,
