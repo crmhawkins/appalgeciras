@@ -40,6 +40,7 @@ ALIGNED="/tmp/app-aligned.apk"
 
 cp "$RAW" "$UNSIGNED"
 zip -d "$UNSIGNED" "META-INF/*" 2>/dev/null || true
+rm -f "$ALIGNED"
 "$ZIPALIGN" -v -p 4 "$UNSIGNED" "$ALIGNED"
 
 rm -f "$DESKTOP"/AlgecirasCF*.apk

@@ -6,10 +6,11 @@ import {
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
+import { ESCUDO_URL, COMPETICION, TEMPORADA_CORTA } from '../../constants';
 
 type Tab = 'proximos' | 'jugados';
 
-const ACF_ESCUDO = 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png';
+const ACF_ESCUDO = ESCUDO_URL;
 
 function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
   const [error, setError] = useState(false);
@@ -36,6 +37,7 @@ function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
 
 export default function PartidosScreen() {
   const [partidos, setPartidos] = useState<Partido[]>([]);
+  const [proximoPartido, setProximoPartido] = useState<Partido | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,8 +46,14 @@ export default function PartidosScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const { data } = await api.get<Partido[] | { partidos: Partido[] }>('/api/partidos');
-      setPartidos(Array.isArray(data) ? data : ((data as any).partidos ?? []));
+      const { data } = await api.get<Partido[] | { partidos: Partido[]; proximoPartido?: Partido | null }>('/api/partidos');
+      if (Array.isArray(data)) {
+        setPartidos(data);
+        setProximoPartido(null);
+      } else {
+        setPartidos((data as any).partidos ?? []);
+        setProximoPartido((data as any).proximoPartido ?? null);
+      }
     } catch (e: any) {
       setError(e?.response?.data?.msg || e?.message || 'Error cargando partidos');
     } finally {
@@ -81,7 +89,7 @@ export default function PartidosScreen() {
   return (
     <View style={styles.safe}>
       <View style={styles.competitionBanner}>
-        <Text style={styles.competitionText}>⚽ Primera RFEF · Grupo 2 · Temporada 2024/25</Text>
+        <Text style={styles.competitionText}>⚽ {COMPETICION} · Temporada {TEMPORADA_CORTA}</Text>
       </View>
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -114,25 +122,30 @@ export default function PartidosScreen() {
           />
         }
         ListHeaderComponent={
-          tab === 'proximos' && proximos.length > 0 ? (
-            <View style={styles.proximoCard}>
-              <Text style={styles.proximoLabel}>⚡ PRÓXIMO PARTIDO</Text>
-              <View style={styles.proximoTeams}>
-                <View style={styles.proximoTeam}>
-                  <EscudoImage uri={proximos[0].escudoLocal} nombre={proximos[0].equipoLocal} />
-                  <Text style={styles.proximoTeamName} numberOfLines={2}>{proximos[0].equipoLocal}</Text>
+          tab === 'proximos' && (proximoPartido || proximos.length > 0) ? (
+            (() => {
+              const next = proximoPartido ?? proximos[0];
+              return (
+                <View style={styles.proximoCard}>
+                  <Text style={styles.proximoLabel}>⚡ PRÓXIMO PARTIDO</Text>
+                  <View style={styles.proximoTeams}>
+                    <View style={styles.proximoTeam}>
+                      <EscudoImage uri={next.escudoLocal} nombre={next.equipoLocal} />
+                      <Text style={styles.proximoTeamName} numberOfLines={2}>{next.equipoLocal}</Text>
+                    </View>
+                    <View style={styles.proximoCenter}>
+                      <Text style={styles.proximoVs}>VS</Text>
+                      <Text style={styles.proximoFecha}>{formatFecha(next.fecha)}</Text>
+                      {next.hora ? <Text style={styles.proximoHora}>{next.hora}</Text> : null}
+                    </View>
+                    <View style={styles.proximoTeam}>
+                      <EscudoImage uri={next.escudoVisitante} nombre={next.equipoVisitante} />
+                      <Text style={styles.proximoTeamName} numberOfLines={2}>{next.equipoVisitante}</Text>
+                    </View>
+                  </View>
                 </View>
-                <View style={styles.proximoCenter}>
-                  <Text style={styles.proximoVs}>VS</Text>
-                  <Text style={styles.proximoFecha}>{formatFecha(proximos[0].fecha)}</Text>
-                  {proximos[0].hora ? <Text style={styles.proximoHora}>{proximos[0].hora}</Text> : null}
-                </View>
-                <View style={styles.proximoTeam}>
-                  <EscudoImage uri={proximos[0].escudoVisitante} nombre={proximos[0].equipoVisitante} />
-                  <Text style={styles.proximoTeamName} numberOfLines={2}>{proximos[0].equipoVisitante}</Text>
-                </View>
-              </View>
-            </View>
+              );
+            })()
           ) : null
         }
         ListEmptyComponent={

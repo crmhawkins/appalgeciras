@@ -11,6 +11,7 @@ import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { Partido } from '../../types';
 import { io, Socket } from 'socket.io-client';
+import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
 
 const BACKEND_URL = 'https://backend-algeciras.hawkins.es';
 
@@ -362,7 +363,7 @@ export default function FanZoneScreen() {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>🏟️ Estadio Municipal El Mirador</Text>
             <Text style={styles.infoLine}>📍 Algeciras, Cádiz · Aforo: 8.500 espectadores</Text>
-            <Text style={styles.infoLine}>🎽 Temporada 2024/25 · Primera RFEF Grupo 2</Text>
+            <Text style={styles.infoLine}>🎽 Temporada {TEMPORADA_CORTA} · {COMPETICION}</Text>
             <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
           </View>
 

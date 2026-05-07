@@ -9,6 +9,7 @@ import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Entrada } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { ESTADIO } from '../../constants';
 
 const ESTADO_COLOR: Record<Entrada['estado'], string> = {
   valida: '#1a8a3b',
@@ -101,7 +102,7 @@ export default function MisEntradasScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🏟️ Mis Entradas</Text>
-        <Text style={styles.headerSub}>Estadio Municipal El Mirador</Text>
+        <Text style={styles.headerSub}>{ESTADIO}</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList

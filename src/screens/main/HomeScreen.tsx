@@ -10,6 +10,7 @@ import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { ClasificacionItem, Noticia } from '../../types';
+import { ESCUDO_URL, COMPETICION, TEMPORADA } from '../../constants';
 
 const YOUTUBE_VIDEO_ID = '1B7o0uklMW8';
 const youtubeHtml = `
@@ -175,7 +176,7 @@ export default function HomeScreen() {
           />
           <View style={styles.videoOverlay}>
             <Text style={styles.videoClubTag}>⚽ ALGECIRAS C.F.</Text>
-            <Text style={styles.videoSeason}>Temporada 2024/2025 · Primera RFEF</Text>
+            <Text style={styles.videoSeason}>Temporada {TEMPORADA} · {COMPETICION.split(' · ')[0]}</Text>
           </View>
         </View>
 
@@ -187,7 +188,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <Image
-              source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+              source={{ uri: ESCUDO_URL }}
               style={styles.escudoImg}
               resizeMode="contain"
               onError={() => setEscudoError(true)}

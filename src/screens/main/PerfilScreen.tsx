@@ -11,6 +11,7 @@ import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 import { Abono } from '../../types';
 import QRCode from 'react-native-qrcode-svg';
+import { ESCUDO_URL, TEMPORADA_CORTA } from '../../constants';
 
 export default function PerfilScreen() {
   const { user, logout, updateUser } = useAuth();
@@ -284,13 +285,13 @@ export default function PerfilScreen() {
                   {/* Carnet Header */}
                   <View style={styles.carnetHeader}>
                     <Image
-                      source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+                      source={{ uri: ESCUDO_URL }}
                       style={styles.carnetEscudo}
                       resizeMode="contain"
                     />
                     <View style={styles.carnetHeaderText}>
                       <Text style={styles.carnetClub}>ALGECIRAS CF</Text>
-                      <Text style={styles.carnetTemporada}>ABONO 2025/26</Text>
+                      <Text style={styles.carnetTemporada}>ABONO {TEMPORADA_CORTA}</Text>
                     </View>
                   </View>
                   {/* Carnet Body */}
@@ -304,8 +305,8 @@ export default function PerfilScreen() {
                           <Text style={styles.carnetValue}>{(user as any).dni}</Text>
                         </>
                       ) : null}
-                      <Text style={styles.carnetLabel}>Asiento</Text>
-                      <Text style={styles.carnetValue}>#{a.asientoId}</Text>
+                      <Text style={styles.carnetLabel}>Abono</Text>
+                      <Text style={styles.carnetValue}>{(a as any).codigoAbonado ? (a as any).codigoAbonado : `#${a.id}`}</Text>
                       <Text style={styles.carnetLabel}>Válido</Text>
                       <Text style={styles.carnetValue}>
                         {new Date(a.fechaInicio).toLocaleDateString('es-ES')} – {new Date(a.fechaFin).toLocaleDateString('es-ES')}

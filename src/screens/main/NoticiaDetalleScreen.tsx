@@ -9,7 +9,9 @@ import {
   Image,
   Share,
   RefreshControl,
+  useWindowDimensions,
 } from 'react-native';
+import RenderHtml from 'react-native-render-html';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -54,8 +56,10 @@ export default function NoticiaDetalleScreen() {
   const navigation = useNavigation<Nav>();
   const route = useRoute<RouteT>();
   const { slug } = route.params;
+  const { width } = useWindowDimensions();
 
   const [noticia, setNoticia] = useState<Noticia | null>(null);
+  const [relacionadas, setRelacionadas] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -64,9 +68,10 @@ export default function NoticiaDetalleScreen() {
   const fetchNoticia = useCallback(async () => {
     try {
       setNotFound(false);
-      const { data } = await api.get<{ noticia: Noticia }>(`/api/noticias/${slug}`);
+      const { data } = await api.get<{ noticia: Noticia; relacionadas?: any[] }>(`/api/noticias/${slug}`);
       if (data?.noticia) {
         setNoticia(data.noticia);
+        setRelacionadas(data.relacionadas ?? []);
       } else {
         setNotFound(true);
       }
@@ -177,9 +182,42 @@ export default function NoticiaDetalleScreen() {
 
             {/* Body content */}
             {noticia.contenido ? (
-              <Text style={styles.contenido}>{noticia.contenido}</Text>
+              <RenderHtml
+                contentWidth={width - 32}
+                source={{ html: noticia.contenido || '' }}
+                tagsStyles={{
+                  p: { fontSize: 15, lineHeight: 24, color: '#333', marginBottom: 12 },
+                  strong: { fontWeight: 'bold' },
+                  em: { fontStyle: 'italic' },
+                  h2: { fontSize: 18, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
+                  h3: { fontSize: 16, fontWeight: 'bold', marginTop: 12, marginBottom: 6 },
+                  a: { color: '#C8102E' },
+                  img: { marginVertical: 8, borderRadius: 8 },
+                }}
+              />
             ) : null}
           </View>
+
+          {relacionadas.length > 0 && (
+            <View style={styles.relacionadasSection}>
+              <Text style={styles.relacionadasTitle}>📰 Más noticias</Text>
+              {relacionadas.map(n => (
+                <TouchableOpacity
+                  key={n.id}
+                  style={styles.relacionadaCard}
+                  onPress={() => navigation.replace('NoticiaDetalle', { slug: n.slug })}
+                >
+                  {n.imagen && (
+                    <Image source={{ uri: n.imagen }} style={styles.relacionadaImg} />
+                  )}
+                  <View style={styles.relacionadaBody}>
+                    <Text style={styles.relacionadaCategoria}>{n.categoria?.toUpperCase()}</Text>
+                    <Text style={styles.relacionadaTitulo} numberOfLines={2}>{n.titulo}</Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          )}
 
           <View style={styles.masNoticias}>
             <Text style={styles.masNoticiasTitle}>📰 Más noticias</Text>
@@ -294,6 +332,25 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 24,
   },
+  relacionadasSection: { marginHorizontal: 16, marginTop: 8, marginBottom: 8 },
+  relacionadasTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 12 },
+  relacionadaCard: {
+    flexDirection: 'row',
+    backgroundColor: colors.white,
+    borderRadius: 8,
+    marginBottom: 10,
+    padding: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+    elevation: 2,
+    alignItems: 'center',
+  },
+  relacionadaImg: { width: 60, height: 60, borderRadius: 6, marginRight: 12, backgroundColor: colors.border },
+  relacionadaBody: { flex: 1 },
+  relacionadaCategoria: { fontSize: 10, fontWeight: 'bold', color: colors.primary, marginBottom: 4, letterSpacing: 0.5 },
+  relacionadaTitulo: { fontSize: 13, fontWeight: '600', color: colors.text, lineHeight: 18 },
   masNoticias: { margin: 16, padding: 16, backgroundColor: colors.white, borderRadius: 12, alignItems: 'center', borderLeftWidth: 3, borderLeftColor: colors.primary },
   masNoticiasTitle: { fontSize: 15, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
   masNoticiasBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { ESCUDO_URL } from '../../constants';
 
 export default function LoginScreen() {
   const { login } = useAuth();
@@ -48,7 +49,7 @@ export default function LoginScreen() {
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
             <Image
-              source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+              source={{ uri: ESCUDO_URL }}
               style={styles.escudoImg}
               resizeMode="contain"
             />
@@ -96,6 +97,18 @@ export default function LoginScreen() {
               ) : (
                 <Text style={styles.buttonText}>Iniciar sesión</Text>
               )}
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.forgotLink}
+              onPress={() =>
+                Alert.alert(
+                  '¿Olvidaste tu contraseña?',
+                  'Envíanos un correo a info@algecirasclubdefutbol.com para recuperar tu cuenta.'
+                )
+              }
+            >
+              <Text style={styles.forgotLinkText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -179,6 +192,8 @@ const styles = StyleSheet.create({
   },
   buttonDisabled: { opacity: 0.6 },
   buttonText: { color: colors.white, fontSize: 16, fontWeight: 'bold' },
+  forgotLink: { marginTop: 14, alignItems: 'center' },
+  forgotLinkText: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   registerLink: { marginTop: 16, alignItems: 'center' },
   registerLinkText: { fontSize: 14, color: colors.textSecondary },
   registerLinkBold: { color: colors.primary, fontWeight: 'bold' },

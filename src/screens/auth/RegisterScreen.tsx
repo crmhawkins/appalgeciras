@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import PhoneInput from '../../components/PhoneInput';
+import { ESCUDO_URL } from '../../constants';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
@@ -75,7 +76,7 @@ export default function RegisterScreen() {
         >
           <View style={styles.header}>
             <Image
-              source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+              source={{ uri: ESCUDO_URL }}
               style={{ width: 70, height: 70, marginBottom: 10 }}
               resizeMode="contain"
             />

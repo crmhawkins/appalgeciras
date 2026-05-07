@@ -16,6 +16,7 @@ import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { AbonosStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { ESCUDO_URL, TEMPORADA_CORTA, COMPETICION, ESTADIO } from '../../constants';
 
 type CheckoutRouteProp = RouteProp<AbonosStackParamList, 'Checkout'>;
 
@@ -80,19 +81,19 @@ export default function CheckoutScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resumen del Abono</Text>
-        <Text style={styles.headerSub}>Temporada 2024/25 · Primera RFEF</Text>
+        <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
       </View>
 
       <View style={styles.clubCard}>
         <Image
-          source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+          source={{ uri: ESCUDO_URL }}
           style={styles.clubEscudo}
           resizeMode="contain"
         />
         <View>
           <Text style={styles.clubName}>Algeciras Club de Fútbol</Text>
-          <Text style={styles.clubInfo}>Estadio Municipal El Mirador · 8.500 espectadores</Text>
-          <Text style={styles.clubInfo}>Primera RFEF · Grupo 2</Text>
+          <Text style={styles.clubInfo}>{ESTADIO} · 8.500 espectadores</Text>
+          <Text style={styles.clubInfo}>{COMPETICION}</Text>
         </View>
       </View>
 

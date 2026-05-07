@@ -9,6 +9,7 @@ import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
 import { useAuth } from '../../context/AuthContext';
+import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
 
 export default function MisAbonosScreen() {
   const { user, token } = useAuth();
@@ -44,7 +45,7 @@ export default function MisAbonosScreen() {
           <Text style={styles.guestIcon}>🎟️</Text>
           <Text style={styles.guestTitle}>Inicia sesión</Text>
           <Text style={styles.guestText}>
-            Accede a tu cuenta para gestionar tus abonos de la temporada 2024/25
+            Accede a tu cuenta para gestionar tus abonos de la temporada {TEMPORADA_CORTA}
           </Text>
           <TouchableOpacity
             style={styles.loginBtn}
@@ -80,7 +81,7 @@ export default function MisAbonosScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🎟️ Mis Abonos</Text>
-        <Text style={styles.headerSub}>Temporada 2024/25 · Primera RFEF</Text>
+        <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList

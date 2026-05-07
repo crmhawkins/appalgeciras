@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { CLUB_NOMBRE, TEMPORADA_CORTA } from '../../constants';
 
 type JugadorDetalleRouteParams = {
   JugadorDetalle: { id: number };
@@ -34,9 +35,37 @@ interface JugadorDetalle {
   foto?: string;
   nacionalidad?: string;
   edad?: number;
-  altura?: string;
+  altura?: string | number;
   peso?: string;
+  piePref?: string;
+  valorMercado?: number;
   estadisticas?: EstadisticasJugador;
+}
+
+function formatPiePref(p?: string): string | null {
+  if (!p) return null;
+  const map: Record<string, string> = { L: 'Izquierdo', R: 'Derecho', B: 'Ambidiestro' };
+  return map[p] ?? p;
+}
+
+function formatValorMercado(v?: number): string | null {
+  if (v == null || isNaN(Number(v))) return null;
+  try {
+    return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 }).format(Number(v));
+  } catch {
+    return `€${Number(v).toLocaleString('es-ES')}`;
+  }
+}
+
+function formatAltura(a?: string | number): string | null {
+  if (a == null || a === '') return null;
+  const n = typeof a === 'number' ? a : parseFloat(a as string);
+  if (!isNaN(n) && n > 100 && n < 250) {
+    // cm -> "1,83 m"
+    const m = (n / 100).toFixed(2).replace('.', ',');
+    return `${m} m`;
+  }
+  return String(a);
 }
 
 interface StatItem {
@@ -152,7 +181,7 @@ export default function JugadorDetalleScreen() {
           )}
 
           <Text style={styles.nombre}>{nombreCompleto(jugador)}</Text>
-          <Text style={styles.clubLabel}>Algeciras C.F. · 2024/25</Text>
+          <Text style={styles.clubLabel}>{CLUB_NOMBRE} · {TEMPORADA_CORTA}</Text>
 
           <View style={styles.badgesRow}>
             {jugador.dorsal != null && (
@@ -177,7 +206,7 @@ export default function JugadorDetalleScreen() {
         </View>
 
         {/* Info extra */}
-        {(jugador.nacionalidad || jugador.altura || jugador.peso) && (
+        {(jugador.nacionalidad || jugador.altura || jugador.peso || jugador.piePref || jugador.valorMercado) && (
           <View style={styles.infoSection}>
             <Text style={styles.sectionTitle}>Información</Text>
             <View style={styles.infoRow}>
@@ -187,10 +216,10 @@ export default function JugadorDetalleScreen() {
                   <Text style={styles.infoValue}>{jugador.nacionalidad}</Text>
                 </View>
               )}
-              {jugador.altura && (
+              {formatAltura(jugador.altura) && (
                 <View style={styles.infoItem}>
                   <Text style={styles.infoLabel}>Altura</Text>
-                  <Text style={styles.infoValue}>{jugador.altura}</Text>
+                  <Text style={styles.infoValue}>{formatAltura(jugador.altura)}</Text>
                 </View>
               )}
               {jugador.peso && (
@@ -200,6 +229,22 @@ export default function JugadorDetalleScreen() {
                 </View>
               )}
             </View>
+            {(formatPiePref(jugador.piePref) || formatValorMercado(jugador.valorMercado)) && (
+              <View style={[styles.infoRow, { marginTop: 12 }]}>
+                {formatPiePref(jugador.piePref) && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Pie preferente</Text>
+                    <Text style={styles.infoValue}>{formatPiePref(jugador.piePref)}</Text>
+                  </View>
+                )}
+                {formatValorMercado(jugador.valorMercado) && (
+                  <View style={styles.infoItem}>
+                    <Text style={styles.infoLabel}>Valor de mercado</Text>
+                    <Text style={styles.infoValue}>{formatValorMercado(jugador.valorMercado)}</Text>
+                  </View>
+                )}
+              </View>
+            )}
           </View>
         )}
 

@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
 
 interface Jugador {
   id: number;
@@ -142,8 +143,8 @@ export default function PlantillaScreen() {
           resizeMode="cover"
         />
         <View style={styles.headerOverlay}>
-          <Text style={styles.headerTitle}>Plantilla 2024/25</Text>
-          <Text style={styles.headerSub}>Primera RFEF • Grupo 2</Text>
+          <Text style={styles.headerTitle}>Plantilla {TEMPORADA_CORTA}</Text>
+          <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
         </View>
       </View>
       <SectionList
