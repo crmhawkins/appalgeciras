@@ -113,6 +113,28 @@ export default function PartidosScreen() {
             onRefresh={() => { setRefreshing(true); load(); }}
           />
         }
+        ListHeaderComponent={
+          tab === 'proximos' && proximos.length > 0 ? (
+            <View style={styles.proximoCard}>
+              <Text style={styles.proximoLabel}>⚡ PRÓXIMO PARTIDO</Text>
+              <View style={styles.proximoTeams}>
+                <View style={styles.proximoTeam}>
+                  <EscudoImage uri={proximos[0].escudoLocal} nombre={proximos[0].equipoLocal} />
+                  <Text style={styles.proximoTeamName} numberOfLines={2}>{proximos[0].equipoLocal}</Text>
+                </View>
+                <View style={styles.proximoCenter}>
+                  <Text style={styles.proximoVs}>VS</Text>
+                  <Text style={styles.proximoFecha}>{formatFecha(proximos[0].fecha)}</Text>
+                  {proximos[0].hora ? <Text style={styles.proximoHora}>{proximos[0].hora}</Text> : null}
+                </View>
+                <View style={styles.proximoTeam}>
+                  <EscudoImage uri={proximos[0].escudoVisitante} nombre={proximos[0].equipoVisitante} />
+                  <Text style={styles.proximoTeamName} numberOfLines={2}>{proximos[0].equipoVisitante}</Text>
+                </View>
+              </View>
+            </View>
+          ) : null
+        }
         ListEmptyComponent={
           !error ? <Text style={styles.empty}>Sin partidos programados</Text> : null
         }
@@ -247,4 +269,18 @@ const styles = StyleSheet.create({
   hora: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 12, paddingHorizontal: 16 },
+  proximoCard: {
+    backgroundColor: colors.primary,
+    borderRadius: 14,
+    padding: 18,
+    marginBottom: 14,
+  },
+  proximoLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center', marginBottom: 12 },
+  proximoTeams: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  proximoTeam: { flex: 1, alignItems: 'center', gap: 6 },
+  proximoTeamName: { color: colors.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center', maxWidth: 90 },
+  proximoCenter: { alignItems: 'center', paddingHorizontal: 8 },
+  proximoVs: { fontSize: 20, fontWeight: 'bold', color: colors.secondary },
+  proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
+  proximoHora: { color: colors.secondary, fontSize: 14, fontWeight: 'bold' },
 });

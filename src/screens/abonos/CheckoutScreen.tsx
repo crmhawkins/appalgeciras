@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   TextInput,
+  Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -36,7 +37,7 @@ export default function CheckoutScreen() {
     setDniError(null);
     setLoading(true);
     try {
-      const { data } = await api.post<{ url: string }>('/api/pagos/create-checkout', {
+      const { data } = await api.post<{ url: string; sessionId?: string }>('/api/pagos/create-checkout', {
         asientoId,
         sectorId,
         precio,
@@ -79,6 +80,20 @@ export default function CheckoutScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resumen del Abono</Text>
+        <Text style={styles.headerSub}>Temporada 2024/25 · Primera RFEF</Text>
+      </View>
+
+      <View style={styles.clubCard}>
+        <Image
+          source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+          style={styles.clubEscudo}
+          resizeMode="contain"
+        />
+        <View>
+          <Text style={styles.clubName}>Algeciras Club de Fútbol</Text>
+          <Text style={styles.clubInfo}>Estadio Municipal El Mirador · 8.500 espectadores</Text>
+          <Text style={styles.clubInfo}>Primera RFEF · Grupo 2</Text>
+        </View>
       </View>
 
       <View style={styles.card}>
@@ -116,7 +131,7 @@ export default function CheckoutScreen() {
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.payBtnText}>Pagar con Stripe</Text>
+            <Text style={styles.payBtnText}>💳 Pagar {precio} € con Stripe</Text>
           )}
         </TouchableOpacity>
 
@@ -153,6 +168,11 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
+  headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  clubCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: colors.white, marginHorizontal: 16, marginTop: 16, marginBottom: 0, borderRadius: 12, padding: 14, gap: 12, borderLeftWidth: 4, borderLeftColor: colors.primary },
+  clubEscudo: { width: 48, height: 48 },
+  clubName: { fontSize: 15, fontWeight: 'bold', color: colors.text },
+  clubInfo: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   card: {
     backgroundColor: colors.white,
     margin: 16,

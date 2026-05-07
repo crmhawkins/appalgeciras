@@ -61,7 +61,7 @@ export default function SectoresScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{gradaNombre}</Text>
-        <Text style={styles.headerSub}>Sectores disponibles</Text>
+        <Text style={styles.headerSub}>Paso 2 de 3 · Elige sector</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
@@ -111,7 +111,10 @@ export default function SectoresScreen() {
                     {disponibles} {disponibles === 1 ? 'sitio libre' : 'sitios libres'}
                   </Text>
                 )}
-                <Text style={styles.cardPrice}>{item.precio} € / temporada</Text>
+                <View style={styles.precioContainer}>
+                  <Text style={styles.precioAmount}>{item.precio} €</Text>
+                  <Text style={styles.precioLabel}>/ temporada</Text>
+                </View>
               </View>
               <View style={[styles.badge, sinAsientos && styles.badgeFull]}>
                 <Text style={styles.badgeText}>
@@ -150,7 +153,9 @@ const styles = StyleSheet.create({
   },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
   cardText: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
-  cardPrice: { fontSize: 16, color: colors.primary, fontWeight: 'bold', marginTop: 6 },
+  precioContainer: { flexDirection: 'row', alignItems: 'baseline', marginTop: 6, gap: 4 },
+  precioAmount: { fontSize: 20, fontWeight: 'bold', color: colors.primary },
+  precioLabel: { fontSize: 12, color: colors.textSecondary },
   badge: {
     backgroundColor: colors.success,
     paddingHorizontal: 10,

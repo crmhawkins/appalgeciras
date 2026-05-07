@@ -92,7 +92,7 @@ export default function AsientosScreen() {
     <SafeAreaView style={styles.safe} edges={[]}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{sectorNombre}</Text>
-        <Text style={styles.headerSub}>Selecciona tu asiento</Text>
+        <Text style={styles.headerSub}>Paso 3 de 3 · Selecciona asiento · {precio} €</Text>
       </View>
 
       <View style={styles.legend}>
@@ -137,11 +137,15 @@ export default function AsientosScreen() {
 
       <View style={styles.footer}>
         {selected ? (
-          <Text style={styles.footerText}>
-            Fila {selected.fila} · Nº {selected.numero} · {precio} €
-          </Text>
+          <View style={styles.footerSelected}>
+            <View>
+              <Text style={styles.footerSeatLabel}>Asiento seleccionado</Text>
+              <Text style={styles.footerSeatInfo}>Fila {selected.fila} · Nº {selected.numero}</Text>
+            </View>
+            <Text style={styles.footerPrice}>{precio} €</Text>
+          </View>
         ) : (
-          <Text style={styles.footerText}>Ningún asiento seleccionado</Text>
+          <Text style={styles.footerText}>Toca un asiento verde para seleccionarlo</Text>
         )}
         <TouchableOpacity
           style={[styles.buyBtn, !selected && styles.buyBtnDisabled]}
@@ -149,7 +153,7 @@ export default function AsientosScreen() {
           disabled={!selected}
         >
           <Text style={styles.buyBtnText}>
-            {token ? 'Comprar Abono' : 'Iniciar sesión para comprar'}
+            {token ? '🛒 Comprar Abono' : 'Iniciar sesión para comprar'}
           </Text>
         </TouchableOpacity>
       </View>
@@ -199,6 +203,10 @@ const styles = StyleSheet.create({
     borderTopColor: colors.border,
   },
   footerText: { color: colors.text, marginBottom: 10, textAlign: 'center' },
+  footerSelected: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  footerSeatLabel: { fontSize: 11, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  footerSeatInfo: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginTop: 2 },
+  footerPrice: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   buyBtn: {
     backgroundColor: colors.primary,
     paddingVertical: 14,

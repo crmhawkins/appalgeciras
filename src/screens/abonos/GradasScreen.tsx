@@ -58,7 +58,11 @@ export default function GradasScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Selecciona Grada</Text>
+        <Text style={styles.headerTitle}>Elige tu Zona</Text>
+        <Text style={styles.headerSub}>Paso 1 de 3 · Estadio El Mirador</Text>
+      </View>
+      <View style={styles.infoBanner}>
+        <Text style={styles.infoBannerText}>🎟️ Selecciona la zona del estadio para ver los sectores disponibles</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
@@ -108,6 +112,7 @@ export default function GradasScreen() {
                   </Text>
                 ) : null}
               </View>
+              <Text style={styles.cardArrow}>›</Text>
             </TouchableOpacity>
           );
         }}
@@ -121,6 +126,9 @@ const styles = StyleSheet.create({
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
+  headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  infoBanner: { backgroundColor: '#fff3cd', paddingHorizontal: 16, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: '#ffc107' },
+  infoBannerText: { fontSize: 13, color: '#856404', textAlign: 'center' },
   list: { padding: 16 },
   mapaContainer: {
     marginBottom: 16,
@@ -169,6 +177,7 @@ const styles = StyleSheet.create({
   cardBody: { flex: 1, padding: 12, justifyContent: 'center' },
   cardTitle: { fontSize: 18, fontWeight: 'bold', color: colors.text },
   cardText: { fontSize: 13, color: colors.textSecondary, marginTop: 4 },
+  cardArrow: { fontSize: 24, color: colors.primary, paddingHorizontal: 8, alignSelf: 'center' },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 12 },
 });
