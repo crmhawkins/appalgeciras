@@ -77,7 +77,7 @@ export default function FanZoneScreen() {
       const lista: Partido[] = Array.isArray(data) ? data : ((data as any).partidos ?? []);
       setPartidos(lista);
       const activo = [...lista]
-        .filter(p => p.marcador !== null && p.marcador !== undefined)
+        .filter(p => p.marcador !== null && p.marcador !== undefined && p.marcador !== '')
         .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? lista[0] ?? null;
       setPartidoActivo(activo);
       return activo;

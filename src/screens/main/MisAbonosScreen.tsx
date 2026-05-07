@@ -47,8 +47,12 @@ export default function MisAbonosScreen() {
           style: 'destructive',
           onPress: async () => {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-            await api.post('/api/abonos/liberar', { abonoId });
-            load();
+            try {
+              await api.post('/api/abonos/liberar', { abonoId });
+              load();
+            } catch (e: any) {
+              Alert.alert('Error', e?.response?.data?.msg || 'No se pudo liberar el asiento');
+            }
           },
         },
       ]
@@ -259,18 +263,18 @@ const styles = StyleSheet.create({
     padding: 10,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#C8102E',
+    borderColor: colors.primary,
     borderStyle: 'dashed',
   },
-  codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 4 },
-  codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: '#C8102E' },
+  codigoLabel: { fontSize: 11, color: colors.primary, fontWeight: '600', marginBottom: 4 },
+  codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: colors.primary },
   liberarRow: { alignItems: 'flex-end', marginTop: 10 },
   liberarBtn: {
     borderWidth: 1,
-    borderColor: '#C8102E',
+    borderColor: colors.primary,
     borderRadius: 6,
     paddingVertical: 5,
     paddingHorizontal: 12,
   },
-  liberarText: { fontSize: 12, color: '#C8102E', fontWeight: '600' },
+  liberarText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
 });

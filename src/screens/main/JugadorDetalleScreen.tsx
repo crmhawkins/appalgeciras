@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, Share,
@@ -157,7 +157,10 @@ export default function JugadorDetalleScreen() {
   }
 
   const url = fotoUrl(jugador);
-  const stats = buildStats(jugador.estadisticas, (jugador as any).stats);
+  const stats = useMemo(
+    () => buildStats(jugador?.estadisticas, (jugador as any)?.stats),
+    [jugador]
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

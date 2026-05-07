@@ -24,6 +24,7 @@ interface Producto {
 }
 
 const WHATSAPP_NUMERO = 'PENDIENTE';
+const WHATSAPP_DISPONIBLE = WHATSAPP_NUMERO !== 'PENDIENTE' && WHATSAPP_NUMERO.length > 5;
 const SCREEN_W = Dimensions.get('window').width;
 
 export default function ProductoDetalleScreen() {
@@ -160,8 +161,14 @@ export default function ProductoDetalleScreen() {
             </View>
           )}
 
-          <TouchableOpacity style={styles.whatsappBtn} onPress={handleWhatsapp}>
-            <Text style={styles.whatsappText}>Consultar en WhatsApp</Text>
+          <TouchableOpacity
+            style={[styles.whatsappBtn, !WHATSAPP_DISPONIBLE && styles.whatsappBtnDisabled]}
+            onPress={WHATSAPP_DISPONIBLE ? handleWhatsapp : undefined}
+            activeOpacity={WHATSAPP_DISPONIBLE ? 0.75 : 1}
+          >
+            <Text style={styles.whatsappText}>
+              {WHATSAPP_DISPONIBLE ? 'Consultar en WhatsApp' : 'Consultas próximamente disponibles'}
+            </Text>
           </TouchableOpacity>
         </View>
       </ScrollView>
@@ -217,6 +224,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
   },
+  whatsappBtnDisabled: { backgroundColor: colors.textSecondary, opacity: 0.6 },
   whatsappText: { color: colors.white, fontWeight: 'bold', fontSize: 15 },
   empty: { textAlign: 'center', color: colors.textSecondary, paddingVertical: 12 },
 });

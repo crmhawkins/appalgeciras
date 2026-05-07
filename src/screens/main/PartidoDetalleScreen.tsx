@@ -75,18 +75,24 @@ export default function PartidoDetalleScreen() {
   const load = useCallback(async () => {
     setError(null);
     try {
-      const [pRes, eRes] = await Promise.all([
-        api.get<Partido[] | { partidos: Partido[] }>('/api/partidos'),
-        api.get<EventoPartido[]>(`/api/partidos/eventos/${id}`).catch(() => ({ data: [] as EventoPartido[] })),
-      ]);
-      const lista: Partido[] = Array.isArray(pRes.data)
-        ? pRes.data
-        : ((pRes.data as any).partidos ?? []);
-      const found = lista.find((p) => p.id === id) ?? null;
-      setPartido(found);
-      setEventos(Array.isArray(eRes.data) ? eRes.data : []);
-    } catch (e: any) {
-      setError(e?.response?.data?.msg || e?.message || 'Error cargando partido');
+      // Single request returns partido + eventos
+      const { data } = await api.get<any>(`/api/partidos/${id}`);
+      setPartido(data?.partido ?? null);
+      const evs = data?.eventos ?? [];
+      setEventos(Array.isArray(evs) ? evs : []);
+    } catch {
+      // Fallback: load from list + separate eventos
+      try {
+        const [listRes, eRes] = await Promise.all([
+          api.get<Partido[] | { partidos: Partido[] }>('/api/partidos'),
+          api.get<EventoPartido[]>(`/api/partidos/eventos/${id}`).catch(() => ({ data: [] as EventoPartido[] })),
+        ]);
+        const lista: Partido[] = Array.isArray(listRes.data) ? listRes.data : ((listRes.data as any).partidos ?? []);
+        setPartido(lista.find((p) => p.id === id) ?? null);
+        setEventos(Array.isArray(eRes.data) ? eRes.data : []);
+      } catch (e: any) {
+        setError(e?.response?.data?.msg || e?.message || 'Error cargando partido');
+      }
     } finally {
       setLoading(false);
     }
