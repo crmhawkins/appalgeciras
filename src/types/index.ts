@@ -124,6 +124,19 @@ export type AbonosStackParamList = {
   };
 };
 
+export interface Noticia {
+  id: number;
+  titulo: string;
+  slug: string;
+  extracto?: string;
+  contenido?: string;
+  imagen?: string;
+  categoria: 'fichaje' | 'lesion' | 'comunicado' | 'partido' | 'galeria' | 'evento' | 'otro';
+  fecha: string;
+  activo: boolean;
+  destacado: boolean;
+}
+
 export type MainTabParamList = {
   InicioTab: undefined;
   NoticiasTab: undefined;

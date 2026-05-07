@@ -8,7 +8,36 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
-import { ClasificacionItem } from '../../types';
+import { ClasificacionItem, Noticia } from '../../types';
+
+const SPONSORS = [
+  { name: 'Capelli Sport', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/Capelli-Sport_Logo_White-scaled.png', dark: true },
+  { name: 'Quirónsalud', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/20-quironsalud.svg', dark: false },
+  { name: 'Hawkins', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/DISENOS-2025-HAWKINS--e1741864702878.png', dark: true },
+  { name: 'Smartlou', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/smartlou-white0.png', dark: true },
+  { name: 'Ewytyploof', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/Logo-Ewytyploof-en-blanco.-solo-un-color.png', dark: true },
+  { name: 'Galleta', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/GALLETA-BLANCA.png', dark: true },
+];
+
+const CATEGORIA_COLORS: Record<string, string> = {
+  fichaje: '#2196F3',
+  partido: '#4CAF50',
+  comunicado: '#FF9800',
+  lesion: '#F44336',
+  galeria: '#9C27B0',
+  evento: '#00BCD4',
+  otro: '#607D8B',
+};
+
+const CATEGORIA_LABELS: Record<string, string> = {
+  fichaje: 'Fichaje',
+  partido: 'Partido',
+  comunicado: 'Comunicado',
+  lesion: 'Lesión',
+  galeria: 'Galería',
+  evento: 'Evento',
+  otro: 'Noticia',
+};
 
 interface PartidoAPI {
   id: number;
@@ -31,6 +60,8 @@ export default function HomeScreen() {
   const [escudoError, setEscudoError] = useState(false);
   const [partido, setPartido] = useState<PartidoAPI | null>(null);
   const [loadingPartido, setLoadingPartido] = useState(true);
+  const [noticiasDestacadas, setNoticiasDestacadas] = useState<Noticia[]>([]);
+  const [loadingDestacadas, setLoadingDestacadas] = useState(true);
 
   const loadClasificacion = useCallback(async () => {
     try {
@@ -63,10 +94,19 @@ export default function HomeScreen() {
     finally { setLoadingPartido(false); }
   }, []);
 
+  const loadDestacadas = useCallback(async () => {
+    try {
+      const { data } = await api.get<{ noticias: Noticia[] }>('/api/noticias/destacadas');
+      setNoticiasDestacadas((data?.noticias ?? []).slice(0, 3));
+    } catch (_) {}
+    finally { setLoadingDestacadas(false); }
+  }, []);
+
   useEffect(() => {
     loadClasificacion();
     loadPartido();
-  }, [loadClasificacion, loadPartido]);
+    loadDestacadas();
+  }, [loadClasificacion, loadPartido, loadDestacadas]);
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
@@ -75,9 +115,10 @@ export default function HomeScreen() {
     setRefreshing(true);
     setLoadingClasif(true);
     setLoadingPartido(true);
-    await Promise.all([loadClasificacion(), loadPartido()]);
+    setLoadingDestacadas(true);
+    await Promise.all([loadClasificacion(), loadPartido(), loadDestacadas()]);
     setRefreshing(false);
-  }, [loadClasificacion, loadPartido]);
+  }, [loadClasificacion, loadPartido, loadDestacadas]);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
   const goPartidos = () => navigation.navigate('Partidos');
@@ -110,7 +151,7 @@ export default function HomeScreen() {
             </View>
           ) : (
             <Image
-              source={{ uri: 'https://cdn.resfu.com/img_data/equipos/166.png' }}
+              source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
               style={styles.escudoImg}
               resizeMode="contain"
               onError={() => setEscudoError(true)}
@@ -192,6 +233,47 @@ export default function HomeScreen() {
           </View>
         </TouchableOpacity>
 
+        {/* NOTICIAS DESTACADAS */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Noticias Destacadas</Text>
+          {loadingDestacadas ? (
+            <ActivityIndicator color={colors.primary} style={{ marginTop: 12 }} />
+          ) : noticiasDestacadas.length === 0 ? (
+            <Text style={styles.emptyText}>Sin noticias destacadas</Text>
+          ) : (
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.destacadasRow}
+            >
+              {noticiasDestacadas.map(n => {
+                const catColor = CATEGORIA_COLORS[n.categoria] ?? '#607D8B';
+                const catLabel = CATEGORIA_LABELS[n.categoria] ?? n.categoria;
+                return (
+                  <TouchableOpacity
+                    key={n.id}
+                    style={styles.destacadaCard}
+                    onPress={() => navigation.navigate('NoticiaDetalle', { slug: n.slug })}
+                    activeOpacity={0.85}
+                  >
+                    {n.imagen ? (
+                      <Image source={{ uri: n.imagen }} style={styles.destacadaImage} resizeMode="cover" />
+                    ) : (
+                      <View style={[styles.destacadaImage, { backgroundColor: catColor + '55' }]} />
+                    )}
+                    <View style={styles.destacadaOverlay}>
+                      <View style={[styles.destacadaBadge, { backgroundColor: catColor }]}>
+                        <Text style={styles.destacadaBadgeText}>{catLabel}</Text>
+                      </View>
+                      <Text style={styles.destacadaTitulo} numberOfLines={2}>{n.titulo}</Text>
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          )}
+        </View>
+
         {/* PATROCINADORES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Patrocinadores</Text>
@@ -200,9 +282,16 @@ export default function HomeScreen() {
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={styles.sponsorsRow}
           >
-            {[0, 1, 2].map(i => (
-              <View key={i} style={styles.sponsorBlock}>
-                <Text style={styles.sponsorText}>Espacio{'\n'}patrocinador</Text>
+            {SPONSORS.map(sponsor => (
+              <View
+                key={sponsor.name}
+                style={[styles.sponsorBlock, { backgroundColor: sponsor.dark ? '#1a1a1a' : '#f0f0f0' }]}
+              >
+                <Image
+                  source={{ uri: sponsor.url }}
+                  style={styles.sponsorLogo}
+                  resizeMode="contain"
+                />
               </View>
             ))}
           </ScrollView>
@@ -377,14 +466,55 @@ const styles = StyleSheet.create({
   // SPONSORS
   sponsorsRow: { gap: 12, paddingVertical: 4 },
   sponsorBlock: {
-    width: 110,
+    width: 120,
     height: 64,
-    backgroundColor: '#e0e0e0',
     borderRadius: 8,
     justifyContent: 'center',
     alignItems: 'center',
+    overflow: 'hidden',
   },
-  sponsorText: { color: '#888', fontSize: 11, textAlign: 'center' },
+  sponsorLogo: { width: 100, height: 44 },
+
+  // NOTICIAS DESTACADAS
+  destacadasRow: { gap: 8, paddingVertical: 4 },
+  destacadaCard: {
+    width: 220,
+    height: 160,
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginRight: 4,
+  },
+  destacadaImage: {
+    width: 220,
+    height: 160,
+    position: 'absolute',
+    top: 0,
+    left: 0,
+  },
+  destacadaOverlay: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    height: 80,
+    backgroundColor: 'rgba(0,0,0,0.55)',
+    padding: 10,
+    justifyContent: 'flex-end',
+  },
+  destacadaBadge: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+    marginBottom: 4,
+  },
+  destacadaBadgeText: { color: colors.white, fontSize: 10, fontWeight: 'bold' },
+  destacadaTitulo: {
+    color: colors.white,
+    fontSize: 13,
+    fontWeight: 'bold',
+    lineHeight: 17,
+  },
 
   // TABLE
   table: { borderRadius: 8, overflow: 'hidden' },

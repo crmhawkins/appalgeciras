@@ -5,6 +5,7 @@ import PartidosScreen from '../screens/main/PartidosScreen';
 import JugadorDetalleScreen from '../screens/main/JugadorDetalleScreen';
 import MisAbonosScreen from '../screens/main/MisAbonosScreen';
 import MisEntradasScreen from '../screens/main/MisEntradasScreen';
+import NoticiaDetalleScreen from '../screens/main/NoticiaDetalleScreen';
 import { colors } from '../theme/colors';
 
 export type MainStackParamList = {
@@ -13,6 +14,7 @@ export type MainStackParamList = {
   JugadorDetalle: { id: number };
   MisAbonos: undefined;
   MisEntradas: undefined;
+  NoticiaDetalle: { slug: string };
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -38,6 +40,7 @@ export default function MainStack() {
       />
       <Stack.Screen name="MisAbonos" component={MisAbonosScreen} options={{ headerShown: false }} />
       <Stack.Screen name="MisEntradas" component={MisEntradasScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="NoticiaDetalle" component={NoticiaDetalleScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );
 }

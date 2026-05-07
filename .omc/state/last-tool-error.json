@@ -1,7 +1,7 @@
 {
-  "tool_name": "Bash",
-  "tool_input_preview": "{\"command\":\"ssh -i ~/.ssh/hawcert_dani -o StrictHostKeyChecking=no dani@217.160.39.81 \\\"docker exec xwo8cwsoso4cs4oswgkws40w-082725213393 php artisan tinker --execute=\\\\\\\"\\n\\\\\\\\\\\\$user = new \\\\App\\\\Mo...",
-  "error": "Exit code 1\n   PARSE ERROR  PHP Parse error: Syntax error, unexpected T_NS_SEPARATOR in vendor/psy/psysh/src/Exception/ParseErrorException.php on line 44.",
-  "timestamp": "2026-04-30T08:36:01.860Z",
+  "tool_name": "WebFetch",
+  "tool_input_preview": "{\"url\":\"https://latiendadelalgeciras.com/wp-json/wc/v3/products?per_page=100\",\"prompt\":\"Lista todos los productos con id, nombre, precio, precio regular, precio sale, imágenes, categorías, atributos (...",
+  "error": "Request failed with status code 401",
+  "timestamp": "2026-05-07T11:13:00.019Z",
   "retry_count": 1
 }
