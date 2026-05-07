@@ -9,12 +9,16 @@ import { Partido } from '../../types';
 
 type Tab = 'proximos' | 'jugados';
 
+const ACF_ESCUDO = 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png';
+
 function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
   const [error, setError] = useState(false);
+  const isAlgeciras = nombre?.toLowerCase().includes('algeciras');
+  const resolvedUri = uri || (isAlgeciras ? ACF_ESCUDO : undefined);
   const initials = nombre
     ? nombre.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
     : '?';
-  if (!uri || error) {
+  if (!resolvedUri || error) {
     return (
       <View style={styles.escudoPlaceholder}>
         <Text style={styles.escudoInitials}>{initials}</Text>
@@ -23,7 +27,7 @@ function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
   }
   return (
     <Image
-      source={{ uri }}
+      source={{ uri: resolvedUri }}
       style={styles.escudo}
       onError={() => setError(true)}
     />

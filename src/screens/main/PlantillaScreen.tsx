@@ -40,6 +40,9 @@ function normalizarPosicion(posicion?: string): PosicionGrupo {
 
 function fotoUrl(jugador: Jugador): string | null {
   if (jugador.foto) return jugador.foto;
+  if (jugador.dorsal && jugador.dorsal >= 1 && jugador.dorsal <= 25) {
+    return `https://backend-algeciras.hawkins.es/acf/2025/10/${jugador.dorsal}.png`;
+  }
   if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
   return null;
 }
@@ -133,7 +136,15 @@ export default function PlantillaScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.headerBar}>
-        <Text style={styles.headerTitle}>Plantilla</Text>
+        <Image
+          source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/10/Diseno-sin-titulo-94.png' }}
+          style={styles.headerBanner}
+          resizeMode="cover"
+        />
+        <View style={styles.headerOverlay}>
+          <Text style={styles.headerTitle}>Plantilla 2024/25</Text>
+          <Text style={styles.headerSub}>Primera RFEF • Grupo 2</Text>
+        </View>
       </View>
       <SectionList
         sections={sections}
@@ -147,7 +158,7 @@ export default function PlantillaScreen() {
         )}
         renderItem={({ item }) => (
           <TouchableOpacity style={styles.jugadorCard} onPress={() => goDetalle(item.id)} activeOpacity={0.75}>
-            <JugadorFoto jugador={item} size={52} />
+            <JugadorFoto jugador={item} size={64} />
             <View style={styles.jugadorInfo}>
               <Text style={styles.jugadorNombre} numberOfLines={1}>{nombreCompleto(item)}</Text>
               <Text style={styles.jugadorPosicion}>{item.posicion ?? '—'}</Text>
@@ -177,14 +188,16 @@ const styles = StyleSheet.create({
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   headerBar: {
     backgroundColor: colors.primary,
-    paddingVertical: 16,
-    paddingHorizontal: 20,
+    overflow: 'hidden',
   },
+  headerBanner: { width: '100%', height: 100 },
+  headerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(200,16,46,0.7)' },
   headerTitle: {
     color: colors.white,
     fontSize: 20,
     fontWeight: 'bold',
   },
+  headerSub: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 2 },
   list: { paddingBottom: 24 },
   sectionHeader: {
     backgroundColor: colors.background,
@@ -207,13 +220,15 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
     marginTop: 8,
     borderRadius: 12,
-    padding: 12,
-    gap: 12,
+    padding: 14,
+    gap: 14,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 3,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 4,
+    elevation: 3,
+    borderLeftWidth: 3,
+    borderLeftColor: 'transparent',
   },
   avatar: {
     backgroundColor: colors.primary,

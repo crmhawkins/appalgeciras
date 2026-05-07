@@ -4,11 +4,30 @@ import {
   ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { ClasificacionItem, Noticia } from '../../types';
+
+const YOUTUBE_VIDEO_ID = '1B7o0uklMW8';
+const youtubeHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  * { margin: 0; padding: 0; }
+  body { background: #000; overflow: hidden; }
+  iframe { width: 100%; height: 100vh; border: none; }
+</style>
+</head>
+<body>
+<iframe src="https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}" allow="autoplay; fullscreen" allowfullscreen></iframe>
+</body>
+</html>
+`;
 
 const SPONSORS = [
   { name: 'Capelli Sport', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/Capelli-Sport_Logo_White-scaled.png', dark: true },
@@ -143,6 +162,23 @@ export default function HomeScreen() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
       >
+        {/* VIDEO HERO */}
+        <View style={styles.videoHero}>
+          <WebView
+            source={{ html: youtubeHtml }}
+            style={styles.videoWebView}
+            allowsInlineMediaPlayback
+            mediaPlaybackRequiresUserAction={false}
+            javaScriptEnabled
+            scrollEnabled={false}
+            bounces={false}
+          />
+          <View style={styles.videoOverlay}>
+            <Text style={styles.videoClubTag}>⚽ ALGECIRAS C.F.</Text>
+            <Text style={styles.videoSeason}>Temporada 2024/2025 · Primera RFEF</Text>
+          </View>
+        </View>
+
         {/* HEADER */}
         <View style={styles.header}>
           {escudoError ? (
@@ -277,21 +313,11 @@ export default function HomeScreen() {
         {/* PATROCINADORES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Patrocinadores</Text>
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.sponsorsRow}
-          >
-            {SPONSORS.map(sponsor => (
-              <View
-                key={sponsor.name}
-                style={[styles.sponsorBlock, { backgroundColor: sponsor.dark ? '#1a1a1a' : '#f0f0f0' }]}
-              >
-                <Image
-                  source={{ uri: sponsor.url }}
-                  style={styles.sponsorLogo}
-                  resizeMode="contain"
-                />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+            {SPONSORS.map((s) => (
+              <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
+                <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
+                <Text style={[styles.sponsorName, s.dark && styles.sponsorNameDark]}>{s.name}</Text>
               </View>
             ))}
           </ScrollView>
@@ -361,7 +387,19 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
-  container: { padding: 16 },
+  container: { paddingHorizontal: 16, paddingBottom: 24, paddingTop: 0 },
+
+  // VIDEO HERO
+  videoHero: { width: '100%', height: 210, marginHorizontal: -16, marginTop: 0, marginBottom: 16, backgroundColor: '#000' },
+  videoWebView: { flex: 1, backgroundColor: '#000' },
+  videoOverlay: {
+    position: 'absolute', bottom: 0, left: 0, right: 0,
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: 'rgba(0,0,0,0.45)',
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+  },
+  videoClubTag: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
+  videoSeason: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
 
   // HEADER
   header: {
@@ -464,16 +502,12 @@ const styles = StyleSheet.create({
   noticiasArrow: { color: colors.secondary, fontSize: 28, fontWeight: 'bold' },
 
   // SPONSORS
-  sponsorsRow: { gap: 12, paddingVertical: 4 },
-  sponsorBlock: {
-    width: 120,
-    height: 64,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-    overflow: 'hidden',
-  },
-  sponsorLogo: { width: 100, height: 44 },
+  sponsorsRow: { gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
+  sponsorCard: { width: 120, height: 80, borderRadius: 10, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 4 },
+  sponsorCardDark: { backgroundColor: '#1a1a2e' },
+  sponsorImg: { width: 90, height: 42 },
+  sponsorName: { fontSize: 9, color: '#666', fontWeight: '600' },
+  sponsorNameDark: { color: 'rgba(255,255,255,0.6)' },
 
   // NOTICIAS DESTACADAS
   destacadasRow: { gap: 8, paddingVertical: 4 },
