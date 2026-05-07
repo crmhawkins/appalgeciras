@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
 
 interface Jugador {
@@ -85,6 +86,7 @@ function JugadorFoto({ jugador, size = 52 }: { jugador: Jugador; size?: number }
       source={{ uri: url }}
       style={{ width: size, height: size, borderRadius: size / 2 }}
       onError={() => setError(true)}
+      accessibilityLabel={jugador.apellidos ? `${jugador.nombre} ${jugador.apellidos}` : jugador.nombre}
     />
   );
 }
@@ -100,8 +102,25 @@ export default function PlantillaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState('');
+  const [offline, setOffline] = useState(false);
+
+  const buildSections = (flat: Jugador[]): Section[] => {
+    const agrupados: Record<PosicionGrupo, Jugador[]> = {
+      Porteros: [],
+      Defensas: [],
+      Centrocampistas: [],
+      Delanteros: [],
+      Otros: [],
+    };
+    flat.forEach((j) => { agrupados[normalizarPosicion(j.posicion)].push(j); });
+    return POSICION_ORDEN
+      .filter((g) => agrupados[g].length > 0)
+      .map((g) => ({ title: g, data: agrupados[g] }));
+  };
 
   const loadPlantilla = useCallback(async () => {
+    const cached = await getCached<Jugador[]>('plantilla');
+    if (cached) setSections(buildSections(cached));
     try {
       const { data } = await api.get<any>('/api/jugadores');
       // Backend returns { ok, plantilla: { porteros, defensas, centrocampistas, delanteros } }
@@ -113,21 +132,13 @@ export default function PlantillaScreen() {
         ...(plantilla.centrocampistas ?? []),
         ...(plantilla.delanteros ?? []),
       ];
-      const agrupados: Record<PosicionGrupo, Jugador[]> = {
-        Porteros: [],
-        Defensas: [],
-        Centrocampistas: [],
-        Delanteros: [],
-        Otros: [],
-      };
-      flat.forEach((j) => {
-        agrupados[normalizarPosicion(j.posicion)].push(j);
-      });
-      const result: Section[] = POSICION_ORDEN
-        .filter((g) => agrupados[g].length > 0)
-        .map((g) => ({ title: g, data: agrupados[g] }));
-      setSections(result);
-    } catch (_) {}
+      setSections(buildSections(flat));
+      await setCached('plantilla', flat);
+      setOffline(false);
+    } catch (_) {
+      const stale = await getCachedStale<Jugador[]>('plantilla');
+      if (stale) { setSections(buildSections(stale)); setOffline(true); }
+    }
     finally { setLoading(false); setRefreshing(false); }
   }, []);
 
@@ -193,6 +204,11 @@ export default function PlantillaScreen() {
           <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
         </View>
       </View>
+      {offline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>📡 Sin conexión — mostrando datos guardados</Text>
+        </View>
+      )}
       <View style={styles.searchWrap}>
         <TextInput
           style={styles.searchInput}
@@ -342,4 +358,15 @@ const styles = StyleSheet.create({
     padding: 14,
     marginBottom: 8,
   },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffe69c',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 16,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
 });

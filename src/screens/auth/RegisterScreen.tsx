@@ -79,6 +79,7 @@ export default function RegisterScreen() {
               source={{ uri: ESCUDO_URL }}
               style={{ width: 70, height: 70, marginBottom: 10 }}
               resizeMode="contain"
+              accessibilityLabel="Escudo Algeciras CF"
             />
             <Text style={styles.title}>Algeciras CF</Text>
             <Text style={styles.subtitle}>Crear cuenta</Text>

@@ -9,6 +9,7 @@ import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
+import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { ClasificacionItem, Noticia } from '../../types';
 import { ESCUDO_URL, COMPETICION, TEMPORADA, SPONSORS as DEFAULT_SPONSORS, Sponsor } from '../../constants';
 
@@ -84,6 +85,7 @@ function MatchEscudo({ uri, nombre }: { uri?: string; nombre: string }) {
       style={styles.matchEscudoImg}
       resizeMode="contain"
       onError={() => setError(true)}
+      accessibilityLabel={nombre}
     />
   );
 }
@@ -99,43 +101,65 @@ export default function HomeScreen() {
   const [noticiasDestacadas, setNoticiasDestacadas] = useState<Noticia[]>([]);
   const [loadingDestacadas, setLoadingDestacadas] = useState(true);
   const [patrocinadores, setPatrocinadores] = useState<Sponsor[]>(DEFAULT_SPONSORS);
+  const [offline, setOffline] = useState(false);
 
   const loadClasificacion = useCallback(async () => {
+    const cached = await getCached<ClasificacionItem[]>('clasificacion');
+    if (cached) setClasificacion(cached);
     try {
       const { data } = await api.get<ClasificacionItem[]>('/api/clasificacion');
       setClasificacion(data ?? []);
-    } catch (_) {}
+      await setCached('clasificacion', data ?? []);
+    } catch (_) {
+      const stale = await getCachedStale<ClasificacionItem[]>('clasificacion');
+      if (stale) { setClasificacion(stale); setOffline(true); }
+    }
     finally { setLoadingClasif(false); }
   }, []);
 
   const loadPartido = useCallback(async () => {
+    const cached = await getCached<PartidoAPI>('home_partido');
+    if (cached) setPartido(cached);
     try {
       const { data } = await api.get<PartidoAPI[]>('/api/partidos');
       if (!data || data.length === 0) return;
       const today = new Date().toISOString().split('T')[0];
       // Partidos con marcador = ya jugados
       const jugados = data.filter(p => p.marcador != null && p.marcador !== '');
+      let chosen: PartidoAPI | null = null;
       if (jugados.length > 0) {
         const sorted = jugados.sort(
           (a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime(),
         );
-        setPartido(sorted[0]);
+        chosen = sorted[0];
       } else {
         // No played match — show next upcoming
         const proximos = data
           .filter(p => !p.marcador && p.fecha >= today)
           .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-        setPartido(proximos[0] ?? data[0] ?? null);
+        chosen = proximos[0] ?? data[0] ?? null;
       }
-    } catch (_) {}
+      setPartido(chosen);
+      if (chosen) await setCached('home_partido', chosen);
+    } catch (_) {
+      const stale = await getCachedStale<PartidoAPI>('home_partido');
+      if (stale) { setPartido(stale); setOffline(true); }
+    }
     finally { setLoadingPartido(false); }
   }, []);
 
   const loadDestacadas = useCallback(async () => {
+    const cached = await getCached<Noticia[]>('home_destacadas');
+    if (cached) setNoticiasDestacadas(cached);
     try {
       const { data } = await api.get<{ noticias: Noticia[] }>('/api/noticias/destacadas');
-      setNoticiasDestacadas((data?.noticias ?? []).slice(0, 3));
-    } catch (_) {}
+      const list = (data?.noticias ?? []).slice(0, 3);
+      setNoticiasDestacadas(list);
+      await setCached('home_destacadas', list);
+    } catch (_) {
+      const stale = await getCachedStale<Noticia[]>('home_destacadas');
+      if (stale) { setNoticiasDestacadas(stale); setOffline(true); }
+    }
     finally { setLoadingDestacadas(false); }
   }, []);
 
@@ -202,6 +226,11 @@ export default function HomeScreen() {
         contentContainerStyle={styles.container}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} tintColor={colors.primary} />}
       >
+        {offline && (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineBannerText}>📡 Sin conexión — mostrando datos guardados</Text>
+          </View>
+        )}
         {/* VIDEO HERO */}
         <View style={styles.videoHero}>
           <WebView
@@ -231,14 +260,22 @@ export default function HomeScreen() {
               style={styles.escudoImg}
               resizeMode="contain"
               onError={() => setEscudoError(true)}
+              accessibilityLabel="Escudo Algeciras CF"
             />
           )}
-          <View>
+          <View style={{ flex: 1 }}>
             <Text style={styles.clubName}>Algeciras CF</Text>
             <Text style={styles.welcome}>
               {user ? `Hola, ${user.nombre || user.email}` : 'Bienvenido, aficionado'}
             </Text>
           </View>
+          <TouchableOpacity
+            style={styles.searchBtn}
+            onPress={() => navigation.navigate('Busqueda')}
+            accessibilityLabel="Buscar"
+          >
+            <Text style={styles.searchBtnIcon}>🔍</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ACTION BUTTONS */}
@@ -353,7 +390,7 @@ export default function HomeScreen() {
                     activeOpacity={0.85}
                   >
                     {n.imagen ? (
-                      <Image source={{ uri: n.imagen }} style={styles.destacadaImage} resizeMode="cover" />
+                      <Image source={{ uri: n.imagen }} style={styles.destacadaImage} resizeMode="cover" accessibilityLabel={n.titulo} />
                     ) : (
                       <View style={[styles.destacadaImage, { backgroundColor: catColor + '55' }]} />
                     )}
@@ -450,6 +487,26 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   container: { paddingHorizontal: 16, paddingBottom: 24, paddingTop: 0 },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffe69c',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginTop: 8,
+    marginBottom: 4,
+  },
+  offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
+  searchBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBtnIcon: { fontSize: 18 },
 
   // VIDEO HERO
   videoHero: { width: '100%', height: 210, marginHorizontal: -16, marginTop: 0, marginBottom: 16, backgroundColor: '#000' },

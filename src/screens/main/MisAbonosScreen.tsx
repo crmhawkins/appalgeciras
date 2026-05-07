@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
@@ -45,6 +46,7 @@ export default function MisAbonosScreen() {
           text: 'Liberar',
           style: 'destructive',
           onPress: async () => {
+            Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             await api.post('/api/abonos/liberar', { abonoId });
             load();
           },

@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as Haptics from 'expo-haptics';
 import { colors } from '../../theme/colors';
 import { ESCUDO_URL } from '../../constants';
 
@@ -61,6 +62,7 @@ export default function OnboardingScreen({ onDone }: Props) {
   };
 
   const next = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     if (index < SLIDES.length - 1) {
       flatListRef.current?.scrollToIndex({ index: index + 1, animated: true });
     } else {
@@ -90,7 +92,7 @@ export default function OnboardingScreen({ onDone }: Props) {
         renderItem={({ item }) => (
           <View style={[styles.slide, { width }]}>
             {item.icon === 'escudo' ? (
-              <Image source={{ uri: ESCUDO_URL }} style={styles.escudo} resizeMode="contain" />
+              <Image source={{ uri: ESCUDO_URL }} style={styles.escudo} resizeMode="contain" accessibilityLabel="Escudo Algeciras CF" />
             ) : (
               <Text style={styles.iconBig}>{item.icon}</Text>
             )}

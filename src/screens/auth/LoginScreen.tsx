@@ -52,6 +52,7 @@ export default function LoginScreen() {
               source={{ uri: ESCUDO_URL }}
               style={styles.escudoImg}
               resizeMode="contain"
+              accessibilityLabel="Escudo Algeciras CF"
             />
             <Text style={styles.title}>Algeciras CF</Text>
             <Text style={styles.subtitle}>Abonos Temporada</Text>
@@ -101,12 +102,7 @@ export default function LoginScreen() {
 
             <TouchableOpacity
               style={styles.forgotLink}
-              onPress={() =>
-                Alert.alert(
-                  '¿Olvidaste tu contraseña?',
-                  'Envíanos un correo a info@algecirasclubdefutbol.com para recuperar tu cuenta.'
-                )
-              }
+              onPress={() => navigation.navigate('RecuperarPassword')}
             >
               <Text style={styles.forgotLinkText}>¿Olvidaste tu contraseña?</Text>
             </TouchableOpacity>

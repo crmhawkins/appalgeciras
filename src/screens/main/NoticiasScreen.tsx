@@ -110,6 +110,7 @@ function NoticiaCard({ noticia, onPress }: { noticia: Noticia; onPress: () => vo
           style={styles.cardImage}
           resizeMode="cover"
           onError={() => setImgError(true)}
+          accessibilityLabel={noticia.titulo}
         />
       ) : (
         <View style={[styles.cardImageFallback, { backgroundColor: catColor + '33' }]}>

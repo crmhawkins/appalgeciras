@@ -6,6 +6,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import * as Notifications from 'expo-notifications';
 import api from '../../services/api';
+import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
 import { ESCUDO_URL, COMPETICION, TEMPORADA_CORTA } from '../../constants';
@@ -41,6 +42,7 @@ function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
       source={{ uri: resolvedUri }}
       style={styles.escudo}
       onError={() => setError(true)}
+      accessibilityLabel={nombre}
     />
   );
 }
@@ -94,20 +96,38 @@ export default function PartidosScreen() {
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('proximos');
   const [eventos, setEventos] = useState<Record<number, EventoPartido[]>>({});
+  const [offline, setOffline] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
+    const cached = await getCached<{ partidos: Partido[]; proximoPartido: Partido | null }>('partidos');
+    if (cached) {
+      setPartidos(cached.partidos ?? []);
+      setProximoPartido(cached.proximoPartido ?? null);
+    }
     try {
       const { data } = await api.get<Partido[] | { partidos: Partido[]; proximoPartido?: Partido | null }>('/api/partidos');
+      let partidosList: Partido[] = [];
+      let proximo: Partido | null = null;
       if (Array.isArray(data)) {
-        setPartidos(data);
-        setProximoPartido(null);
+        partidosList = data;
       } else {
-        setPartidos((data as any).partidos ?? []);
-        setProximoPartido((data as any).proximoPartido ?? null);
+        partidosList = (data as any).partidos ?? [];
+        proximo = (data as any).proximoPartido ?? null;
       }
+      setPartidos(partidosList);
+      setProximoPartido(proximo);
+      await setCached('partidos', { partidos: partidosList, proximoPartido: proximo });
+      setOffline(false);
     } catch (e: any) {
-      setError(e?.response?.data?.msg || e?.message || 'Error cargando partidos');
+      const stale = await getCachedStale<{ partidos: Partido[]; proximoPartido: Partido | null }>('partidos');
+      if (stale) {
+        setPartidos(stale.partidos ?? []);
+        setProximoPartido(stale.proximoPartido ?? null);
+        setOffline(true);
+      } else {
+        setError(e?.response?.data?.msg || e?.message || 'Error cargando partidos');
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -185,6 +205,11 @@ export default function PartidosScreen() {
         </TouchableOpacity>
       </View>
 
+      {offline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>📡 Sin conexión — mostrando datos guardados</Text>
+        </View>
+      )}
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={data}
@@ -420,4 +445,15 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: colors.textSecondary,
   },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffe69c',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
 });

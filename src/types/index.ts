@@ -112,6 +112,7 @@ export type RootStackParamList = {
 export type AuthStackParamList = {
   Login: { afterAuthScreen?: string } | undefined;
   Register: { afterAuthScreen?: string } | undefined;
+  RecuperarPassword: undefined;
 };
 
 export type AbonosStackParamList = {

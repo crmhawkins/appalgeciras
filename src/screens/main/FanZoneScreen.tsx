@@ -8,6 +8,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
+import * as Haptics from 'expo-haptics';
 import api, { API_BASE_URL } from '../../services/api';
 import { Partido } from '../../types';
 import { io, Socket } from 'socket.io-client';
@@ -208,6 +209,7 @@ export default function FanZoneScreen() {
       return;
     }
     if (!partidoActivo) return;
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setVotando(true);
     try {
       await api.post(`/api/fanzone/${partidoActivo.id}/votar`, { jugador });

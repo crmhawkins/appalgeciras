@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Image,
+  ActivityIndicator, Image, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -164,15 +164,30 @@ export default function JugadorDetalleScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Header */}
         <View style={styles.hero}>
-          <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
-            <Text style={styles.backText}>‹ Volver</Text>
-          </TouchableOpacity>
+          <View style={styles.heroTopRow}>
+            <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+              <Text style={styles.backText}>‹ Volver</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.shareBtn}
+              onPress={() =>
+                Share.share({
+                  title: `${nombreCompleto(jugador)} — Algeciras CF`,
+                  message: `${nombreCompleto(jugador)}, ${jugador.posicion ?? ''} del Algeciras CF\nhttps://algecirasclubdefutbol.com/plantilla/`,
+                })
+              }
+              accessibilityLabel="Compartir jugador"
+            >
+              <Text style={styles.shareIcon}>↗</Text>
+            </TouchableOpacity>
+          </View>
 
           {url && !fotoError ? (
             <Image
               source={{ uri: url }}
               style={styles.fotoGrande}
               onError={() => setFotoError(true)}
+              accessibilityLabel={jugador.nombre}
             />
           ) : (
             <View style={styles.fotoPlaceholder}>
@@ -293,12 +308,27 @@ const styles = StyleSheet.create({
     paddingBottom: 28,
     paddingTop: 8,
   },
+  heroTopRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    width: '100%',
+    paddingHorizontal: 8,
+  },
   backBtn: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
     paddingVertical: 8,
   },
   backText: { color: colors.white, fontSize: 16, fontWeight: '600' },
+  shareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  shareIcon: { color: colors.white, fontSize: 22, fontWeight: 'bold' },
 
   fotoGrande: {
     width: 130,
