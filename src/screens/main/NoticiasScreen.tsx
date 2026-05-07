@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -9,6 +9,7 @@ import {
   Image,
   RefreshControl,
   ScrollView,
+  Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import WebView from 'react-native-webview';
@@ -68,6 +69,32 @@ function formatFecha(fechaStr: string): string {
   } catch {
     return fechaStr;
   }
+}
+
+function SkeletonBox({ width, height, style }: { width: number | string; height: number; style?: any }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [anim]);
+  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+  return <Animated.View style={[{ width: width as any, height, backgroundColor: '#ddd', borderRadius: 8, opacity }, style]} />;
+}
+
+function NoticiaCardSkeleton() {
+  return (
+    <View style={styles.card}>
+      <SkeletonBox width={'100%'} height={180} style={{ borderRadius: 0 }} />
+      <View style={styles.cardBody}>
+        <SkeletonBox width={'70%'} height={14} style={{ marginBottom: 8 }} />
+        <SkeletonBox width={'40%'} height={11} />
+      </View>
+    </View>
+  );
 }
 
 function NoticiaCard({ noticia, onPress }: { noticia: Noticia; onPress: () => void }) {
@@ -185,9 +212,11 @@ function NoticiasListTab() {
       </ScrollView>
 
       {loading ? (
-        <View style={styles.loaderCenter}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
+        <ScrollView contentContainerStyle={styles.listContent}>
+          {Array.from({ length: 4 }).map((_, i) => (
+            <NoticiaCardSkeleton key={i} />
+          ))}
+        </ScrollView>
       ) : (
         <FlatList
           data={noticias}

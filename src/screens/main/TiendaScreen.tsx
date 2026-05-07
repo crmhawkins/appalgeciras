@@ -12,6 +12,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
 
@@ -39,6 +40,7 @@ const CATEGORIAS = [
 const WHATSAPP_NUMERO = 'PENDIENTE'; // TODO: poner número real de la tienda (Soricastel)
 
 export default function TiendaScreen() {
+  const navigation = useNavigation<any>();
   const [productos, setProductos] = useState<Producto[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -92,7 +94,11 @@ export default function TiendaScreen() {
     const descuento = precioAnt ? Math.round((1 - precio / precioAnt) * 100) : null;
 
     return (
-      <View style={styles.card}>
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.85}
+        onPress={() => navigation.navigate('ProductoDetalle', { id: item.id })}
+      >
         {item.destacado && (
           <View style={styles.badgeDestacado}>
             <Text style={styles.badgeText}>Destacado</Text>
@@ -139,7 +145,7 @@ export default function TiendaScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

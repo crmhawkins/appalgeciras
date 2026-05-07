@@ -10,7 +10,7 @@ import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { ClasificacionItem, Noticia } from '../../types';
-import { ESCUDO_URL, COMPETICION, TEMPORADA } from '../../constants';
+import { ESCUDO_URL, COMPETICION, TEMPORADA, SPONSORS as DEFAULT_SPONSORS, Sponsor } from '../../constants';
 
 const YOUTUBE_VIDEO_ID = '1B7o0uklMW8';
 const youtubeHtml = `
@@ -30,14 +30,6 @@ const youtubeHtml = `
 </html>
 `;
 
-const SPONSORS = [
-  { name: 'Capelli Sport', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/Capelli-Sport_Logo_White-scaled.png', dark: true },
-  { name: 'Quirónsalud', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/20-quironsalud.svg', dark: false },
-  { name: 'Hawkins', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/DISENOS-2025-HAWKINS--e1741864702878.png', dark: true },
-  { name: 'Smartlou', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/smartlou-white0.png', dark: true },
-  { name: 'Ewytyploof', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/Logo-Ewytyploof-en-blanco.-solo-un-color.png', dark: true },
-  { name: 'Galleta', url: 'https://backend-algeciras.hawkins.es/acf/2021/11/GALLETA-BLANCA.png', dark: true },
-];
 
 const CATEGORIA_COLORS: Record<string, string> = {
   fichaje: '#2196F3',
@@ -72,6 +64,30 @@ interface PartidoAPI {
   marcador?: string | null;
 }
 
+function MatchEscudo({ uri, nombre }: { uri?: string; nombre: string }) {
+  const [error, setError] = useState(false);
+  const isAlgeciras = nombre?.toLowerCase().includes('algeciras');
+  const resolvedUri = uri || (isAlgeciras ? ESCUDO_URL : undefined);
+  if (!resolvedUri || error) {
+    const initials = nombre
+      ? nombre.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()
+      : '?';
+    return (
+      <View style={styles.matchEscudoPlaceholder}>
+        <Text style={styles.matchEscudoText}>{initials}</Text>
+      </View>
+    );
+  }
+  return (
+    <Image
+      source={{ uri: resolvedUri }}
+      style={styles.matchEscudoImg}
+      resizeMode="contain"
+      onError={() => setError(true)}
+    />
+  );
+}
+
 export default function HomeScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -82,6 +98,7 @@ export default function HomeScreen() {
   const [loadingPartido, setLoadingPartido] = useState(true);
   const [noticiasDestacadas, setNoticiasDestacadas] = useState<Noticia[]>([]);
   const [loadingDestacadas, setLoadingDestacadas] = useState(true);
+  const [patrocinadores, setPatrocinadores] = useState<Sponsor[]>(DEFAULT_SPONSORS);
 
   const loadClasificacion = useCallback(async () => {
     try {
@@ -127,6 +144,28 @@ export default function HomeScreen() {
     loadPartido();
     loadDestacadas();
   }, [loadClasificacion, loadPartido, loadDestacadas]);
+
+  // Intentar cargar patrocinadores desde /api/estadio (opcional)
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/api/estadio')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const info = data?.estadio ?? data;
+        const remoteSponsors = info?.patrocinadores;
+        if (Array.isArray(remoteSponsors) && remoteSponsors.length > 0) {
+          // Aceptar shape { name|nombre, url|imagen, dark? }
+          const normalized: Sponsor[] = remoteSponsors.map((s: any) => ({
+            name: s.name ?? s.nombre ?? '',
+            url: s.url ?? s.imagen ?? s.logo ?? '',
+            dark: !!s.dark,
+          })).filter((s: Sponsor) => s.url);
+          if (normalized.length > 0) setPatrocinadores(normalized);
+        }
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
@@ -225,36 +264,56 @@ export default function HomeScreen() {
             <Text style={styles.emptyText}>Sin datos de partidos</Text>
           ) : partidoJugado ? (
             /* RESULTADO */
-            <View style={styles.matchCard}>
+            <TouchableOpacity
+              style={styles.matchCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('PartidoDetalle', { id: partido.id })}
+            >
               <View style={styles.matchTeamBlock}>
-                <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
+                <View style={styles.matchTeamRow}>
+                  <MatchEscudo uri={partido.escudoLocal} nombre={partido.equipoLocal} />
+                  <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
+                </View>
               </View>
               <View style={styles.matchScoreBlock}>
                 <Text style={styles.matchScore}>{partido.marcador}</Text>
                 <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
               </View>
               <View style={styles.matchTeamBlock}>
-                <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
-                  {partido.equipoVisitante}
-                </Text>
+                <View style={[styles.matchTeamRow, styles.matchTeamRowRight]}>
+                  <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
+                    {partido.equipoVisitante}
+                  </Text>
+                  <MatchEscudo uri={partido.escudoVisitante} nombre={partido.equipoVisitante} />
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           ) : (
             /* PRÓXIMO */
-            <View style={styles.matchCard}>
+            <TouchableOpacity
+              style={styles.matchCard}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('PartidoDetalle', { id: partido.id })}
+            >
               <View style={styles.matchTeamBlock}>
-                <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
+                <View style={styles.matchTeamRow}>
+                  <MatchEscudo uri={partido.escudoLocal} nombre={partido.equipoLocal} />
+                  <Text style={styles.matchTeam} numberOfLines={2}>{partido.equipoLocal}</Text>
+                </View>
               </View>
               <View style={styles.matchScoreBlock}>
                 <Text style={styles.matchVs}>VS</Text>
                 <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
               </View>
               <View style={styles.matchTeamBlock}>
-                <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
-                  {partido.equipoVisitante}
-                </Text>
+                <View style={[styles.matchTeamRow, styles.matchTeamRowRight]}>
+                  <Text style={[styles.matchTeam, styles.matchTeamRight]} numberOfLines={2}>
+                    {partido.equipoVisitante}
+                  </Text>
+                  <MatchEscudo uri={partido.escudoVisitante} nombre={partido.equipoVisitante} />
+                </View>
               </View>
-            </View>
+            </TouchableOpacity>
           )}
         </View>
 
@@ -315,7 +374,7 @@ export default function HomeScreen() {
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Patrocinadores</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
-            {SPONSORS.map((s) => (
+            {patrocinadores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
                 <Text style={[styles.sponsorName, s.dark && styles.sponsorNameDark]}>{s.name}</Text>
@@ -475,7 +534,16 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   matchTeamBlock: { flex: 1 },
-  matchTeam: { fontSize: 13, fontWeight: 'bold', color: colors.text, textAlign: 'left' },
+  matchTeamRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  matchTeamRowRight: { justifyContent: 'flex-end' },
+  matchEscudoImg: { width: 36, height: 36 },
+  matchEscudoPlaceholder: {
+    width: 36, height: 36, borderRadius: 18,
+    backgroundColor: colors.border,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  matchEscudoText: { fontSize: 11, fontWeight: 'bold', color: colors.textSecondary },
+  matchTeam: { flex: 1, fontSize: 13, fontWeight: 'bold', color: colors.text, textAlign: 'left' },
   matchTeamRight: { textAlign: 'right' },
   matchScoreBlock: { alignItems: 'center', paddingHorizontal: 12 },
   matchScore: { fontSize: 22, fontWeight: 'bold', color: colors.primary },

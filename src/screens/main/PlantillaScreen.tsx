@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity,
   ActivityIndicator, Image, RefreshControl, SectionList,
+  Animated, TextInput,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -52,6 +53,20 @@ function nombreCompleto(jugador: Jugador): string {
   return jugador.apellidos ? `${jugador.nombre} ${jugador.apellidos}` : jugador.nombre;
 }
 
+function SkeletonBox({ width, height, style }: { width: number | string; height: number; style?: any }) {
+  const anim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.loop(
+      Animated.sequence([
+        Animated.timing(anim, { toValue: 1, duration: 800, useNativeDriver: true }),
+        Animated.timing(anim, { toValue: 0, duration: 800, useNativeDriver: true }),
+      ])
+    ).start();
+  }, [anim]);
+  const opacity = anim.interpolate({ inputRange: [0, 1], outputRange: [0.3, 0.7] });
+  return <Animated.View style={[{ width: width as any, height, backgroundColor: '#ddd', borderRadius: 8, opacity }, style]} />;
+}
+
 function PlaceholderAvatar({ nombre, size = 52 }: { nombre: string; size?: number }) {
   const inicial = nombre.charAt(0).toUpperCase();
   return (
@@ -84,6 +99,7 @@ export default function PlantillaScreen() {
   const [sections, setSections] = useState<Section[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [search, setSearch] = useState('');
 
   const loadPlantilla = useCallback(async () => {
     try {
@@ -124,11 +140,41 @@ export default function PlantillaScreen() {
 
   const goDetalle = (id: number) => navigation.navigate('JugadorDetalle', { id });
 
+  const filteredSections = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    if (!q) return sections;
+    return sections
+      .map((sec) => ({
+        title: sec.title,
+        data: sec.data.filter((j) => nombreCompleto(j).toLowerCase().includes(q)),
+      }))
+      .filter((sec) => sec.data.length > 0);
+  }, [sections, search]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primary} />
+        <View style={styles.headerBar}>
+          <Image
+            source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/10/Diseno-sin-titulo-94.png' }}
+            style={styles.headerBanner}
+            resizeMode="cover"
+          />
+          <View style={styles.headerOverlay}>
+            <Text style={styles.headerTitle}>Plantilla {TEMPORADA_CORTA}</Text>
+            <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
+          </View>
+        </View>
+        <View style={{ paddingHorizontal: 16, paddingTop: 12 }}>
+          {Array.from({ length: 8 }).map((_, i) => (
+            <View key={i} style={styles.skeletonRow}>
+              <SkeletonBox width={64} height={64} style={{ borderRadius: 32 }} />
+              <View style={{ flex: 1, marginLeft: 14, gap: 8 }}>
+                <SkeletonBox width={`${60 + (i % 3) * 10}%`} height={14} />
+                <SkeletonBox width={`${30 + (i % 4) * 8}%`} height={11} />
+              </View>
+            </View>
+          ))}
         </View>
       </SafeAreaView>
     );
@@ -147,8 +193,19 @@ export default function PlantillaScreen() {
           <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
         </View>
       </View>
+      <View style={styles.searchWrap}>
+        <TextInput
+          style={styles.searchInput}
+          placeholder="Buscar jugador..."
+          value={search}
+          onChangeText={setSearch}
+          placeholderTextColor={colors.textSecondary}
+          autoCorrect={false}
+          autoCapitalize="none"
+        />
+      </View>
       <SectionList
-        sections={sections}
+        sections={filteredSections}
         keyExtractor={(item) => String(item.id)}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
         contentContainerStyle={styles.list}
@@ -173,11 +230,19 @@ export default function PlantillaScreen() {
           </TouchableOpacity>
         )}
         ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Text style={styles.emptyIcon}>👥</Text>
-            <Text style={styles.emptyTitle}>Plantilla no disponible</Text>
-            <Text style={styles.emptyText}>Los jugadores aparecerán aquí cuando se publiquen</Text>
-          </View>
+          search.trim() ? (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>🔎</Text>
+              <Text style={styles.emptyTitle}>Sin resultados</Text>
+              <Text style={styles.emptyText}>Prueba con otro nombre</Text>
+            </View>
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Text style={styles.emptyIcon}>👥</Text>
+              <Text style={styles.emptyTitle}>Plantilla no disponible</Text>
+              <Text style={styles.emptyText}>Los jugadores aparecerán aquí cuando se publiquen</Text>
+            </View>
+          )
         }
       />
     </SafeAreaView>
@@ -254,4 +319,27 @@ const styles = StyleSheet.create({
   emptyIcon: { fontSize: 52, marginBottom: 14 },
   emptyTitle: { fontSize: 17, fontWeight: 'bold', color: colors.primary, marginBottom: 8, textAlign: 'center' },
   emptyText: { textAlign: 'center', color: colors.textSecondary, fontSize: 14, lineHeight: 20 },
+  searchWrap: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.background,
+  },
+  searchInput: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: colors.text,
+  },
+  skeletonRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 8,
+  },
 });

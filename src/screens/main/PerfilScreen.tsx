@@ -11,6 +11,7 @@ import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
 import { Abono } from '../../types';
 import QRCode from 'react-native-qrcode-svg';
+import * as ImagePicker from 'expo-image-picker';
 import { ESCUDO_URL, TEMPORADA_CORTA } from '../../constants';
 
 export default function PerfilScreen() {
@@ -25,6 +26,45 @@ export default function PerfilScreen() {
 
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loadingAbonos, setLoadingAbonos] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  const handlePickAvatar = async () => {
+    try {
+      const perm = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (!perm.granted) {
+        Alert.alert('Permiso requerido', 'Necesitamos acceso a tus fotos para cambiar el avatar.');
+        return;
+      }
+      const res = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: 'images',
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+      if (res.canceled || !res.assets || res.assets.length === 0) return;
+      const asset = res.assets[0];
+      setUploadingPhoto(true);
+      const form = new FormData();
+      const filename = asset.fileName || `avatar_${Date.now()}.jpg`;
+      const type = asset.mimeType || 'image/jpeg';
+      // @ts-ignore RN FormData file shape
+      form.append('image', { uri: asset.uri, name: filename, type });
+      const { data } = await api.put('/api/user/profile-image', form, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      const newUser = data?.usuario ?? { profileImage: data?.profileImage ?? data?.url };
+      await updateUser(newUser);
+    } catch (e: any) {
+      Alert.alert('Error', e?.response?.data?.msg || 'No se pudo subir la foto');
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const initials = (() => {
+    const n = (user as any)?.nombre || (user as any)?.email || '';
+    return n.split(/\s+/).map((w: string) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
+  })();
 
   const loadAbonos = useCallback(async () => {
     if (!user) return;
@@ -153,6 +193,31 @@ export default function PerfilScreen() {
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
+          {/* Avatar */}
+          <View style={styles.avatarSection}>
+            <TouchableOpacity
+              style={styles.avatarWrap}
+              onPress={handlePickAvatar}
+              activeOpacity={0.8}
+              disabled={uploadingPhoto}
+            >
+              {(user as any).profileImage ? (
+                <Image source={{ uri: (user as any).profileImage }} style={styles.avatarImg} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Text style={styles.avatarInitials}>{initials}</Text>
+                </View>
+              )}
+              <View style={styles.avatarCamBadge}>
+                {uploadingPhoto ? (
+                  <ActivityIndicator color={colors.white} size="small" />
+                ) : (
+                  <Text style={styles.avatarCamText}>📷</Text>
+                )}
+              </View>
+            </TouchableOpacity>
+          </View>
+
           {/* Datos de cuenta (solo lectura) */}
           <View style={styles.card}>
             <Text style={styles.cardTitle}>Cuenta</Text>
@@ -379,6 +444,23 @@ const styles = StyleSheet.create({
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   scrollContent: { padding: 16, paddingBottom: 40 },
+  avatarSection: { alignItems: 'center', marginBottom: 16 },
+  avatarWrap: { width: 96, height: 96, position: 'relative' },
+  avatarImg: { width: 96, height: 96, borderRadius: 48, backgroundColor: colors.border },
+  avatarFallback: {
+    width: 96, height: 96, borderRadius: 48,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+  },
+  avatarInitials: { color: colors.white, fontSize: 32, fontWeight: 'bold' },
+  avatarCamBadge: {
+    position: 'absolute', right: -2, bottom: -2,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: colors.primary,
+    alignItems: 'center', justifyContent: 'center',
+    borderWidth: 2, borderColor: colors.white,
+  },
+  avatarCamText: { fontSize: 16 },
   card: {
     backgroundColor: colors.white,
     marginBottom: 12,

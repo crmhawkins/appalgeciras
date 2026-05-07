@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
   RefreshControl, Image, TouchableOpacity,
 } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
@@ -51,6 +52,7 @@ function eventoEmoji(tipo: string): string {
 }
 
 export default function PartidosScreen() {
+  const navigation = useNavigation<any>();
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [proximoPartido, setProximoPartido] = useState<Partido | null>(null);
   const [loading, setLoading] = useState(true);
@@ -165,7 +167,11 @@ export default function PartidosScreen() {
             (() => {
               const next = proximoPartido ?? proximos[0];
               return (
-                <View style={styles.proximoCard}>
+                <TouchableOpacity
+                  style={styles.proximoCard}
+                  activeOpacity={0.85}
+                  onPress={() => navigation.navigate('PartidoDetalle', { id: next.id })}
+                >
                   <Text style={styles.proximoLabel}>⚡ PRÓXIMO PARTIDO</Text>
                   <View style={styles.proximoTeams}>
                     <View style={styles.proximoTeam}>
@@ -182,7 +188,7 @@ export default function PartidosScreen() {
                       <Text style={styles.proximoTeamName} numberOfLines={2}>{next.equipoVisitante}</Text>
                     </View>
                   </View>
-                </View>
+                </TouchableOpacity>
               );
             })()
           ) : null
@@ -196,7 +202,11 @@ export default function PartidosScreen() {
             (e) => e.tipo === 'gol' || e.tipo === 'tarjeta_amarilla' || e.tipo === 'tarjeta_roja'
           );
           return (
-            <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.card}
+              activeOpacity={0.85}
+              onPress={() => navigation.navigate('PartidoDetalle', { id: item.id })}
+            >
               <View style={styles.teamsRow}>
                 <View style={styles.team}>
                   <EscudoImage uri={item.escudoLocal} nombre={item.equipoLocal} />
@@ -227,7 +237,7 @@ export default function PartidosScreen() {
                   ))}
                 </View>
               )}
-            </View>
+            </TouchableOpacity>
           );
         }}
       />

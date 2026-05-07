@@ -8,12 +8,10 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
-import api from '../../services/api';
+import api, { API_BASE_URL } from '../../services/api';
 import { Partido } from '../../types';
 import { io, Socket } from 'socket.io-client';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
-
-const BACKEND_URL = 'https://backend-algeciras.hawkins.es';
 
 interface VotoResult {
   jugador: string;
@@ -40,6 +38,7 @@ export default function FanZoneScreen() {
 
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [partidoActivo, setPartidoActivo] = useState<Partido | null>(null);
+  const [estadioInfo, setEstadioInfo] = useState<any>(null);
   const [jugadores, setJugadores] = useState<string[]>([]);
   const [votos, setVotos] = useState<VotoResult[]>([]);
   const [miVoto, setMiVoto] = useState<string | null>(null);
@@ -76,7 +75,9 @@ export default function FanZoneScreen() {
       const { data } = await api.get('/api/partidos');
       const lista: Partido[] = Array.isArray(data) ? data : ((data as any).partidos ?? []);
       setPartidos(lista);
-      const activo = lista.find(p => p.marcador !== null && p.marcador !== undefined) ?? lista[0] ?? null;
+      const activo = [...lista]
+        .filter(p => p.marcador !== null && p.marcador !== undefined)
+        .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? lista[0] ?? null;
       setPartidoActivo(activo);
       return activo;
     } catch { return null; }
@@ -116,6 +117,19 @@ export default function FanZoneScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  // Cargar info del estadio desde la API
+  useEffect(() => {
+    let cancelled = false;
+    api.get('/api/estadio')
+      .then(({ data }) => {
+        if (cancelled) return;
+        const info = data?.estadio ?? data;
+        if (info) setEstadioInfo(info);
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   // Scroll al fondo cuando llegan mensajes nuevos
   useEffect(() => {
     if (mensajes.length > 0) {
@@ -127,7 +141,7 @@ export default function FanZoneScreen() {
   useEffect(() => {
     if (!partidoActivo) return;
 
-    const socket = io(BACKEND_URL, {
+    const socket = io(API_BASE_URL, {
       transports: ['websocket'],
       reconnection: true,
       reconnectionAttempts: 5,
@@ -361,10 +375,19 @@ export default function FanZoneScreen() {
 
           {/* Estadio */}
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>🏟️ Estadio Municipal El Mirador</Text>
-            <Text style={styles.infoLine}>📍 Algeciras, Cádiz · Aforo: 8.500 espectadores</Text>
+            <Text style={styles.sectionTitle}>
+              🏟️ {estadioInfo?.nombre ?? 'Estadio Municipal El Mirador'}
+            </Text>
+            <Text style={styles.infoLine}>
+              📍 {estadioInfo?.direccion ?? 'Algeciras, Cádiz'}
+              {estadioInfo?.capacidad ? ` · Aforo: ${Number(estadioInfo.capacidad).toLocaleString('es-ES')} espectadores` : ' · Aforo: 8.500 espectadores'}
+            </Text>
             <Text style={styles.infoLine}>🎽 Temporada {TEMPORADA_CORTA} · {COMPETICION}</Text>
-            <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
+            {estadioInfo?.fundacion ? (
+              <Text style={styles.infoLine}>📅 Fundado en {estadioInfo.fundacion}</Text>
+            ) : (
+              <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
+            )}
           </View>
 
           {/* Redes Sociales */}

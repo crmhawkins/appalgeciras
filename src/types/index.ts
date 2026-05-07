@@ -4,6 +4,7 @@ export interface Usuario {
   email: string;
   telefono?: string;
   dni?: string;
+  profileImage?: string | null;
 }
 
 export interface LoginResponse {
