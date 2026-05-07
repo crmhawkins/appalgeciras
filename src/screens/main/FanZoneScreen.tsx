@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, FlatList,
-  TextInput, KeyboardAvoidingView, Platform,
+  TextInput, KeyboardAvoidingView, Platform, Linking,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
@@ -216,7 +216,10 @@ export default function FanZoneScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
-      <View style={styles.header}><Text style={styles.headerTitle}>⚡ Fan Zone</Text></View>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>⚡ Fan Zone</Text>
+        <Text style={styles.headerSub}>Algeciras C.F. · El Mirador</Text>
+      </View>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
@@ -355,12 +358,26 @@ export default function FanZoneScreen() {
             </View>
           )}
 
-          {/* Fan Zone extra */}
+          {/* Estadio */}
           <View style={styles.card}>
-            <Text style={styles.sectionTitle}>🏟️ Próximamente</Text>
-            <Text style={styles.comingText}>• Predicciones de resultado</Text>
-            <Text style={styles.comingText}>• Ranking de aficionados</Text>
-            <Text style={styles.comingText}>• Quinielas del partido</Text>
+            <Text style={styles.sectionTitle}>🏟️ Estadio Municipal El Mirador</Text>
+            <Text style={styles.infoLine}>📍 Algeciras, Cádiz · Aforo: 8.500 espectadores</Text>
+            <Text style={styles.infoLine}>🎽 Temporada 2024/25 · Primera RFEF Grupo 2</Text>
+            <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
+          </View>
+
+          {/* Redes Sociales */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>📲 Redes Sociales</Text>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://www.instagram.com/algecirascf_oficial/')}>
+              <Text style={styles.socialBtnText}>📸 Instagram @algecirascf_oficial</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://twitter.com/AlgecirasCF')}>
+              <Text style={styles.socialBtnText}>🐦 Twitter / X @AlgecirasCF</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://www.youtube.com/@Algeciras_cf')}>
+              <Text style={styles.socialBtnText}>▶️ YouTube Algeciras CF</Text>
+            </TouchableOpacity>
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -372,6 +389,7 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   header: { padding: 16, backgroundColor: colors.primary },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
+  headerSub: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginTop: 2 },
   container: { padding: 16, paddingBottom: 32 },
   card: {
     backgroundColor: colors.white,
@@ -421,7 +439,9 @@ const styles = StyleSheet.create({
   barContainer: { flex: 1, height: 8, backgroundColor: colors.border, borderRadius: 4, overflow: 'hidden' },
   bar: { height: 8, backgroundColor: colors.primary, borderRadius: 4 },
   resultPct: { width: 36, fontSize: 12, color: colors.textSecondary, textAlign: 'right' },
-  comingText: { fontSize: 14, color: colors.textSecondary, marginTop: 6 },
+  infoLine: { fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 20 },
+  socialBtn: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
+  socialBtnText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
   // Chat styles
   chatContainer: {
     minHeight: 180,

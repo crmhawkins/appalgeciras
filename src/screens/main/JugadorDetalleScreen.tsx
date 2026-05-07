@@ -47,6 +47,9 @@ interface StatItem {
 
 function fotoUrl(jugador: JugadorDetalle): string | null {
   if (jugador.foto) return jugador.foto;
+  if (jugador.dorsal && jugador.dorsal >= 1 && jugador.dorsal <= 25) {
+    return `https://backend-algeciras.hawkins.es/acf/2025/10/${jugador.dorsal}.png`;
+  }
   if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
   return null;
 }
@@ -149,6 +152,7 @@ export default function JugadorDetalleScreen() {
           )}
 
           <Text style={styles.nombre}>{nombreCompleto(jugador)}</Text>
+          <Text style={styles.clubLabel}>Algeciras C.F. · 2024/25</Text>
 
           <View style={styles.badgesRow}>
             {jugador.dorsal != null && (
@@ -245,9 +249,9 @@ const styles = StyleSheet.create({
   backText: { color: colors.white, fontSize: 16, fontWeight: '600' },
 
   fotoGrande: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     borderWidth: 3,
     borderColor: colors.white,
     marginTop: 8,
@@ -255,9 +259,9 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.15)',
   },
   fotoPlaceholder: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 130,
+    height: 130,
+    borderRadius: 65,
     backgroundColor: 'rgba(255,255,255,0.2)',
     borderWidth: 3,
     borderColor: colors.white,
@@ -274,8 +278,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     paddingHorizontal: 20,
-    marginBottom: 14,
+    marginBottom: 4,
   },
+  clubLabel: { color: 'rgba(255,255,255,0.75)', fontSize: 12, marginBottom: 14 },
 
   badgesRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', justifyContent: 'center', paddingHorizontal: 16 },
   badge: {

@@ -284,7 +284,7 @@ export default function PerfilScreen() {
                   {/* Carnet Header */}
                   <View style={styles.carnetHeader}>
                     <Image
-                      source={{ uri: 'https://cdn.resfu.com/img_data/equipos/166.png' }}
+                      source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
                       style={styles.carnetEscudo}
                       resizeMode="contain"
                     />

@@ -154,16 +154,32 @@ export default function TiendaScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Tienda Oficial</Text>
+        <Text style={styles.title}>🛍️ Tienda Oficial</Text>
+        <Text style={styles.headerSub}>Equipaciones y merchandising oficial</Text>
       </View>
 
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categorias} contentContainerStyle={styles.categoriasContent}>
         {CATEGORIAS.map(renderCategoria)}
       </ScrollView>
 
+      <TouchableOpacity
+        style={styles.webBanner}
+        onPress={() => Linking.openURL('https://algecirasclubdefutbol.com/tienda/')}
+      >
+        <Text style={styles.webBannerText}>🌐 Ver tienda online completa →</Text>
+      </TouchableOpacity>
+
       {productos.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>No hay productos disponibles</Text>
+          <Text style={{ fontSize: 52, marginBottom: 14 }}>⚽</Text>
+          <Text style={{ fontSize: 17, fontWeight: 'bold', color: colors.primary, marginBottom: 8, textAlign: 'center' }}>Tienda en preparación</Text>
+          <Text style={{ textAlign: 'center', color: colors.textSecondary, fontSize: 14, lineHeight: 20, marginBottom: 20, paddingHorizontal: 32 }}>Los productos oficiales del Algeciras CF estarán disponibles próximamente.</Text>
+          <TouchableOpacity
+            style={{ backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 28, borderRadius: 8 }}
+            onPress={() => Linking.openURL('https://algecirasclubdefutbol.com/tienda/')}
+          >
+            <Text style={{ color: 'white', fontWeight: 'bold' }}>Ver tienda web</Text>
+          </TouchableOpacity>
         </View>
       ) : (
         <FlatList
@@ -191,6 +207,9 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.white,
   },
+  headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
+  webBanner: { backgroundColor: '#f5c518', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
+  webBannerText: { color: '#1a1a1a', fontWeight: 'bold', fontSize: 13 },
   categorias: {
     backgroundColor: colors.white,
     borderBottomWidth: 1,
