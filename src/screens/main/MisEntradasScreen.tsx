@@ -100,8 +100,8 @@ export default function MisEntradasScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis Entradas</Text>
-        <Text style={styles.headerSub}>{entradas.length} entrada{entradas.length !== 1 ? 's' : ''}</Text>
+        <Text style={styles.headerTitle}>🏟️ Mis Entradas</Text>
+        <Text style={styles.headerSub}>Estadio Municipal El Mirador</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
@@ -126,6 +126,9 @@ export default function MisEntradasScreen() {
               >
                 <Text style={styles.buyBtnText}>Ver entradas disponibles</Text>
               </TouchableOpacity>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 16, textAlign: 'center', paddingHorizontal: 32 }}>
+                Compra tu entrada para cualquier partido de local del Algeciras CF
+              </Text>
             </View>
           ) : null
         }

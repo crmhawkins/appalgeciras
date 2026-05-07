@@ -80,6 +80,9 @@ export default function PartidosScreen() {
 
   return (
     <View style={styles.safe}>
+      <View style={styles.competitionBanner}>
+        <Text style={styles.competitionText}>⚽ Primera RFEF · Grupo 2 · Temporada 2024/25</Text>
+      </View>
       <View style={styles.tabBar}>
         <TouchableOpacity
           style={[styles.tabBtn, tab === 'proximos' && styles.tabBtnActive]}
@@ -178,6 +181,17 @@ const styles = StyleSheet.create({
   },
   tabTextActive: {
     color: colors.white,
+  },
+  competitionBanner: {
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    alignItems: 'center',
+  },
+  competitionText: {
+    color: 'rgba(255,255,255,0.9)',
+    fontSize: 12,
+    fontWeight: '600',
+    letterSpacing: 0.5,
   },
   list: { padding: 14 },
   card: {

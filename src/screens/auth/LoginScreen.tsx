@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView,
+  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -47,9 +47,11 @@ export default function LoginScreen() {
       >
         <ScrollView contentContainerStyle={styles.container}>
           <View style={styles.header}>
-            <View style={styles.escudo}>
-              <Text style={styles.escudoText}>ACF</Text>
-            </View>
+            <Image
+              source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2025/01/escudoAlgeSvg.png' }}
+              style={styles.escudoImg}
+              resizeMode="contain"
+            />
             <Text style={styles.title}>Algeciras CF</Text>
             <Text style={styles.subtitle}>Abonos Temporada</Text>
           </View>
@@ -119,24 +121,27 @@ export default function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.white },
-  container: { flexGrow: 1, padding: 24, justifyContent: 'center' },
+  safe: { flex: 1, backgroundColor: colors.primary },
+  container: { flexGrow: 1, padding: 24, justifyContent: 'center', backgroundColor: colors.primary },
   header: { alignItems: 'center', marginBottom: 40 },
-  escudo: {
-    width: 72,
-    height: 72,
-    borderRadius: 36,
-    backgroundColor: colors.primary,
-    justifyContent: 'center',
-    alignItems: 'center',
+  escudoImg: {
+    width: 90,
+    height: 90,
     marginBottom: 14,
-    borderWidth: 3,
-    borderColor: colors.secondary,
   },
-  escudoText: { color: colors.secondary, fontWeight: 'bold', fontSize: 18 },
-  title: { fontSize: 32, fontWeight: 'bold', color: colors.primary },
-  subtitle: { fontSize: 16, color: colors.textSecondary, marginTop: 4 },
-  form: { width: '100%' },
+  title: { fontSize: 32, fontWeight: 'bold', color: colors.white },
+  subtitle: { fontSize: 16, color: 'rgba(255,255,255,0.8)', marginTop: 4 },
+  form: {
+    width: '100%',
+    backgroundColor: colors.white,
+    borderRadius: 16,
+    padding: 20,
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+  },
   label: { fontSize: 14, color: colors.text, marginBottom: 6, marginTop: 12, fontWeight: '600' },
   input: {
     borderWidth: 1,

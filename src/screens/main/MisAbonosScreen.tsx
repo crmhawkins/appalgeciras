@@ -43,7 +43,9 @@ export default function MisAbonosScreen() {
         <View style={styles.guestContainer}>
           <Text style={styles.guestIcon}>🎟️</Text>
           <Text style={styles.guestTitle}>Inicia sesión</Text>
-          <Text style={styles.guestText}>Para ver tus abonos necesitas una cuenta</Text>
+          <Text style={styles.guestText}>
+            Accede a tu cuenta para gestionar tus abonos de la temporada 2024/25
+          </Text>
           <TouchableOpacity
             style={styles.loginBtn}
             onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
@@ -77,8 +79,8 @@ export default function MisAbonosScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Mis Abonos</Text>
-        <Text style={styles.headerSub}>{abonos.length} abono{abonos.length !== 1 ? 's' : ''}</Text>
+        <Text style={styles.headerTitle}>🎟️ Mis Abonos</Text>
+        <Text style={styles.headerSub}>Temporada 2024/25 · Primera RFEF</Text>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
@@ -103,6 +105,9 @@ export default function MisAbonosScreen() {
               >
                 <Text style={styles.buyBtnText}>Comprar un abono</Text>
               </TouchableOpacity>
+              <Text style={{ fontSize: 12, color: colors.textSecondary, marginTop: 16, textAlign: 'center', paddingHorizontal: 32 }}>
+                Con tu abono accedes a todos los partidos en casa del Estadio Municipal El Mirador
+              </Text>
             </View>
           ) : null
         }

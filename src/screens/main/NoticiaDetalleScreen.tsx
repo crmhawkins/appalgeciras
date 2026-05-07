@@ -180,6 +180,16 @@ export default function NoticiaDetalleScreen() {
               <Text style={styles.contenido}>{noticia.contenido}</Text>
             ) : null}
           </View>
+
+          <View style={styles.masNoticias}>
+            <Text style={styles.masNoticiasTitle}>📰 Más noticias</Text>
+            <TouchableOpacity
+              style={styles.masNoticiasBtn}
+              onPress={() => (navigation as any).navigate('Main', { screen: 'Tabs', params: { screen: 'NoticiasTab' } })}
+            >
+              <Text style={styles.masNoticiasBtnText}>Ver todas las noticias →</Text>
+            </TouchableOpacity>
+          </View>
         </ScrollView>
       )}
     </SafeAreaView>
@@ -284,4 +294,8 @@ const styles = StyleSheet.create({
     color: colors.text,
     lineHeight: 24,
   },
+  masNoticias: { margin: 16, padding: 16, backgroundColor: colors.white, borderRadius: 12, alignItems: 'center', borderLeftWidth: 3, borderLeftColor: colors.primary },
+  masNoticiasTitle: { fontSize: 15, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },
+  masNoticiasBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },
+  masNoticiasBtnText: { color: colors.white, fontWeight: 'bold', fontSize: 13 },
 });
