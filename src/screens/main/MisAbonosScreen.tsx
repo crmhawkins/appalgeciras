@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity,
+  RefreshControl, TouchableOpacity, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -34,6 +34,24 @@ export default function MisAbonosScreen() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  const confirmarLiberar = (abonoId: number) => {
+    Alert.alert(
+      'Liberar asiento',
+      '¿Seguro? Perderás tu asiento asignado para esta temporada.',
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: 'Liberar',
+          style: 'destructive',
+          onPress: async () => {
+            await api.post('/api/abonos/liberar', { abonoId });
+            load();
+          },
+        },
+      ]
+    );
+  };
 
   if (!user) {
     return (
@@ -129,6 +147,16 @@ export default function MisAbonosScreen() {
               <View style={styles.codigoBox}>
                 <Text style={styles.codigoLabel}>Código de acceso</Text>
                 <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
+              </View>
+            )}
+            {item.activo && (
+              <View style={styles.liberarRow}>
+                <TouchableOpacity
+                  style={styles.liberarBtn}
+                  onPress={() => confirmarLiberar(item.id)}
+                >
+                  <Text style={styles.liberarText}>Liberar asiento</Text>
+                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -234,4 +262,13 @@ const styles = StyleSheet.create({
   },
   codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 4 },
   codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: '#C8102E' },
+  liberarRow: { alignItems: 'flex-end', marginTop: 10 },
+  liberarBtn: {
+    borderWidth: 1,
+    borderColor: '#C8102E',
+    borderRadius: 6,
+    paddingVertical: 5,
+    paddingHorizontal: 12,
+  },
+  liberarText: { fontSize: 12, color: '#C8102E', fontWeight: '600' },
 });

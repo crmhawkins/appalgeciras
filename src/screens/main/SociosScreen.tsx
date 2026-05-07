@@ -152,7 +152,7 @@ export default function SociosScreen() {
         <View style={styles.clubInfoCard}>
           <Text style={styles.clubInfoTitle}>Algeciras Club de Fútbol</Text>
           <Text style={styles.clubInfoText}>
-            Fundado en 1912, el Algeciras CF juega en Primera RFEF (Segunda B). El estadio Municipal de El Mirador tiene capacidad para 8.500 espectadores.
+            Fundado en 1912, el Algeciras CF juega en Primera RFEF. El estadio Municipal de El Mirador tiene capacidad para 8.500 espectadores.
             {'\n\n'}Ser socio te da acceso a todos los partidos como local, descuentos con patrocinadores y la posibilidad de votar al mejor jugador del mes.
           </Text>
         </View>
@@ -169,7 +169,11 @@ export default function SociosScreen() {
         {VENTAJAS.map((v, i) => (
           <View key={i} style={styles.ventajaCard}>
             <View style={styles.ventajaLogoBox}>
-              <Text style={styles.ventajaIcon}>{v.icon}</Text>
+              {v.logo ? (
+                <Image source={{ uri: v.logo }} style={styles.ventajaLogo} resizeMode="contain" />
+              ) : (
+                <Text style={styles.ventajaIcon}>{v.icon}</Text>
+              )}
             </View>
             <View style={styles.ventajaInfo}>
               <Text style={styles.ventajaTitulo}>{v.titulo}</Text>
@@ -240,6 +244,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center', marginRight: 12,
   },
   ventajaIcon: { fontSize: 24 },
+  ventajaLogo: { width: 30, height: 30 },
   ventajaInfo: { flex: 1 },
   ventajaTitulo: { fontSize: 15, fontWeight: 'bold', color: colors.text },
   ventajaDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },

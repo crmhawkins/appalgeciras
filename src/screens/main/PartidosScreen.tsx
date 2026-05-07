@@ -10,6 +10,14 @@ import { ESCUDO_URL, COMPETICION, TEMPORADA_CORTA } from '../../constants';
 
 type Tab = 'proximos' | 'jugados';
 
+interface EventoPartido {
+  id: number;
+  minuto: number;
+  tipo: string; // 'gol' | 'tarjeta_amarilla' | 'tarjeta_roja' | 'sustitucion'
+  jugador: string;
+  equipo: string;
+}
+
 const ACF_ESCUDO = ESCUDO_URL;
 
 function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
@@ -35,6 +43,13 @@ function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
   );
 }
 
+function eventoEmoji(tipo: string): string {
+  if (tipo === 'gol') return '⚽';
+  if (tipo === 'tarjeta_amarilla') return '🟨';
+  if (tipo === 'tarjeta_roja') return '🟥';
+  return '🔄';
+}
+
 export default function PartidosScreen() {
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [proximoPartido, setProximoPartido] = useState<Partido | null>(null);
@@ -42,6 +57,7 @@ export default function PartidosScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tab, setTab] = useState<Tab>('proximos');
+  const [eventos, setEventos] = useState<Record<number, EventoPartido[]>>({});
 
   const load = useCallback(async () => {
     setError(null);
@@ -73,6 +89,29 @@ export default function PartidosScreen() {
   const jugados = partidos
     .filter((p) => p.fecha.split('T')[0] < today)
     .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0]));
+
+  // Fetch eventos when switching to jugados tab
+  useEffect(() => {
+    if (tab !== 'jugados' || jugados.length === 0) return;
+    const primeros5 = jugados.slice(0, 5);
+    const idsAFetch = primeros5.filter((p) => !(p.id in eventos)).map((p) => p.id);
+    if (idsAFetch.length === 0) return;
+
+    Promise.all(
+      idsAFetch.map((id) =>
+        api.get<EventoPartido[]>(`/api/partidos/eventos/${id}`)
+          .then(({ data }) => ({ id, data: Array.isArray(data) ? data : [] }))
+          .catch(() => ({ id, data: [] }))
+      )
+    ).then((results) => {
+      setEventos((prev) => {
+        const next = { ...prev };
+        results.forEach(({ id, data }) => { next[id] = data; });
+        return next;
+      });
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tab, jugados.length]);
 
   const data = tab === 'proximos' ? proximos : jugados;
 
@@ -151,31 +190,46 @@ export default function PartidosScreen() {
         ListEmptyComponent={
           !error ? <Text style={styles.empty}>Sin partidos programados</Text> : null
         }
-        renderItem={({ item }) => (
-          <View style={styles.card}>
-            <View style={styles.teamsRow}>
-              <View style={styles.team}>
-                <EscudoImage uri={item.escudoLocal} nombre={item.equipoLocal} />
-                <Text style={styles.teamName} numberOfLines={2}>{item.equipoLocal}</Text>
-              </View>
+        renderItem={({ item }) => {
+          const eventosPartido = tab === 'jugados' ? (eventos[item.id] ?? []) : [];
+          const eventosVisibles = eventosPartido.filter(
+            (e) => e.tipo === 'gol' || e.tipo === 'tarjeta_amarilla' || e.tipo === 'tarjeta_roja'
+          );
+          return (
+            <View style={styles.card}>
+              <View style={styles.teamsRow}>
+                <View style={styles.team}>
+                  <EscudoImage uri={item.escudoLocal} nombre={item.equipoLocal} />
+                  <Text style={styles.teamName} numberOfLines={2}>{item.equipoLocal}</Text>
+                </View>
 
-              <View style={styles.scoreBox}>
-                {item.marcador ? (
-                  <Text style={styles.marcador}>{item.marcador}</Text>
-                ) : (
-                  <Text style={styles.vs}>VS</Text>
-                )}
-                <Text style={styles.fecha}>{formatFecha(item.fecha)}</Text>
-                {item.hora ? <Text style={styles.hora}>{item.hora}</Text> : null}
-              </View>
+                <View style={styles.scoreBox}>
+                  {item.marcador ? (
+                    <Text style={styles.marcador}>{item.marcador}</Text>
+                  ) : (
+                    <Text style={styles.vs}>VS</Text>
+                  )}
+                  <Text style={styles.fecha}>{formatFecha(item.fecha)}</Text>
+                  {item.hora ? <Text style={styles.hora}>{item.hora}</Text> : null}
+                </View>
 
-              <View style={styles.team}>
-                <EscudoImage uri={item.escudoVisitante} nombre={item.equipoVisitante} />
-                <Text style={styles.teamName} numberOfLines={2}>{item.equipoVisitante}</Text>
+                <View style={styles.team}>
+                  <EscudoImage uri={item.escudoVisitante} nombre={item.equipoVisitante} />
+                  <Text style={styles.teamName} numberOfLines={2}>{item.equipoVisitante}</Text>
+                </View>
               </View>
+              {eventosVisibles.length > 0 && (
+                <View style={styles.eventosRow}>
+                  {eventosVisibles.map((ev) => (
+                    <Text key={ev.id} style={styles.eventoText}>
+                      {eventoEmoji(ev.tipo)} {ev.minuto}' {ev.jugador} ({ev.equipo})
+                    </Text>
+                  ))}
+                </View>
+              )}
             </View>
-          </View>
-        )}
+          );
+        }}
       />
     </View>
   );
@@ -296,4 +350,15 @@ const styles = StyleSheet.create({
   proximoVs: { fontSize: 20, fontWeight: 'bold', color: colors.secondary },
   proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
   proximoHora: { color: colors.secondary, fontSize: 14, fontWeight: 'bold' },
+  eventosRow: {
+    marginTop: 8,
+    paddingTop: 8,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+    gap: 3,
+  },
+  eventoText: {
+    fontSize: 11,
+    color: colors.textSecondary,
+  },
 });
