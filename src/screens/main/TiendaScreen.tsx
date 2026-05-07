@@ -36,7 +36,7 @@ const CATEGORIAS = [
   { key: 'accesorio', label: 'Accesorios' },
 ];
 
-const WHATSAPP_NUMERO = '34956000000';
+const WHATSAPP_NUMERO = 'PENDIENTE'; // TODO: poner número real de la tienda (Soricastel)
 
 export default function TiendaScreen() {
   const [productos, setProductos] = useState<Producto[]>([]);
