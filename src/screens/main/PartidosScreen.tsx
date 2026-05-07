@@ -1,9 +1,10 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, Image, TouchableOpacity,
+  RefreshControl, Image, TouchableOpacity, Alert,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import * as Notifications from 'expo-notifications';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
@@ -42,6 +43,39 @@ function EscudoImage({ uri, nombre }: { uri?: string; nombre: string }) {
       onError={() => setError(true)}
     />
   );
+}
+
+async function programarRecordatorio(partido: Partido) {
+  try {
+    const { status } = await Notifications.requestPermissionsAsync();
+    if (status !== 'granted') {
+      Alert.alert('Permisos', 'Activa las notificaciones en ajustes para recibir recordatorios');
+      return;
+    }
+    const fechaPartido = new Date(partido.fecha);
+    if (partido.hora) {
+      const [h, m] = partido.hora.split(':');
+      fechaPartido.setHours(parseInt(h, 10), parseInt(m, 10));
+    }
+    const dosHorasAntes = new Date(fechaPartido.getTime() - 2 * 60 * 60 * 1000);
+
+    if (dosHorasAntes <= new Date()) {
+      Alert.alert('Tarde', 'El partido es muy próximo para programar recordatorio');
+      return;
+    }
+
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: '⚽ ¡Partido hoy!',
+        body: `${partido.equipoLocal} vs ${partido.equipoVisitante} — en 2 horas`,
+        sound: true,
+      },
+      trigger: { date: dosHorasAntes } as any,
+    });
+    Alert.alert('✅ Recordatorio', 'Te avisaremos 2 horas antes del partido');
+  } catch (_) {
+    Alert.alert('Error', 'No se pudo programar el recordatorio');
+  }
 }
 
 function eventoEmoji(tipo: string): string {
@@ -182,6 +216,12 @@ export default function PartidosScreen() {
                       <Text style={styles.proximoVs}>VS</Text>
                       <Text style={styles.proximoFecha}>{formatFecha(next.fecha)}</Text>
                       {next.hora ? <Text style={styles.proximoHora}>{next.hora}</Text> : null}
+                      <TouchableOpacity
+                        style={styles.recordarBtn}
+                        onPress={(e) => { e.stopPropagation?.(); programarRecordatorio(next); }}
+                      >
+                        <Text style={styles.recordarText}>🔔 Recordarme</Text>
+                      </TouchableOpacity>
                     </View>
                     <View style={styles.proximoTeam}>
                       <EscudoImage uri={next.escudoVisitante} nombre={next.equipoVisitante} />
@@ -360,6 +400,15 @@ const styles = StyleSheet.create({
   proximoVs: { fontSize: 20, fontWeight: 'bold', color: colors.secondary },
   proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
   proximoHora: { color: colors.secondary, fontSize: 14, fontWeight: 'bold' },
+  recordarBtn: {
+    marginTop: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.secondary,
+  },
+  recordarText: { color: colors.secondary, fontSize: 11, fontWeight: 'bold' },
   eventosRow: {
     marginTop: 8,
     paddingTop: 8,

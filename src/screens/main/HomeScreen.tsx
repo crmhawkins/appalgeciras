@@ -396,8 +396,9 @@ export default function HomeScreen() {
                 <Text style={[styles.cell, styles.cellPos, styles.headerCell]}>#</Text>
                 <Text style={[styles.cellEquipo, styles.headerCell]}>Equipo</Text>
                 <Text style={[styles.cell, styles.headerCell]}>PJ</Text>
-                <Text style={[styles.cell, styles.headerCell]}>GF</Text>
-                <Text style={[styles.cell, styles.headerCell]}>GC</Text>
+                <Text style={[styles.cell, styles.headerCell]}>G</Text>
+                <Text style={[styles.cell, styles.headerCell]}>E</Text>
+                <Text style={[styles.cell, styles.headerCell]}>D</Text>
                 <Text style={[styles.cell, styles.cellPts, styles.headerCell]}>Pts</Text>
               </View>
               {(verTodaClasif ? clasificacion : clasificacion.slice(0, 10)).map((item) => {
@@ -422,8 +423,9 @@ export default function HomeScreen() {
                       </Text>
                     </View>
                     <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.pj}</Text>
-                    <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.gf}</Text>
-                    <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.gc}</Text>
+                    <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.g ?? '—'}</Text>
+                    <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.e ?? '—'}</Text>
+                    <Text style={[styles.cell, isAlgeciras && styles.highlightText]}>{item.d ?? '—'}</Text>
                     <Text style={[styles.cell, styles.cellPts, styles.ptsText, isAlgeciras && styles.highlightPts]}>
                       {item.puntos}
                     </Text>
@@ -629,7 +631,7 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
   },
   tableHeader: { backgroundColor: colors.primary, borderBottomWidth: 0 },
-  highlightRow: { backgroundColor: '#e8f5ee' },
+  highlightRow: { backgroundColor: '#fde8ec' },
   cell: { width: 30, textAlign: 'center', fontSize: 13, color: colors.text },
   cellPos: { width: 26 },
   cellPts: { width: 34, fontWeight: 'bold' },

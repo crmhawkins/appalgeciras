@@ -269,6 +269,13 @@ export default function JugadorDetalleScreen() {
             <Text style={styles.emptyStats}>Sin estadísticas disponibles esta temporada</Text>
           </View>
         )}
+
+        {/* Fan of the Match */}
+        <View style={styles.fanCard}>
+          <Text style={styles.fanIcon}>🏆</Text>
+          <Text style={styles.fanTitle}>Nominaciones Fan of the Match</Text>
+          <Text style={styles.fanSub}>Estadística disponible próximamente</Text>
+        </View>
       </ScrollView>
     </SafeAreaView>
   );
@@ -390,4 +397,29 @@ const styles = StyleSheet.create({
   statLabel: { fontSize: 10, color: colors.textSecondary, textAlign: 'center' },
 
   emptyStats: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 8, fontSize: 13 },
+
+  fanCard: {
+    margin: 16,
+    marginBottom: 0,
+    backgroundColor: '#fff8e1',
+    borderRadius: 12,
+    padding: 20,
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.secondary,
+  },
+  fanIcon: { fontSize: 40, marginBottom: 8 },
+  fanTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#7a5c00',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  fanSub: {
+    fontSize: 12,
+    color: '#9c7a14',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
 });

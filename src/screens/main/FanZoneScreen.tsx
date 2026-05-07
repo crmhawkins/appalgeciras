@@ -388,6 +388,9 @@ export default function FanZoneScreen() {
             ) : (
               <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
             )}
+            <TouchableOpacity onPress={() => navigation.navigate('Estadio')} style={{ marginTop: 8 }}>
+              <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 13 }}>Ver estadio →</Text>
+            </TouchableOpacity>
           </View>
 
           {/* Redes Sociales */}

@@ -97,10 +97,13 @@ export default function NoticiaDetalleScreen() {
   }, [fetchNoticia]);
 
   const onShare = useCallback(async () => {
+    if (!noticia) return;
     try {
+      const shareUrl = `https://algecirasclubdefutbol.com/blog/${noticia.slug}/`;
       await Share.share({
-        message: noticia?.titulo ?? 'Algeciras CF',
-        url: 'https://algecirasclubdefutbol.com/blog/',
+        title: noticia.titulo,
+        message: `${noticia.titulo}\n\n${shareUrl}`,
+        url: shareUrl,
       });
     } catch (_) {}
   }, [noticia]);

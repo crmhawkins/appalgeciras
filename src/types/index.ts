@@ -96,6 +96,9 @@ export interface ClasificacionItem {
   equipo: string;
   escudo?: string;
   pj: number;
+  g?: number;
+  e?: number;
+  d?: number;
   gf: number;
   gc: number;
   puntos: number;
