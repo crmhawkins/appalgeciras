@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   imagePlaceholder: { alignItems: 'center', justifyContent: 'center' },
   body: { padding: 16 },
   temporada: {
-    fontSize: 11, color: colors.primary, fontWeight: '600',
+    fontSize: 12, color: colors.primary, fontWeight: '600',
     textTransform: 'uppercase', marginBottom: 4,
   },
   nombre: { fontSize: 22, fontWeight: 'bold', color: colors.text, marginBottom: 8 },

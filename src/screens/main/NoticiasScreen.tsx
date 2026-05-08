@@ -386,7 +386,7 @@ const styles = StyleSheet.create({
     paddingVertical: 3,
     borderRadius: 4,
   },
-  badgeText: { color: colors.white, fontSize: 11, fontWeight: 'bold' },
+  badgeText: { color: colors.white, fontSize: 12, fontWeight: 'bold' },
   cardFecha: { fontSize: 12, color: colors.textSecondary },
   cardTitle: { fontSize: 16, fontWeight: 'bold', color: colors.text, marginBottom: 4 },
   cardExtracto: { fontSize: 13, color: colors.textSecondary, lineHeight: 18 },

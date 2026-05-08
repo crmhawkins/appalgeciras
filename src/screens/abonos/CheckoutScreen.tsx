@@ -135,6 +135,7 @@ export default function CheckoutScreen() {
           style={[styles.payBtn, loading && styles.payBtnDisabled]}
           onPress={handlePay}
           disabled={loading}
+          accessibilityLabel={`Pagar ${precio} € con Stripe`}
         >
           {loading ? (
             <ActivityIndicator color={colors.white} />
@@ -147,6 +148,7 @@ export default function CheckoutScreen() {
           style={styles.cancelBtn}
           onPress={() => navigation.goBack()}
           disabled={loading}
+          accessibilityLabel="Cancelar compra"
         >
           <Text style={styles.cancelBtnText}>Cancelar</Text>
         </TouchableOpacity>

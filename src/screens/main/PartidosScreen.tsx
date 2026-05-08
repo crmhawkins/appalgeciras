@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: colors.primary,
   },
-  fecha: { fontSize: 11, color: colors.textSecondary, marginTop: 4 },
+  fecha: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
   hora: { fontSize: 13, color: colors.primary, fontWeight: '600' },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 12, paddingHorizontal: 16 },
@@ -448,13 +448,13 @@ const styles = StyleSheet.create({
     padding: 18,
     marginBottom: 14,
   },
-  proximoLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center', marginBottom: 12 },
+  proximoLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 12, fontWeight: 'bold', letterSpacing: 1, textAlign: 'center', marginBottom: 12 },
   proximoTeams: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   proximoTeam: { flex: 1, alignItems: 'center', gap: 6 },
   proximoTeamName: { color: colors.white, fontSize: 13, fontWeight: 'bold', textAlign: 'center', maxWidth: 90 },
   proximoCenter: { alignItems: 'center', paddingHorizontal: 8 },
   proximoVs: { fontSize: 20, fontWeight: 'bold', color: colors.secondary },
-  proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
+  proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 12, marginTop: 4 },
   proximoHora: { color: colors.secondary, fontSize: 14, fontWeight: 'bold' },
   proximoCountdown: { color: colors.secondary, fontSize: 13, fontWeight: 'bold', marginTop: 4, letterSpacing: 0.5 },
   recordarBtn: {
@@ -465,7 +465,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.secondary,
   },
-  recordarText: { color: colors.secondary, fontSize: 11, fontWeight: 'bold' },
+  recordarText: { color: colors.secondary, fontSize: 12, fontWeight: 'bold' },
   eventosRow: {
     marginTop: 8,
     paddingTop: 8,
@@ -474,7 +474,7 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   eventoText: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   offlineBanner: {

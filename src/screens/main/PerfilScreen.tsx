@@ -797,10 +797,10 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   carnetInfo: { flex: 1 },
-  carnetLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+  carnetLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   carnetValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
   carnetQrWrap: { alignItems: 'center', marginLeft: 16 },
-  carnetQrLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4 },
+  carnetQrLabel: { fontSize: 12, color: colors.textSecondary, marginTop: 4 },
   // Fan stats
   statsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
   statCard: {
@@ -813,7 +813,7 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   statValue: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
-  statLabel: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
+  statLabel: { fontSize: 12, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
   // Fidelidad
   fidelidadBadge: {
     flexDirection: 'row',

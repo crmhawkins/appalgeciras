@@ -352,7 +352,7 @@ const styles = StyleSheet.create({
   },
   relacionadaImg: { width: 60, height: 60, borderRadius: 6, marginRight: 12, backgroundColor: colors.border },
   relacionadaBody: { flex: 1 },
-  relacionadaCategoria: { fontSize: 10, fontWeight: 'bold', color: colors.primary, marginBottom: 4, letterSpacing: 0.5 },
+  relacionadaCategoria: { fontSize: 12, fontWeight: 'bold', color: colors.primary, marginBottom: 4, letterSpacing: 0.5 },
   relacionadaTitulo: { fontSize: 13, fontWeight: '600', color: colors.text, lineHeight: 18 },
   masNoticias: { margin: 16, padding: 16, backgroundColor: colors.white, borderRadius: 12, alignItems: 'center', borderLeftWidth: 3, borderLeftColor: colors.primary },
   masNoticiasTitle: { fontSize: 15, fontWeight: 'bold', color: colors.primary, marginBottom: 10 },

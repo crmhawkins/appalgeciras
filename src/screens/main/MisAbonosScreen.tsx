@@ -322,7 +322,7 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderStyle: 'dashed',
   },
-  codigoLabel: { fontSize: 11, color: colors.primary, fontWeight: '600', marginBottom: 8 },
+  codigoLabel: { fontSize: 12, color: colors.primary, fontWeight: '600', marginBottom: 8 },
   codigoCodigo: { fontSize: 18, fontWeight: 'bold', letterSpacing: 4, color: colors.primary, marginTop: 6 },
   qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
   liberarRow: { alignItems: 'flex-end', marginTop: 10 },

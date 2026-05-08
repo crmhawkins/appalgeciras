@@ -194,6 +194,7 @@ export default function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
+  const [youtubeLoaded, setYoutubeLoaded] = useState(false);
   const [offlineTs, setOfflineTs] = useState<number | null>(null);
 
   const onRefresh = useCallback(async () => {
@@ -260,18 +261,30 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
-        {/* VIDEO HERO */}
+        {/* VIDEO HERO — lazy mount: WebView only after user tap */}
         <View style={styles.videoHero}>
-          <WebView
-            source={{ html: youtubeHtml }}
-            style={styles.videoWebView}
-            allowsInlineMediaPlayback
-            mediaPlaybackRequiresUserAction={false}
-            javaScriptEnabled
-            scrollEnabled={false}
-            bounces={false}
-          />
-          <View style={styles.videoOverlay}>
+          {youtubeLoaded ? (
+            <WebView
+              source={{ html: youtubeHtml }}
+              style={styles.videoWebView}
+              allowsInlineMediaPlayback
+              mediaPlaybackRequiresUserAction={false}
+              javaScriptEnabled
+              scrollEnabled={false}
+              bounces={false}
+            />
+          ) : (
+            <TouchableOpacity
+              style={styles.videoPlaceholder}
+              onPress={() => setYoutubeLoaded(true)}
+              activeOpacity={0.85}
+              accessibilityLabel="Reproducir vídeo de Algeciras CF en YouTube"
+            >
+              <Text style={styles.videoPlayIcon}>▶</Text>
+              <Text style={styles.videoPlaceholderText}>Toca para ver el vídeo</Text>
+            </TouchableOpacity>
+          )}
+          <View style={styles.videoOverlay} pointerEvents="none">
             <Text style={styles.videoClubTag}>⚽ ALGECIRAS C.F.</Text>
             <Text style={styles.videoSeason}>Temporada {TEMPORADA} · {COMPETICION.split(' · ')[0]}</Text>
           </View>
@@ -543,6 +556,14 @@ const styles = StyleSheet.create({
   // VIDEO HERO
   videoHero: { width: '100%', height: 210, marginHorizontal: -16, marginTop: 0, marginBottom: 16, backgroundColor: '#000' },
   videoWebView: { flex: 1, backgroundColor: '#000' },
+  videoPlaceholder: {
+    flex: 1,
+    backgroundColor: '#111',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  videoPlayIcon: { fontSize: 48, color: '#fff', marginBottom: 8 },
+  videoPlaceholderText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
   videoOverlay: {
     position: 'absolute', bottom: 0, left: 0, right: 0,
     paddingHorizontal: 16, paddingVertical: 10,
@@ -550,7 +571,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
   },
   videoClubTag: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  videoSeason: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+  videoSeason: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
 
   // HEADER
   header: {
@@ -633,13 +654,13 @@ const styles = StyleSheet.create({
     backgroundColor: colors.border,
     alignItems: 'center', justifyContent: 'center',
   },
-  matchEscudoText: { fontSize: 11, fontWeight: 'bold', color: colors.textSecondary },
+  matchEscudoText: { fontSize: 12, fontWeight: 'bold', color: colors.textSecondary },
   matchTeam: { flex: 1, fontSize: 13, fontWeight: 'bold', color: colors.text, textAlign: 'left' },
   matchTeamRight: { textAlign: 'right' },
   matchScoreBlock: { alignItems: 'center', paddingHorizontal: 12 },
   matchScore: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   matchVs: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
-  matchFecha: { fontSize: 11, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
+  matchFecha: { fontSize: 12, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
   matchCountdown: { fontSize: 12, color: colors.primary, fontWeight: 'bold', marginTop: 4, textAlign: 'center', letterSpacing: 0.5 },
 
   // NOTICIAS BANNER
@@ -667,7 +688,7 @@ const styles = StyleSheet.create({
   sponsorCard: { width: 120, height: 80, borderRadius: 10, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 4 },
   sponsorCardDark: { backgroundColor: '#1a1a2e' },
   sponsorImg: { width: 90, height: 42 },
-  sponsorName: { fontSize: 9, color: '#666', fontWeight: '600' },
+  sponsorName: { fontSize: 12, color: '#666', fontWeight: '600' },
   sponsorNameDark: { color: 'rgba(255,255,255,0.6)' },
 
   // NOTICIAS DESTACADAS
@@ -703,7 +724,7 @@ const styles = StyleSheet.create({
     borderRadius: 4,
     marginBottom: 4,
   },
-  destacadaBadgeText: { color: colors.white, fontSize: 10, fontWeight: 'bold' },
+  destacadaBadgeText: { color: colors.white, fontSize: 12, fontWeight: 'bold' },
   destacadaTitulo: {
     color: colors.white,
     fontSize: 13,

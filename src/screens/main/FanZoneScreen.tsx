@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
-  View, Text, StyleSheet, ScrollView, TouchableOpacity,
+  View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, FlatList,
   TextInput, KeyboardAvoidingView, Platform, Linking, Image,
 } from 'react-native';
@@ -313,6 +313,219 @@ export default function FanZoneScreen() {
     );
   }
 
+  const renderHeader = () => (
+    <>
+      {/* Partido activo */}
+      {partidoActivo && (
+        <View style={styles.card}>
+          <Text style={styles.cardLabel}>Partido activo</Text>
+          <View style={styles.matchRow}>
+            <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoLocal}</Text>
+            <View style={styles.scoreBox}>
+              <Text style={styles.score}>{partidoActivo.marcador ?? 'vs'}</Text>
+            </View>
+            <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoVisitante}</Text>
+          </View>
+        </View>
+      )}
+
+      {/* Fan of the Match */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>⭐ Fan of the Match</Text>
+        <Text style={styles.sectionSubtitle}>
+          {miVoto ? `Tu voto: ${miVoto}` : 'Vota al mejor jugador del partido'}
+        </Text>
+
+        {!partidoActivo ? (
+          <Text style={styles.emptyText}>No hay partido activo para votar</Text>
+        ) : jugadores.length === 0 ? (
+          <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+        ) : (
+          <View style={styles.jugadoresGrid}>
+            {jugadores.map((j) => {
+              const isSelected = miVoto === j;
+              const votoData = votos.find(v => v.jugador === j);
+              return (
+                <TouchableOpacity
+                  key={j}
+                  style={[styles.jugadorBtn, isSelected && styles.jugadorBtnSelected]}
+                  onPress={() => handleVotar(j)}
+                  disabled={votando}
+                  accessibilityLabel={`Votar por ${j}`}
+                >
+                  <Text style={[styles.jugadorName, isSelected && styles.jugadorNameSelected]}>{j}</Text>
+                  {votoData && (
+                    <Text style={[styles.jugadorVotos, isSelected && styles.jugadorVotosSelected]}>
+                      {votoData.porcentaje}%
+                    </Text>
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        )}
+      </View>
+
+      {/* Resultados */}
+      {votos.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>📊 Resultados ({totalVotos} votos)</Text>
+          {votos.slice(0, 5).map((v, i) => (
+            <View key={v.jugador} style={styles.resultRow}>
+              <Text style={styles.resultPos}>{i + 1}°</Text>
+              <Text style={styles.resultNombre} numberOfLines={1}>{v.jugador}</Text>
+              <View style={styles.barContainer}>
+                <View style={[styles.bar, { width: `${v.porcentaje}%` as any }]} />
+              </View>
+              <Text style={styles.resultPct}>{v.porcentaje}%</Text>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Offline banner */}
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>⚠️ Datos sin conexión</Text>
+        </View>
+      )}
+
+      {/* MVP History — top 3 últimos partidos */}
+      {mvpHistory.length > 0 && (
+        <View style={styles.card}>
+          <Text style={styles.sectionTitle}>🏆 Mejores del mes</Text>
+          <Text style={styles.sectionSubtitle}>Jugadores más votados en los últimos partidos</Text>
+          {mvpHistory.map((entry, i) => (
+            <View key={entry.jugador} style={styles.mvpRow}>
+              <View style={styles.mvpMedal}>
+                <Text style={styles.mvpMedalText}>
+                  {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                </Text>
+              </View>
+              {entry.foto ? (
+                <Image source={{ uri: entry.foto }} style={styles.mvpAvatar} resizeMode="cover" accessibilityLabel={`Foto de ${entry.jugador}`} />
+              ) : (
+                <View style={[styles.mvpAvatar, styles.mvpAvatarPlaceholder]}>
+                  <Text style={styles.mvpAvatarInitial}>{entry.jugador.charAt(0).toUpperCase()}</Text>
+                </View>
+              )}
+              <View style={{ flex: 1 }}>
+                <Text style={styles.mvpName}>{entry.jugador}</Text>
+                <Text style={styles.mvpVeces}>{entry.veces} {entry.veces === 1 ? 'vez MVP' : 'veces MVP'}</Text>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
+      {/* Chat header card */}
+      {partidoActivo && (
+        <View style={[styles.card, { marginBottom: 0, borderBottomLeftRadius: 0, borderBottomRightRadius: 0 }]}>
+          <View style={styles.chatHeaderRow}>
+            <Text style={styles.sectionTitle}>💬 Chat</Text>
+            <View style={[styles.chatStatusBadge, chatConectado ? styles.chatStatusLive : styles.chatStatusOff]}>
+              <Text style={styles.chatStatusText}>
+                {chatConectado ? '● En vivo' : '● Sin conexión'}
+              </Text>
+            </View>
+          </View>
+          {mensajes.length === 0 && (
+            <Text style={styles.emptyText}>Sin mensajes. ¡Sé el primero!</Text>
+          )}
+        </View>
+      )}
+    </>
+  );
+
+  const renderFooter = () => (
+    <>
+      {/* Chat input */}
+      {partidoActivo && (
+        <View style={[styles.card, { marginTop: 0, borderTopLeftRadius: 0, borderTopRightRadius: 0 }]}>
+          {user ? (
+            <View style={styles.chatInputRow}>
+              <TextInput
+                style={styles.chatInput}
+                placeholder="Escribe un mensaje..."
+                placeholderTextColor={colors.textSecondary}
+                value={inputMensaje}
+                onChangeText={setInputMensaje}
+                onSubmitEditing={handleEnviarMensaje}
+                returnKeyType="send"
+                maxLength={200}
+              />
+              <TouchableOpacity
+                style={[styles.sendBtn, (!inputMensaje.trim() || enviando) && styles.sendBtnDisabled]}
+                onPress={handleEnviarMensaje}
+                disabled={!inputMensaje.trim() || enviando}
+                accessibilityLabel="Enviar mensaje"
+              >
+                <Text style={styles.sendBtnText}>Enviar</Text>
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+              accessibilityLabel="Iniciar sesión para participar en el chat"
+            >
+              <Text style={styles.chatLoginText}>Inicia sesión para participar en el chat</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+      )}
+
+      {/* Estadio */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>
+          🏟️ {estadioInfo?.nombre ?? 'Estadio Municipal El Mirador'}
+        </Text>
+        <Text style={styles.infoLine}>
+          📍 {estadioInfo?.direccion ?? 'Algeciras, Cádiz'}
+          {estadioInfo?.capacidad ? ` · Aforo: ${Number(estadioInfo.capacidad).toLocaleString('es-ES')} espectadores` : ' · Aforo: 8.500 espectadores'}
+        </Text>
+        <Text style={styles.infoLine}>🎽 Temporada {TEMPORADA_CORTA} · {COMPETICION}</Text>
+        {estadioInfo?.fundacion ? (
+          <Text style={styles.infoLine}>📅 Fundado en {estadioInfo.fundacion}</Text>
+        ) : (
+          <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
+        )}
+        <TouchableOpacity
+          onPress={() => navigation.navigate('Estadio')}
+          style={{ marginTop: 8 }}
+          accessibilityLabel="Ver información del estadio"
+        >
+          <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 13 }}>Ver estadio →</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Redes Sociales */}
+      <View style={styles.card}>
+        <Text style={styles.sectionTitle}>📲 Redes Sociales</Text>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          onPress={() => Linking.openURL('https://www.instagram.com/algecirascf_oficial/')}
+          accessibilityLabel="Instagram Algeciras CF"
+        >
+          <Text style={styles.socialBtnText}>📸 Instagram @algecirascf_oficial</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          onPress={() => Linking.openURL('https://twitter.com/AlgecirasCF')}
+          accessibilityLabel="Twitter Algeciras CF"
+        >
+          <Text style={styles.socialBtnText}>🐦 Twitter / X @AlgecirasCF</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.socialBtn}
+          onPress={() => Linking.openURL('https://www.youtube.com/@Algeciras_cf')}
+          accessibilityLabel="YouTube Algeciras CF"
+        >
+          <Text style={styles.socialBtnText}>▶️ YouTube Algeciras CF</Text>
+        </TouchableOpacity>
+      </View>
+    </>
+  );
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -324,216 +537,30 @@ export default function FanZoneScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
       >
-        <ScrollView
+        <FlatList
+          ref={flatListRef}
+          data={mensajes}
+          keyExtractor={(item) => item.id}
           contentContainerStyle={styles.container}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
-        >
-          {/* Partido activo */}
-          {partidoActivo && (
-            <View style={styles.card}>
-              <Text style={styles.cardLabel}>Partido activo</Text>
-              <View style={styles.matchRow}>
-                <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoLocal}</Text>
-                <View style={styles.scoreBox}>
-                  <Text style={styles.score}>{partidoActivo.marcador ?? 'vs'}</Text>
-                </View>
-                <Text style={styles.teamName} numberOfLines={1}>{partidoActivo.equipoVisitante}</Text>
+          ListHeaderComponent={renderHeader}
+          ListFooterComponent={renderFooter}
+          renderItem={({ item }) => {
+            if (!partidoActivo) return null;
+            const esMio = user && (
+              item.userName === ((user as any)?.nombre || (user as any)?.email)
+            );
+            return (
+              <View style={[styles.mensajeRow, esMio && styles.mensajeRowMio]}>
+                <Text style={[styles.mensajeUsuario, esMio && styles.mensajeUsuarioMio]}>
+                  {esMio ? 'Tú' : item.userName}
+                </Text>
+                <Text style={styles.mensajeTexto}>{item.mensaje}</Text>
+                <Text style={styles.mensajeHora}>{formatHora(item.timestamp)}</Text>
               </View>
-            </View>
-          )}
-
-          {/* Fan of the Match */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>⭐ Fan of the Match</Text>
-            <Text style={styles.sectionSubtitle}>
-              {miVoto ? `Tu voto: ${miVoto}` : 'Vota al mejor jugador del partido'}
-            </Text>
-
-            {!partidoActivo ? (
-              <Text style={styles.emptyText}>No hay partido activo para votar</Text>
-            ) : jugadores.length === 0 ? (
-              <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
-            ) : (
-              <View style={styles.jugadoresGrid}>
-                {jugadores.map((j) => {
-                  const isSelected = miVoto === j;
-                  const votoData = votos.find(v => v.jugador === j);
-                  return (
-                    <TouchableOpacity
-                      key={j}
-                      style={[styles.jugadorBtn, isSelected && styles.jugadorBtnSelected]}
-                      onPress={() => handleVotar(j)}
-                      disabled={votando}
-                    >
-                      <Text style={[styles.jugadorName, isSelected && styles.jugadorNameSelected]}>{j}</Text>
-                      {votoData && (
-                        <Text style={[styles.jugadorVotos, isSelected && styles.jugadorVotosSelected]}>
-                          {votoData.porcentaje}%
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            )}
-          </View>
-
-          {/* Resultados */}
-          {votos.length > 0 && (
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>📊 Resultados ({totalVotos} votos)</Text>
-              {votos.slice(0, 5).map((v, i) => (
-                <View key={v.jugador} style={styles.resultRow}>
-                  <Text style={styles.resultPos}>{i + 1}°</Text>
-                  <Text style={styles.resultNombre} numberOfLines={1}>{v.jugador}</Text>
-                  <View style={styles.barContainer}>
-                    <View style={[styles.bar, { width: `${v.porcentaje}%` as any }]} />
-                  </View>
-                  <Text style={styles.resultPct}>{v.porcentaje}%</Text>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Offline banner */}
-          {isOffline && (
-            <View style={styles.offlineBanner}>
-              <Text style={styles.offlineBannerText}>⚠️ Datos sin conexión</Text>
-            </View>
-          )}
-
-          {/* MVP History — top 3 últimos partidos */}
-          {mvpHistory.length > 0 && (
-            <View style={styles.card}>
-              <Text style={styles.sectionTitle}>🏆 Mejores del mes</Text>
-              <Text style={styles.sectionSubtitle}>Jugadores más votados en los últimos partidos</Text>
-              {mvpHistory.map((entry, i) => (
-                <View key={entry.jugador} style={styles.mvpRow}>
-                  <View style={styles.mvpMedal}>
-                    <Text style={styles.mvpMedalText}>
-                      {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
-                    </Text>
-                  </View>
-                  {entry.foto ? (
-                    <Image source={{ uri: entry.foto }} style={styles.mvpAvatar} />
-                  ) : (
-                    <View style={[styles.mvpAvatar, styles.mvpAvatarPlaceholder]}>
-                      <Text style={styles.mvpAvatarInitial}>{entry.jugador.charAt(0).toUpperCase()}</Text>
-                    </View>
-                  )}
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.mvpName}>{entry.jugador}</Text>
-                    <Text style={styles.mvpVeces}>{entry.veces} {entry.veces === 1 ? 'vez MVP' : 'veces MVP'}</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          )}
-
-          {/* Chat en tiempo real */}
-          {partidoActivo && (
-            <View style={styles.card}>
-              <View style={styles.chatHeaderRow}>
-                <Text style={styles.sectionTitle}>💬 Chat</Text>
-                <View style={[styles.chatStatusBadge, chatConectado ? styles.chatStatusLive : styles.chatStatusOff]}>
-                  <Text style={styles.chatStatusText}>
-                    {chatConectado ? '● En vivo' : '● Sin conexión'}
-                  </Text>
-                </View>
-              </View>
-
-              {/* Lista mensajes */}
-              <View style={styles.chatContainer}>
-                {mensajes.length === 0 ? (
-                  <Text style={styles.emptyText}>Sin mensajes. ¡Sé el primero!</Text>
-                ) : (
-                  <FlatList
-                    ref={flatListRef}
-                    data={mensajes}
-                    keyExtractor={(item) => item.id}
-                    style={styles.chatList}
-                    nestedScrollEnabled={true}
-                    renderItem={({ item }) => {
-                      const esMio = user && (
-                        item.userName === ((user as any)?.nombre || (user as any)?.email)
-                      );
-                      return (
-                        <View style={[styles.mensajeRow, esMio && styles.mensajeRowMio]}>
-                          <Text style={[styles.mensajeUsuario, esMio && styles.mensajeUsuarioMio]}>
-                            {esMio ? 'Tú' : item.userName}
-                          </Text>
-                          <Text style={styles.mensajeTexto}>{item.mensaje}</Text>
-                          <Text style={styles.mensajeHora}>{formatHora(item.timestamp)}</Text>
-                        </View>
-                      );
-                    }}
-                  />
-                )}
-              </View>
-
-              {/* Input envío */}
-              {user ? (
-                <View style={styles.chatInputRow}>
-                  <TextInput
-                    style={styles.chatInput}
-                    placeholder="Escribe un mensaje..."
-                    placeholderTextColor={colors.textSecondary}
-                    value={inputMensaje}
-                    onChangeText={setInputMensaje}
-                    onSubmitEditing={handleEnviarMensaje}
-                    returnKeyType="send"
-                    maxLength={200}
-                  />
-                  <TouchableOpacity
-                    style={[styles.sendBtn, (!inputMensaje.trim() || enviando) && styles.sendBtnDisabled]}
-                    onPress={handleEnviarMensaje}
-                    disabled={!inputMensaje.trim() || enviando}
-                  >
-                    <Text style={styles.sendBtnText}>Enviar</Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <TouchableOpacity onPress={() => navigation.navigate('Auth', { screen: 'Login' })}>
-                  <Text style={styles.chatLoginText}>Inicia sesión para participar en el chat</Text>
-                </TouchableOpacity>
-              )}
-            </View>
-          )}
-
-          {/* Estadio */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>
-              🏟️ {estadioInfo?.nombre ?? 'Estadio Municipal El Mirador'}
-            </Text>
-            <Text style={styles.infoLine}>
-              📍 {estadioInfo?.direccion ?? 'Algeciras, Cádiz'}
-              {estadioInfo?.capacidad ? ` · Aforo: ${Number(estadioInfo.capacidad).toLocaleString('es-ES')} espectadores` : ' · Aforo: 8.500 espectadores'}
-            </Text>
-            <Text style={styles.infoLine}>🎽 Temporada {TEMPORADA_CORTA} · {COMPETICION}</Text>
-            {estadioInfo?.fundacion ? (
-              <Text style={styles.infoLine}>📅 Fundado en {estadioInfo.fundacion}</Text>
-            ) : (
-              <Text style={styles.infoLine}>📅 Fundado en 1912</Text>
-            )}
-            <TouchableOpacity onPress={() => navigation.navigate('Estadio')} style={{ marginTop: 8 }}>
-              <Text style={{ color: colors.primary, fontWeight: 'bold', fontSize: 13 }}>Ver estadio →</Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* Redes Sociales */}
-          <View style={styles.card}>
-            <Text style={styles.sectionTitle}>📲 Redes Sociales</Text>
-            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://www.instagram.com/algecirascf_oficial/')}>
-              <Text style={styles.socialBtnText}>📸 Instagram @algecirascf_oficial</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://twitter.com/AlgecirasCF')}>
-              <Text style={styles.socialBtnText}>🐦 Twitter / X @AlgecirasCF</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.socialBtn} onPress={() => Linking.openURL('https://www.youtube.com/@Algeciras_cf')}>
-              <Text style={styles.socialBtnText}>▶️ YouTube Algeciras CF</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
+            );
+          }}
+        />
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -585,7 +612,7 @@ const styles = StyleSheet.create({
   jugadorBtnSelected: { borderColor: colors.primary, backgroundColor: '#e8f5ee' },
   jugadorName: { fontSize: 13, color: colors.text, fontWeight: '600' },
   jugadorNameSelected: { color: colors.primary },
-  jugadorVotos: { fontSize: 11, color: colors.textSecondary, marginTop: 2 },
+  jugadorVotos: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   jugadorVotosSelected: { color: colors.primary },
   resultRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 8, gap: 6 },
   resultPos: { width: 22, fontSize: 13, fontWeight: 'bold', color: colors.primary },
@@ -603,20 +630,12 @@ const styles = StyleSheet.create({
   chatStatusOff: { backgroundColor: '#fce4e4' },
   chatStatusText: { fontSize: 12, fontWeight: '700' },
   // Chat styles
-  chatContainer: {
-    height: 300,
-    backgroundColor: colors.background,
-    borderRadius: 8,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  chatList: { flex: 1, padding: 8 },
-  mensajeRow: { marginBottom: 10, paddingHorizontal: 4 },
+  mensajeRow: { marginBottom: 10, paddingHorizontal: 16 },
   mensajeRowMio: { alignItems: 'flex-end' },
   mensajeUsuario: { fontSize: 12, fontWeight: 'bold', color: colors.primary, marginBottom: 1 },
   mensajeUsuarioMio: { color: colors.textSecondary },
   mensajeTexto: { fontSize: 14, color: colors.text },
-  mensajeHora: { fontSize: 10, color: colors.textSecondary, marginTop: 2 },
+  mensajeHora: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
   chatInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   chatInput: {
     flex: 1,

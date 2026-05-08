@@ -347,7 +347,7 @@ const styles = StyleSheet.create({
     borderColor: '#C8102E',
     borderStyle: 'dashed',
   },
-  codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 8 },
+  codigoLabel: { fontSize: 12, color: '#C8102E', fontWeight: '600', marginBottom: 8 },
   codigoCodigo: { fontSize: 18, fontWeight: 'bold', letterSpacing: 4, color: '#C8102E', marginTop: 6 },
   qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
 });

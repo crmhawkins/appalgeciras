@@ -98,6 +98,7 @@ export default function GradasScreen() {
                   gradaNombre: item.nombre,
                 });
               }}
+              accessibilityLabel={`Seleccionar zona ${item.nombre}`}
             >
               <View style={[styles.imagePlaceholder, isSelected && styles.imagePlaceholderSelected]}>
                 <Text style={styles.imagePlaceholderText}>
@@ -139,7 +140,7 @@ const styles = StyleSheet.create({
   mapaHint: {
     textAlign: 'center',
     color: '#aaaacc',
-    fontSize: 11,
+    fontSize: 12,
     paddingVertical: 6,
     backgroundColor: '#1a1a2e',
   },

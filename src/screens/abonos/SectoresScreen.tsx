@@ -103,6 +103,7 @@ export default function SectoresScreen() {
                   precio: item.precio,
                 })
               }
+              accessibilityLabel={`Sector ${item.nombre}, ${item.precio} €${sinAsientos ? ', sin plazas' : ''}`}
             >
               <View style={{ flex: 1 }}>
                 <Text style={styles.cardTitle}>{item.nombre}</Text>

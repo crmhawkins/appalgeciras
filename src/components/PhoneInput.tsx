@@ -374,7 +374,7 @@ const styles = StyleSheet.create({
   flag: { fontSize: 18 },
   flagCustom: { fontSize: 16 },
   code: { fontSize: 14, color: colors.text, fontWeight: '600' },
-  chevron: { fontSize: 10, color: colors.textSecondary },
+  chevron: { fontSize: 12, color: colors.textSecondary },
   input: {
     flex: 1,
     paddingHorizontal: 12,

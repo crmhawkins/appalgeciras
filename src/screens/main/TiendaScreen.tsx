@@ -329,14 +329,14 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     color: colors.white,
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: 'bold',
   },
   cardBody: {
     padding: 14,
   },
   temporada: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.primary,
     fontWeight: '600',
     textTransform: 'uppercase',
@@ -370,7 +370,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   tallaText: {
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textSecondary,
   },
   precioRow: {

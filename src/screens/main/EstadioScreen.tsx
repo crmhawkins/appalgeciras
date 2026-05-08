@@ -229,5 +229,5 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   socialIcon: { fontSize: 22, marginBottom: 4 },
-  socialLabel: { fontSize: 11, color: colors.text, fontWeight: '600' },
+  socialLabel: { fontSize: 12, color: colors.text, fontWeight: '600' },
 });

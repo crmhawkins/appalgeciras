@@ -125,6 +125,7 @@ export default function AsientosScreen() {
                     style={[styles.seat, { backgroundColor: bg }]}
                     onPress={() => onSelectSeat(a)}
                     disabled={a.estado !== 'disponible'}
+                    accessibilityLabel={`Asiento ${a.numero} fila ${a.fila}, ${a.estado}`}
                   >
                     <Text style={styles.seatText}>{a.numero}</Text>
                   </TouchableOpacity>
@@ -151,6 +152,7 @@ export default function AsientosScreen() {
           style={[styles.buyBtn, !selected && styles.buyBtnDisabled]}
           onPress={onBuy}
           disabled={!selected}
+          accessibilityLabel={selected ? `Comprar abono, asiento ${selected.numero} fila ${selected.fila}, ${precio} €` : 'Comprar abono, selecciona un asiento primero'}
         >
           <Text style={styles.buyBtnText}>
             {token ? '🛒 Comprar Abono' : 'Iniciar sesión para comprar'}
@@ -204,7 +206,7 @@ const styles = StyleSheet.create({
   },
   footerText: { color: colors.text, marginBottom: 10, textAlign: 'center' },
   footerSelected: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
-  footerSeatLabel: { fontSize: 11, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
+  footerSeatLabel: { fontSize: 12, color: colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.5 },
   footerSeatInfo: { fontSize: 15, fontWeight: 'bold', color: colors.text, marginTop: 2 },
   footerPrice: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   buyBtn: {

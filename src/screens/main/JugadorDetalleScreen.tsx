@@ -389,7 +389,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
   },
   badgeSecondary: { backgroundColor: 'rgba(255,255,255,0.1)' },
-  badgeLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 10, marginBottom: 2 },
+  badgeLabel: { color: 'rgba(255,255,255,0.7)', fontSize: 12, marginBottom: 2 },
   badgeValue: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
   badgeValueSecondary: { color: colors.white, fontWeight: '600', fontSize: 14 },
 
@@ -411,7 +411,7 @@ const styles = StyleSheet.create({
   },
   infoRow: { flexDirection: 'row', gap: 16 },
   infoItem: { flex: 1 },
-  infoLabel: { fontSize: 11, color: colors.textSecondary, marginBottom: 2 },
+  infoLabel: { fontSize: 12, color: colors.textSecondary, marginBottom: 2 },
   infoValue: { fontSize: 14, fontWeight: '600', color: colors.text },
 
   statsSection: {
@@ -438,7 +438,7 @@ const styles = StyleSheet.create({
   },
   statIcon: { fontSize: 22, marginBottom: 4 },
   statValue: { fontSize: 18, fontWeight: 'bold', color: colors.primary, marginBottom: 2 },
-  statLabel: { fontSize: 10, color: colors.textSecondary, textAlign: 'center' },
+  statLabel: { fontSize: 12, color: colors.textSecondary, textAlign: 'center' },
 
   emptyStats: { color: colors.textSecondary, textAlign: 'center', paddingVertical: 8, fontSize: 13 },
 
