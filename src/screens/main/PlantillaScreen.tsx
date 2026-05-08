@@ -184,8 +184,13 @@ export default function PlantillaScreen() {
           resizeMode="cover"
         />
         <View style={styles.headerOverlay}>
-          <Text style={styles.headerTitle}>Plantilla {TEMPORADA_CORTA}</Text>
-          <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
+          <TouchableOpacity style={styles.plantillaBackBtn} onPress={() => navigation.goBack()}>
+            <Text style={styles.plantillaBackIcon}>‹</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Plantilla {TEMPORADA_CORTA}</Text>
+            <Text style={styles.headerSub}>{COMPETICION.replace('·', '•')}</Text>
+          </View>
         </View>
       </View>
       {offline && (
@@ -264,7 +269,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   headerBanner: { width: '100%', height: 100 },
-  headerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(200,16,46,0.7)' },
+  headerOverlay: { position: 'absolute', bottom: 0, left: 0, right: 0, padding: 16, backgroundColor: 'rgba(200,16,46,0.7)', flexDirection: 'row', alignItems: 'center' },
   headerTitle: {
     color: colors.white,
     fontSize: 20,
@@ -372,4 +377,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
+  plantillaBackBtn: { width: 40, height: 40, justifyContent: 'center', alignItems: 'center', marginRight: 8 },
+  plantillaBackIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
 });

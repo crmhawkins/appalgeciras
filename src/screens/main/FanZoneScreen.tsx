@@ -316,7 +316,7 @@ export default function FanZoneScreen() {
     );
   }
 
-  const renderHeader = useCallback(() => (
+  const renderHeader = useMemo(() => (
     <>
       {/* Partido activo */}
       {partidoActivo && (
@@ -438,9 +438,9 @@ export default function FanZoneScreen() {
         </View>
       )}
     </>
-  ), [partidoActivo, jugadores, votos, miVoto, votando, totalVotos, mvpHistory, isOffline, chatConectado, mensajes.length, handleVotar, navigation]);
+  ), [partidoActivo, jugadores, votos, miVoto, votando, totalVotos, mvpHistory, isOffline, chatConectado, mensajes.length, handleVotar, navigation]); // eslint-disable-line
 
-  const renderFooter = useCallback(() => (
+  const renderFooter = useMemo(() => (
     <>
       {/* Chat input */}
       {partidoActivo && (
@@ -527,7 +527,7 @@ export default function FanZoneScreen() {
         </TouchableOpacity>
       </View>
     </>
-  ), [estadioInfo, partidoActivo, user, inputMensaje, enviando, handleEnviarMensaje, navigation]);
+  ), [estadioInfo, partidoActivo, user, inputMensaje, enviando, handleEnviarMensaje, navigation]); // eslint-disable-line
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -546,8 +546,8 @@ export default function FanZoneScreen() {
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.container}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
-          ListHeaderComponent={renderHeader}
-          ListFooterComponent={renderFooter}
+          ListHeaderComponent={() => renderHeader}
+          ListFooterComponent={() => renderFooter}
           renderItem={({ item }) => {
             if (!partidoActivo) return null;
             const esMio = user && (

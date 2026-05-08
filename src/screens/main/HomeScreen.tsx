@@ -4,7 +4,6 @@ import {
   ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { WebView } from 'react-native-webview';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
@@ -13,24 +12,6 @@ import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { ClasificacionItem, Noticia } from '../../types';
 import { ESCUDO_URL, COMPETICION, TEMPORADA, SPONSORS as DEFAULT_SPONSORS, Sponsor } from '../../constants';
 import { useCountdown } from '../../hooks/useCountdown';
-
-const YOUTUBE_VIDEO_ID = '1B7o0uklMW8';
-const youtubeHtml = `
-<!DOCTYPE html>
-<html>
-<head>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<style>
-  * { margin: 0; padding: 0; }
-  body { background: #000; overflow: hidden; }
-  iframe { width: 100%; height: 100vh; border: none; }
-</style>
-</head>
-<body>
-<iframe src="https://www.youtube.com/embed/${YOUTUBE_VIDEO_ID}?autoplay=1&mute=1&controls=1&rel=0&playsinline=1&loop=1&playlist=${YOUTUBE_VIDEO_ID}" allow="autoplay; fullscreen" allowfullscreen></iframe>
-</body>
-</html>
-`;
 
 
 const CATEGORIA_COLORS: Record<string, string> = {
@@ -110,8 +91,8 @@ export default function HomeScreen() {
     const cached = await getCached<ClasificacionItem[]>('clasificacion');
     if (cached) setClasificacion(toArray<ClasificacionItem>(cached));
     try {
-      const { data } = await api.get<ClasificacionItem[]>('/api/clasificacion', { signal });
-      const list = toArray<ClasificacionItem>(data);
+      const { data } = await api.get<any>('/api/clasificacion', { signal });
+      const list = toArray<ClasificacionItem>((data as any)?.clasificacion ?? data);
       setClasificacion(list);
       await setCached('clasificacion', list);
     } catch (e: any) {
@@ -203,7 +184,6 @@ export default function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
-  const [youtubeLoaded, setYoutubeLoaded] = useState(false);
   const [offlineTs, setOfflineTs] = useState<number | null>(null);
 
   const onRefresh = useCallback(async () => {
@@ -270,35 +250,6 @@ export default function HomeScreen() {
             </Text>
           </View>
         )}
-        {/* VIDEO HERO — lazy mount: WebView only after user tap */}
-        <View style={styles.videoHero}>
-          {youtubeLoaded ? (
-            <WebView
-              source={{ html: youtubeHtml }}
-              style={styles.videoWebView}
-              allowsInlineMediaPlayback
-              mediaPlaybackRequiresUserAction={false}
-              javaScriptEnabled
-              scrollEnabled={false}
-              bounces={false}
-            />
-          ) : (
-            <TouchableOpacity
-              style={styles.videoPlaceholder}
-              onPress={() => setYoutubeLoaded(true)}
-              activeOpacity={0.85}
-              accessibilityLabel="Reproducir vídeo de Algeciras CF en YouTube"
-            >
-              <Text style={styles.videoPlayIcon}>▶</Text>
-              <Text style={styles.videoPlaceholderText}>Toca para ver el vídeo</Text>
-            </TouchableOpacity>
-          )}
-          <View style={styles.videoOverlay} pointerEvents="none">
-            <Text style={styles.videoClubTag}>⚽ ALGECIRAS C.F.</Text>
-            <Text style={styles.videoSeason}>Temporada {TEMPORADA} · {COMPETICION.split(' · ')[0]}</Text>
-          </View>
-        </View>
-
         {/* HEADER */}
         <View style={styles.header}>
           {escudoError ? (
@@ -408,6 +359,19 @@ export default function HomeScreen() {
           )}
         </View>
 
+        {/* PATROCINADORES */}
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Patrocinadores</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+            {patrocinadores.map((s) => (
+              <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
+                <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
+                <Text style={[styles.sponsorName, s.dark && styles.sponsorNameDark]}>{s.name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+        </View>
+
         {/* ÚLTIMAS NOTICIAS */}
         <TouchableOpacity style={styles.noticiasBanner} onPress={goNoticias} activeOpacity={0.82}>
           <View style={styles.noticiasInner}>
@@ -459,19 +423,6 @@ export default function HomeScreen() {
               })}
             </ScrollView>
           )}
-        </View>
-
-        {/* PATROCINADORES */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Patrocinadores</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
-            {patrocinadores.map((s) => (
-              <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
-                <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
-                <Text style={[styles.sponsorName, s.dark && styles.sponsorNameDark]}>{s.name}</Text>
-              </View>
-            ))}
-          </ScrollView>
         </View>
 
         {/* CLASIFICACIÓN */}
@@ -561,26 +512,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   searchBtnIcon: { fontSize: 18 },
-
-  // VIDEO HERO
-  videoHero: { width: '100%', height: 210, marginHorizontal: -16, marginTop: 0, marginBottom: 16, backgroundColor: '#000' },
-  videoWebView: { flex: 1, backgroundColor: '#000' },
-  videoPlaceholder: {
-    flex: 1,
-    backgroundColor: '#111',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoPlayIcon: { fontSize: 48, color: '#fff', marginBottom: 8 },
-  videoPlaceholderText: { color: 'rgba(255,255,255,0.7)', fontSize: 14 },
-  videoOverlay: {
-    position: 'absolute', bottom: 0, left: 0, right: 0,
-    paddingHorizontal: 16, paddingVertical: 10,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-  },
-  videoClubTag: { color: '#fff', fontWeight: 'bold', fontSize: 13 },
-  videoSeason: { color: 'rgba(255,255,255,0.8)', fontSize: 12 },
 
   // HEADER
   header: {

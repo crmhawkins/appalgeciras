@@ -31,7 +31,6 @@ interface Producto {
   destacado: boolean;
 }
 
-const ITEM_HEIGHT = 340; // card image 200 + body ~140
 
 const CATEGORIAS = [
   { key: '', label: 'Todo' },
@@ -40,7 +39,6 @@ const CATEGORIAS = [
   { key: 'accesorio', label: 'Accesorios' },
 ];
 
-const WHATSAPP_NUMERO: string = (process.env.EXPO_PUBLIC_WHATSAPP_NUMERO ?? '34684631593').trim();
 
 export default function TiendaScreen() {
   const navigation = useNavigation<any>();
@@ -84,11 +82,8 @@ export default function TiendaScreen() {
     fetchProductos(categoriaActiva);
   };
 
-  const handleComprar = (producto: Producto) => {
-    const msg = encodeURIComponent(
-      `Hola, me interesa comprar: ${producto.nombre}${producto.temporada ? ` (${producto.temporada})` : ''}. ¿Está disponible?`
-    );
-    Linking.openURL(`https://wa.me/${WHATSAPP_NUMERO}?text=${msg}`);
+  const handleComprar = (_producto: Producto) => {
+    Linking.openURL('https://algecirasclubdefutbol.com/tienda/');
   };
 
   const renderCategoria = ({ key, label }: { key: string; label: string }) => (
@@ -214,7 +209,6 @@ export default function TiendaScreen() {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderProducto}
           contentContainerStyle={styles.lista}
-          getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
         />
       )}

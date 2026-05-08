@@ -148,8 +148,13 @@ export default function MisAbonosScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🎟️ Mis Abonos</Text>
-        <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>🎟️ Mis Abonos</Text>
+          <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
+        </View>
       </View>
       <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
       {error && <Text style={styles.error}>{error}</Text>}
@@ -171,7 +176,7 @@ export default function MisAbonosScreen() {
               <Text style={styles.emptyText}>Aún no tienes abonos para esta temporada</Text>
               <TouchableOpacity
                 style={styles.buyBtn}
-                onPress={() => navigation.getParent()?.navigate('Tabs', { screen: 'AbonosTab' })}
+                onPress={() => navigation.navigate('Tabs', { screen: 'AbonosTab' })}
               >
                 <Text style={styles.buyBtnText}>Comprar un abono</Text>
               </TouchableOpacity>
@@ -248,7 +253,7 @@ function formatDate(d: string): string {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16, backgroundColor: colors.primary },
+  header: { padding: 8, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
   list: { padding: 14 },
@@ -334,4 +339,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
   },
   liberarText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
 });

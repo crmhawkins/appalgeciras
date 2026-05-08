@@ -270,8 +270,17 @@ export default function NoticiasScreen() {
   const [tab, setTab] = useState<MainTab>('noticias');
   const [tvLoading, setTvLoading] = useState(true);
 
+  const navigation = useNavigation<any>();
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      {/* Header con back */}
+      <View style={styles.noticiasHeader}>
+        <TouchableOpacity style={styles.noticiasBackBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.noticiasBackIcon}>‹</Text>
+        </TouchableOpacity>
+        <Text style={styles.noticiasHeaderTitle}>Noticias</Text>
+        <View style={{ width: 44 }} />
+      </View>
       {/* Tab bar */}
       <View style={styles.tabBar}>
         <TouchableOpacity
@@ -424,4 +433,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: colors.background,
   },
+  noticiasHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: colors.primary,
+    height: 52,
+    paddingHorizontal: 4,
+  },
+  noticiasBackBtn: { width: 44, height: 52, justifyContent: 'center', alignItems: 'center' },
+  noticiasBackIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
+  noticiasHeaderTitle: { flex: 1, color: colors.white, fontSize: 17, fontWeight: 'bold', textAlign: 'center' },
 });

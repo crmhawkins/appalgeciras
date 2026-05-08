@@ -15,7 +15,7 @@ import { Asiento, AbonosStackParamList } from '../../types';
 type AsientosRouteProp = RouteProp<AbonosStackParamList, 'Asientos'>;
 
 export default function AsientosScreen() {
-  const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
+  const navigation = useNavigation<any>();
   const route = useRoute<AsientosRouteProp>();
   const { sectorId, sectorNombre, precio } = route.params;
   const { token } = useAuth();
@@ -94,8 +94,13 @@ export default function AsientosScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['bottom']}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>{sectorNombre}</Text>
-        <Text style={styles.headerSub}>Paso 3 de 3 · Selecciona asiento · {precio} €</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        <View>
+          <Text style={styles.headerTitle}>{sectorNombre}</Text>
+          <Text style={styles.headerSub}>Paso 3 de 3 · Selecciona asiento · {precio} €</Text>
+        </View>
       </View>
 
       <View style={styles.legend}>
@@ -178,7 +183,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16, backgroundColor: colors.primary },
+  header: { padding: 8, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: colors.white, opacity: 0.85, marginTop: 2 },
   legend: {
@@ -222,4 +227,6 @@ const styles = StyleSheet.create({
   buyBtnText: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
   empty: { textAlign: 'center', color: colors.textSecondary, marginTop: 24 },
   error: { color: colors.error, textAlign: 'center', marginTop: 8, paddingHorizontal: 16 },
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
 });

@@ -144,8 +144,13 @@ export default function MisEntradasScreen() {
     <SafeAreaView style={styles.safe} edges={['top']}>
       <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>🏟️ Mis Entradas</Text>
-        <Text style={styles.headerSub}>{ESTADIO}</Text>
+        <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
+          <Text style={styles.backIcon}>‹</Text>
+        </TouchableOpacity>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.headerTitle}>🏟️ Mis Entradas</Text>
+          <Text style={styles.headerSub}>{ESTADIO}</Text>
+        </View>
       </View>
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
@@ -267,7 +272,7 @@ function Row({ label, value, highlight }: { label: string; value: string; highli
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  header: { padding: 16, backgroundColor: colors.primary },
+  header: { padding: 8, backgroundColor: colors.primary, flexDirection: 'row', alignItems: 'center' },
   headerTitle: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
   list: { padding: 14 },
@@ -350,4 +355,6 @@ const styles = StyleSheet.create({
   codigoLabel: { fontSize: 12, color: '#C8102E', fontWeight: '600', marginBottom: 8 },
   codigoCodigo: { fontSize: 18, fontWeight: 'bold', letterSpacing: 4, color: '#C8102E', marginTop: 6 },
   qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
+  backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
+  backIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
 });

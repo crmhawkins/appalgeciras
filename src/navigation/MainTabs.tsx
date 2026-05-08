@@ -31,8 +31,9 @@ export default function MainTabs() {
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border },
-        tabBarLabelStyle: { fontSize: 12 },
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border, height: 60, paddingBottom: 6, paddingTop: 4 },
+        tabBarLabelStyle: { fontSize: 11 },
+        tabBarItemStyle: { flex: 1 },
       }}
     >
       {/* ── Visible tabs (5) ── */}
