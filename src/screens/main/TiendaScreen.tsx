@@ -37,7 +37,7 @@ const CATEGORIAS = [
   { key: 'accesorio', label: 'Accesorios' },
 ];
 
-const WHATSAPP_NUMERO = 'PENDIENTE'; // TODO: poner número real de la tienda (Soricastel)
+const WHATSAPP_NUMERO: string = (process.env.EXPO_PUBLIC_WHATSAPP_NUMERO ?? '34684631593').trim();
 
 export default function TiendaScreen() {
   const navigation = useNavigation<any>();
