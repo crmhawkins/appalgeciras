@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import api from '../../services/api';
@@ -24,14 +25,14 @@ import { ESCUDO_URL, TEMPORADA_CORTA, COMPETICION, ESTADIO } from '../../constan
 type CheckoutRouteProp = RouteProp<AbonosStackParamList, 'Checkout'>;
 
 export default function CheckoutScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
   const route = useRoute<CheckoutRouteProp>();
   const { user } = useAuth();
   const { sectorId, sectorNombre, asientoId, fila, numero, precio } = route.params;
   const [loading, setLoading] = useState(false);
-  const [dni, setDni] = useState((user as any)?.dni || '');
+  const [dni, setDni] = useState(user?.dni || '');
   const [dniError, setDniError] = useState<string | null>(null);
-  const dniFromProfile = !!(user as any)?.dni;
+  const dniFromProfile = !!user?.dni;
 
   const handlePay = async () => {
     if (!user) { Alert.alert('Error', 'Debes iniciar sesión'); return; }
@@ -47,8 +48,8 @@ export default function CheckoutScreen() {
         sectorId,
         precio,
         dni: dni.trim(),
-        email: (user as any)?.email || '',
-        nombre: (user as any)?.nombre || '',
+        email: user?.email || '',
+        nombre: user?.nombre || '',
         tipo: 'abono',
       });
       if (!data?.url || !data?.sessionId) throw new Error('Respuesta inválida del servidor');
@@ -85,7 +86,7 @@ export default function CheckoutScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe} edges={[]}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Resumen del Abono</Text>
         <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>

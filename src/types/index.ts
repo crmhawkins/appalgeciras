@@ -62,6 +62,16 @@ export interface Abono {
   fechaInicio: string;
   fechaFin: string;
   codigoAcceso?: string;
+  codigoAbonado?: string; // FIX-16
+}
+
+export interface EstadioInfo {
+  nombre?: string;
+  direccion?: string;
+  capacidad?: number;
+  fundacion?: string;
+  latitud?: number;
+  longitud?: number;
 }
 
 export interface Entrada {

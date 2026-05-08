@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
 import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
@@ -7,6 +7,7 @@ import MainStack from './MainStack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
 import { colors } from '../theme/colors';
+import { ErrorBoundary } from '../components/ErrorBoundary';
 
 const linking: LinkingOptions<any> = {
   prefixes: ['algecirascf://', 'algeciras://', 'https://algecirasclubdefutbol.com'],
@@ -37,6 +38,13 @@ interface RootNavigatorProps {
 export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   const { loading, token } = useAuth();
 
+  // FIX-1: Reset nav stack on logout so MainStack history doesn't persist
+  useEffect(() => {
+    if (!loading && !token && navigationRef?.current?.isReady()) {
+      navigationRef.current.reset({ index: 0, routes: [{ name: 'Auth' }] });
+    }
+  }, [token, loading]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -52,7 +60,13 @@ export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Auth" component={AuthStack} />
-        <Stack.Screen name="Main" component={MainStack} />
+        <Stack.Screen name="Main">
+          {(props) => (
+            <ErrorBoundary>
+              <MainStack {...props} />
+            </ErrorBoundary>
+          )}
+        </Stack.Screen>
       </Stack.Navigator>
     </NavigationContainer>
   );

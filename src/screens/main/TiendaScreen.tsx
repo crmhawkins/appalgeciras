@@ -31,6 +31,8 @@ interface Producto {
   destacado: boolean;
 }
 
+const ITEM_HEIGHT = 340; // card image 200 + body ~140
+
 const CATEGORIAS = [
   { key: '', label: 'Todo' },
   { key: 'equipacion', label: 'Equipaciones' },
@@ -212,6 +214,7 @@ export default function TiendaScreen() {
           keyExtractor={(item) => String(item.id)}
           renderItem={renderProducto}
           contentContainerStyle={styles.lista}
+          getItemLayout={(_, index) => ({ length: ITEM_HEIGHT, offset: ITEM_HEIGHT * index, index })}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[colors.primary]} />}
         />
       )}

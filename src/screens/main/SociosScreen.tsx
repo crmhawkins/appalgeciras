@@ -177,7 +177,7 @@ export default function SociosScreen() {
 
         <View style={styles.welcomeBanner}>
           <Text style={styles.welcomeText}>
-            ¡Bienvenido, {(user as any).nombre || 'socio'}! 👋
+            ¡Bienvenido, {user?.nombre || 'socio'}! 👋
           </Text>
           <Text style={styles.welcomeSub}>Disfrutas de todas las ventajas de ser abonado</Text>
         </View>

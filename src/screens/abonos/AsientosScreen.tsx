@@ -4,15 +4,18 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { Asiento, AbonosStackParamList } from '../../types';
 
+
+
 type AsientosRouteProp = RouteProp<AbonosStackParamList, 'Asientos'>;
 
 export default function AsientosScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
   const route = useRoute<AsientosRouteProp>();
   const { sectorId, sectorNombre, precio } = route.params;
   const { token } = useAuth();
@@ -80,7 +83,7 @@ export default function AsientosScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe} edges={[]}>
+      <SafeAreaView style={styles.safe} edges={['bottom']}>
         <View style={styles.center}>
           <ActivityIndicator size="large" color={colors.primary} />
         </View>
@@ -89,7 +92,7 @@ export default function AsientosScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.safe} edges={[]}>
+    <SafeAreaView style={styles.safe} edges={['bottom']}>
       <View style={styles.header}>
         <Text style={styles.headerTitle}>{sectorNombre}</Text>
         <Text style={styles.headerSub}>Paso 3 de 3 · Selecciona asiento · {precio} €</Text>

@@ -10,13 +10,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
-import { Grada } from '../../types';
+import { Grada, AbonosStackParamList } from '../../types';
 import MapaEstadio from '../../components/MapaEstadio';
 
 export default function GradasScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
   const [gradas, setGradas] = useState<Grada[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);

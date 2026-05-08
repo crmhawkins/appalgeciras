@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Sector, AbonosStackParamList } from '../../types';
@@ -18,7 +19,7 @@ import MapaEstadio from '../../components/MapaEstadio';
 type SectoresRouteProp = RouteProp<AbonosStackParamList, 'Sectores'>;
 
 export default function SectoresScreen() {
-  const navigation = useNavigation<any>();
+  const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
   const route = useRoute<SectoresRouteProp>();
   const { gradaId, gradaNombre } = route.params;
 

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, FlatList,
@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import api, { API_BASE_URL } from '../../services/api';
-import { Partido } from '../../types';
+import { Partido, EstadioInfo } from '../../types';
 import { io, Socket } from 'socket.io-client';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
 import { setCached, getCachedStale } from '../../services/cache';
@@ -46,7 +46,7 @@ export default function FanZoneScreen() {
 
   const [partidos, setPartidos] = useState<Partido[]>([]);
   const [partidoActivo, setPartidoActivo] = useState<Partido | null>(null);
-  const [estadioInfo, setEstadioInfo] = useState<any>(null);
+  const [estadioInfo, setEstadioInfo] = useState<EstadioInfo | null>(null);
   const [jugadores, setJugadores] = useState<string[]>([]);
   const [votos, setVotos] = useState<VotoResult[]>([]);
   const [miVoto, setMiVoto] = useState<string | null>(null);
@@ -216,6 +216,9 @@ export default function FanZoneScreen() {
     useCallback(() => {
       if (!partidoActivo) return;
 
+      // FIX-9: clear messages from previous match before connecting
+      setMensajes([]);
+
       const socket = io(API_BASE_URL, {
         transports: ['websocket'],
         reconnection: true,
@@ -262,7 +265,7 @@ export default function FanZoneScreen() {
     const texto = inputMensaje.trim();
     if (!texto || !socketRef.current || !partidoActivo || enviando) return;
 
-    const rawName = (user as any)?.nombre || (user as any)?.email || 'Aficionado';
+    const rawName = user?.nombre || user?.email || 'Aficionado';
     const userName = rawName;
 
     setEnviando(true);
@@ -313,7 +316,7 @@ export default function FanZoneScreen() {
     );
   }
 
-  const renderHeader = () => (
+  const renderHeader = useCallback(() => (
     <>
       {/* Partido activo */}
       {partidoActivo && (
@@ -435,9 +438,9 @@ export default function FanZoneScreen() {
         </View>
       )}
     </>
-  );
+  ), [partidoActivo, jugadores, votos, miVoto, votando, totalVotos, mvpHistory, isOffline, chatConectado, mensajes.length, handleVotar, navigation]);
 
-  const renderFooter = () => (
+  const renderFooter = useCallback(() => (
     <>
       {/* Chat input */}
       {partidoActivo && (
@@ -524,7 +527,7 @@ export default function FanZoneScreen() {
         </TouchableOpacity>
       </View>
     </>
-  );
+  ), [estadioInfo, partidoActivo, user, inputMensaje, enviando, handleEnviarMensaje, navigation]);
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -548,7 +551,7 @@ export default function FanZoneScreen() {
           renderItem={({ item }) => {
             if (!partidoActivo) return null;
             const esMio = user && (
-              item.userName === ((user as any)?.nombre || (user as any)?.email)
+              item.userName === (user?.nombre || user?.email)
             );
             return (
               <View style={[styles.mensajeRow, esMio && styles.mensajeRowMio]}>

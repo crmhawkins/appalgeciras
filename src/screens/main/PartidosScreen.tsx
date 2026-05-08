@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
   RefreshControl, Image, TouchableOpacity, Alert,
@@ -100,7 +100,7 @@ export default function PartidosScreen() {
   const [countdown, setCountdown] = useState<string | null>(null);
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     setError(null);
     const cached = await getCached<{ partidos: Partido[]; proximoPartido: Partido | null }>('partidos');
     if (cached) {
@@ -108,7 +108,7 @@ export default function PartidosScreen() {
       setProximoPartido(cached.proximoPartido ?? null);
     }
     try {
-      const { data } = await api.get<Partido[] | { partidos: Partido[]; proximoPartido?: Partido | null }>('/api/partidos');
+      const { data } = await api.get<Partido[] | { partidos: Partido[]; proximoPartido?: Partido | null }>('/api/partidos', { signal });
       let partidosList: Partido[] = [];
       let proximo: Partido | null = null;
       if (Array.isArray(data)) {
@@ -122,6 +122,7 @@ export default function PartidosScreen() {
       await setCached('partidos', { partidos: partidosList, proximoPartido: proximo });
       setOffline(false);
     } catch (e: any) {
+      if (e?.name === 'CanceledError' || e?.name === 'AbortError') return;
       const stale = await getCachedStale<{ partidos: Partido[]; proximoPartido: Partido | null }>('partidos');
       if (stale) {
         setPartidos(stale.partidos ?? []);
@@ -136,19 +137,30 @@ export default function PartidosScreen() {
     }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  // FIX-5: AbortController cleanup for race condition
+  useEffect(() => {
+    const controller = new AbortController();
+    load(controller.signal);
+    return () => controller.abort();
+  }, [load]);
 
   const today = new Date().toISOString().split('T')[0];
 
-  const proximos = partidos
+  // FIX-6: memoize proximos/jugados to stabilize interval deps
+  const proximos = useMemo(() => partidos
     .filter((p) => p.fecha.split('T')[0] >= today)
-    .sort((a, b) => a.fecha.split('T')[0].localeCompare(b.fecha.split('T')[0]));
+    .sort((a, b) => a.fecha.split('T')[0].localeCompare(b.fecha.split('T')[0])),
+    [partidos]
+  );
 
-  const jugados = partidos
+  const jugados = useMemo(() => partidos
     .filter((p) => p.fecha.split('T')[0] < today)
-    .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0]));
+    .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0])),
+    [partidos]
+  );
 
-  // Countdown al próximo partido (< 7 días)
+  // Countdown al próximo partido (< 7 días) — FIX-6: use memoized proximos
+  const proximoId = proximoPartido?.id ?? proximos[0]?.id ?? null;
   useEffect(() => {
     if (countdownRef.current) clearInterval(countdownRef.current);
     const next = proximoPartido ?? proximos[0] ?? null;
@@ -171,8 +183,7 @@ export default function PartidosScreen() {
     tick();
     countdownRef.current = setInterval(tick, 1000);
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [proximoPartido?.id, proximos.length]);
+  }, [proximoId]);
 
   // Fetch eventos when switching to jugados tab
   useEffect(() => {

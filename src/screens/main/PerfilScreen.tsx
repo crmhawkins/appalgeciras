@@ -63,6 +63,7 @@ export default function PerfilScreen() {
 
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loadingAbonos, setLoadingAbonos] = useState(false);
+  const [loadingAll, setLoadingAll] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
 
   // Fidelidad
@@ -108,71 +109,41 @@ export default function PerfilScreen() {
   };
 
   const initials = (() => {
-    const n = (user as any)?.nombre || (user as any)?.email || '';
+    const n = user?.nombre || user?.email || '';
     return n.split(/\s+/).map((w: string) => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase() || '?';
   })();
 
-  const loadAbonos = useCallback(async () => {
-    if (!user) return;
+  // FIX-7: Consolidated single useEffect with Promise.allSettled — no duplicate fetches
+  useEffect(() => {
+    if (!user?.id) return;
+    setLoadingAll(true);
     setLoadingAbonos(true);
-    try {
-      const { data } = await api.get<Abono[]>(`/api/abonos/usuario/${user.id}`);
-      setAbonos(Array.isArray(data) ? data : []);
-    } catch {}
-    finally { setLoadingAbonos(false); }
-  }, [user]);
-
-  const loadFidelidad = useCallback(async () => {
-    if (!user) return;
-    setLoadingFidelidad(true);
-    try {
-      // Try dedicated historial endpoint first; fallback to mis-entradas
-      let entradas: Entrada[] = [];
-      try {
-        const { data } = await api.get<any>('/api/pagos/historial');
-        const lista = Array.isArray(data) ? data : (data?.entradas ?? data?.pagos ?? []);
-        entradas = lista;
-      } catch {
-        const { data } = await api.get<Entrada[]>('/api/mis-entradas');
-        entradas = Array.isArray(data) ? data : [];
-      }
-      const usadas = entradas.filter((e: Entrada) => e.estado === 'usada').length;
-      setPartidosAsistidos(usadas);
-    } catch {
-      setPartidosAsistidos(0);
-    } finally {
-      setLoadingFidelidad(false);
-    }
-  }, [user]);
-
-  const loadStats = useCallback(async () => {
-    if (!user) return;
     setLoadingStats(true);
-    try {
-      const [historialRes, abonosRes] = await Promise.allSettled([
-        api.get<any>('/api/pagos/historial'),
-        api.get<any>(`/api/abonos/usuario/${user.id}`),
-      ]);
+    setLoadingFidelidad(true);
+    Promise.allSettled([
+      api.get<any>(`/api/abonos/usuario/${user.id}`),
+      api.get<any>('/api/pagos/historial'),
+    ]).then(([abonosRes, historialRes]) => {
+      if (abonosRes.status === 'fulfilled') {
+        const d = abonosRes.value.data;
+        const lista: Abono[] = Array.isArray(d) ? d : (d?.abonos ?? []);
+        setAbonos(lista);
+        setTotalAbonos(lista.length);
+      }
       if (historialRes.status === 'fulfilled') {
         const d = historialRes.value.data;
         const lista = Array.isArray(d) ? d : (d?.entradas ?? d?.pagos ?? []);
         setTotalEntradas(lista.length);
+        const usadas = lista.filter((e: Entrada) => e.estado === 'usada').length;
+        setPartidosAsistidos(usadas);
       }
-      if (abonosRes.status === 'fulfilled') {
-        const d = abonosRes.value.data;
-        const lista = Array.isArray(d) ? d : [];
-        setTotalAbonos(lista.length);
-      }
-    } catch {
-      // silent
-    } finally {
+    }).finally(() => {
+      setLoadingAll(false);
+      setLoadingAbonos(false);
       setLoadingStats(false);
-    }
-  }, [user]);
-
-  useEffect(() => { loadAbonos(); }, [loadAbonos]);
-  useEffect(() => { loadFidelidad(); }, [loadFidelidad]);
-  useEffect(() => { loadStats(); }, [loadStats]);
+      setLoadingFidelidad(false);
+    });
+  }, [user?.id]);
 
   const [showPassForm, setShowPassForm] = useState(false);
   const [passActual, setPassActual] = useState('');
@@ -185,9 +156,9 @@ export default function PerfilScreen() {
 
   useEffect(() => {
     if (user) {
-      setNombre((user as any).nombre || '');
-      setTelefono((user as any).telefono || '');
-      setDni((user as any).dni || '');
+      setNombre(user.nombre || '');
+      setTelefono(user.telefono || '');
+      setDni(user.dni || '');
     }
   }, [user]);
 
@@ -308,8 +279,8 @@ export default function PerfilScreen() {
               activeOpacity={0.8}
               disabled={uploadingPhoto}
             >
-              {(user as any).profileImage ? (
-                <Image source={{ uri: (user as any).profileImage }} style={styles.avatarImg} />
+              {user.profileImage ? (
+                <Image source={{ uri: user.profileImage }} style={styles.avatarImg} />
               ) : (
                 <View style={styles.avatarFallback}>
                   <Text style={styles.avatarInitials}>{initials}</Text>
@@ -545,14 +516,14 @@ export default function PerfilScreen() {
                     <View style={styles.carnetInfo}>
                       <Text style={styles.carnetLabel}>Titular</Text>
                       <Text style={styles.carnetValue}>{a.nombre} {a.apellidos}</Text>
-                      {(user as any).dni ? (
+                      {user.dni ? (
                         <>
                           <Text style={styles.carnetLabel}>DNI</Text>
-                          <Text style={styles.carnetValue}>{(user as any).dni}</Text>
+                          <Text style={styles.carnetValue}>{user.dni}</Text>
                         </>
                       ) : null}
                       <Text style={styles.carnetLabel}>Abono</Text>
-                      <Text style={styles.carnetValue}>{(a as any).codigoAbonado ? (a as any).codigoAbonado : `#${a.id}`}</Text>
+                      <Text style={styles.carnetValue}>{a.codigoAbonado ? a.codigoAbonado : `#${a.id}`}</Text>
                       <Text style={styles.carnetLabel}>Válido</Text>
                       <Text style={styles.carnetValue}>
                         {new Date(a.fechaInicio).toLocaleDateString('es-ES')} – {new Date(a.fechaFin).toLocaleDateString('es-ES')}

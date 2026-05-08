@@ -104,25 +104,26 @@ export default function HomeScreen() {
   const [patrocinadores, setPatrocinadores] = useState<Sponsor[]>(DEFAULT_SPONSORS);
   const [offline, setOffline] = useState(false);
 
-  const loadClasificacion = useCallback(async () => {
+  const loadClasificacion = useCallback(async (signal?: AbortSignal) => {
     const cached = await getCached<ClasificacionItem[]>('clasificacion');
     if (cached) setClasificacion(cached);
     try {
-      const { data } = await api.get<ClasificacionItem[]>('/api/clasificacion');
+      const { data } = await api.get<ClasificacionItem[]>('/api/clasificacion', { signal });
       setClasificacion(data ?? []);
       await setCached('clasificacion', data ?? []);
-    } catch (_) {
+    } catch (e: any) {
+      if (e?.name === 'CanceledError' || e?.name === 'AbortError') return;
       const stale = await getCachedStale<ClasificacionItem[]>('clasificacion');
       if (stale) { setClasificacion(stale); setOffline(true); }
     }
     finally { setLoadingClasif(false); }
   }, []);
 
-  const loadPartido = useCallback(async () => {
+  const loadPartido = useCallback(async (signal?: AbortSignal) => {
     const cached = await getCached<PartidoAPI>('home_partido');
     if (cached) setPartido(cached);
     try {
-      const { data } = await api.get<PartidoAPI[]>('/api/partidos');
+      const { data } = await api.get<PartidoAPI[]>('/api/partidos', { signal });
       if (!data || data.length === 0) return;
       const today = new Date().toISOString().split('T')[0];
       // Partidos con marcador = ya jugados
@@ -142,32 +143,37 @@ export default function HomeScreen() {
       }
       setPartido(chosen);
       if (chosen) await setCached('home_partido', chosen);
-    } catch (_) {
+    } catch (e: any) {
+      if (e?.name === 'CanceledError' || e?.name === 'AbortError') return;
       const stale = await getCachedStale<PartidoAPI>('home_partido');
       if (stale) { setPartido(stale); setOffline(true); }
     }
     finally { setLoadingPartido(false); }
   }, []);
 
-  const loadDestacadas = useCallback(async () => {
+  const loadDestacadas = useCallback(async (signal?: AbortSignal) => {
     const cached = await getCached<Noticia[]>('home_destacadas');
     if (cached) setNoticiasDestacadas(cached);
     try {
-      const { data } = await api.get<{ noticias: Noticia[] }>('/api/noticias/destacadas');
+      const { data } = await api.get<{ noticias: Noticia[] }>('/api/noticias/destacadas', { signal });
       const list = (data?.noticias ?? []).slice(0, 3);
       setNoticiasDestacadas(list);
       await setCached('home_destacadas', list);
-    } catch (_) {
+    } catch (e: any) {
+      if (e?.name === 'CanceledError' || e?.name === 'AbortError') return;
       const stale = await getCachedStale<Noticia[]>('home_destacadas');
       if (stale) { setNoticiasDestacadas(stale); setOffline(true); }
     }
     finally { setLoadingDestacadas(false); }
   }, []);
 
+  // FIX-4: AbortController cleanup to prevent race conditions
   useEffect(() => {
-    loadClasificacion();
-    loadPartido();
-    loadDestacadas();
+    const controller = new AbortController();
+    loadClasificacion(controller.signal);
+    loadPartido(controller.signal);
+    loadDestacadas(controller.signal);
+    return () => controller.abort();
   }, [loadClasificacion, loadPartido, loadDestacadas]);
 
   // Intentar cargar patrocinadores desde /api/estadio (opcional)

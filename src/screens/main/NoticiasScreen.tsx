@@ -300,6 +300,8 @@ export default function NoticiasScreen() {
             source={{ uri: 'https://algecirasclubdefutbol.com/algeciras-tv-2/' }}
             onLoadEnd={() => setTvLoading(false)}
             style={{ flex: 1 }}
+            cacheEnabled={true}
+            cacheMode="LOAD_CACHE_ELSE_NETWORK"
           />
           {tvLoading && (
             <View style={styles.loaderOverlay}>
