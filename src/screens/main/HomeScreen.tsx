@@ -206,6 +206,10 @@ export default function HomeScreen() {
     setRefreshing(false);
   }, [loadClasificacion, loadPartido, loadDestacadas]);
 
+  const partidoJugado =
+    partido !== null &&
+    (partido.marcador != null && partido.marcador !== '');
+
   // Countdown para próximo partido (solo si faltan < 7 días)
   useEffect(() => {
     if (countdownRef.current) clearInterval(countdownRef.current);
@@ -261,10 +265,6 @@ export default function HomeScreen() {
       return fechaStr;
     }
   };
-
-  const partidoJugado =
-    partido !== null &&
-    (partido.marcador != null && partido.marcador !== '');
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

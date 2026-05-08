@@ -167,7 +167,7 @@ function NoticiasListTab() {
 
   useEffect(() => {
     load(categoria);
-  }, []);
+  }, [load]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onChangeCategoria = (cat: CategoriaFilter) => {
     setCategoria(cat);

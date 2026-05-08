@@ -138,6 +138,16 @@ export default function PartidosScreen() {
 
   useEffect(() => { load(); }, [load]);
 
+  const today = new Date().toISOString().split('T')[0];
+
+  const proximos = partidos
+    .filter((p) => p.fecha.split('T')[0] >= today)
+    .sort((a, b) => a.fecha.split('T')[0].localeCompare(b.fecha.split('T')[0]));
+
+  const jugados = partidos
+    .filter((p) => p.fecha.split('T')[0] < today)
+    .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0]));
+
   // Countdown al próximo partido (< 7 días)
   useEffect(() => {
     if (countdownRef.current) clearInterval(countdownRef.current);
@@ -163,16 +173,6 @@ export default function PartidosScreen() {
     return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [proximoPartido?.id, proximos.length]);
-
-  const today = new Date().toISOString().split('T')[0];
-
-  const proximos = partidos
-    .filter((p) => p.fecha.split('T')[0] >= today)
-    .sort((a, b) => a.fecha.split('T')[0].localeCompare(b.fecha.split('T')[0]));
-
-  const jugados = partidos
-    .filter((p) => p.fecha.split('T')[0] < today)
-    .sort((a, b) => b.fecha.split('T')[0].localeCompare(a.fecha.split('T')[0]));
 
   // Fetch eventos when switching to jugados tab
   useEffect(() => {

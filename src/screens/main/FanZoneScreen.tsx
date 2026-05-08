@@ -92,7 +92,7 @@ export default function FanZoneScreen() {
         .filter(p => p.marcador !== null && p.marcador !== undefined && p.marcador !== '')
         .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? lista[0] ?? null;
       setPartidoActivo(activo);
-      return activo;
+      return { activo, lista };
     } catch {
       const stale = await getCachedStale<Partido[]>('fanzone_partidos');
       if (stale) {
@@ -102,7 +102,7 @@ export default function FanZoneScreen() {
           .filter(p => p.marcador !== null && p.marcador !== undefined && p.marcador !== '')
           .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? stale[0] ?? null;
         setPartidoActivo(activo);
-        return activo;
+        return { activo, lista: stale };
       }
       return null;
     }
@@ -163,14 +163,12 @@ export default function FanZoneScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    // loadPartidos and loadJugadores in parallel
-    const [activo, , partidosList] = await Promise.all([
+    const [result] = await Promise.all([
       loadPartidos(),
       loadJugadores(),
-      api.get('/api/partidos').then(({ data }) =>
-        (Array.isArray(data) ? data : ((data as any).partidos ?? [])) as Partido[]
-      ).catch(() => [] as Partido[]),
     ]);
+    const activo = result?.activo ?? null;
+    const partidosList = result?.lista ?? [];
     if (activo) {
       await Promise.all([loadVotos(activo.id), loadMiVoto(activo.id)]);
     }
