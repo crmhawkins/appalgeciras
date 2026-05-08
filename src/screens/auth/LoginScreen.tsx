@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
@@ -17,6 +17,7 @@ export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showPass, setShowPass] = useState(false);
+  const passwordRef = useRef<TextInput>(null);
 
   const handleLogin = async () => {
     if (!email || !password) {
@@ -67,11 +68,14 @@ export default function LoginScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoCorrect={false}
+              returnKeyType="next"
+              onSubmitEditing={() => passwordRef.current?.focus()}
             />
 
             <Text style={styles.label}>Contraseña</Text>
             <View style={styles.passRow}>
               <TextInput
+                ref={passwordRef}
                 style={styles.passInput}
                 value={password}
                 onChangeText={setPassword}
@@ -79,6 +83,8 @@ export default function LoginScreen() {
                 secureTextEntry={!showPass}
                 autoCapitalize="none"
                 autoCorrect={false}
+                returnKeyType="done"
+                onSubmitEditing={handleLogin}
               />
               <TouchableOpacity style={styles.eyeBtn} onPress={() => setShowPass(p => !p)}>
                 <Text style={styles.eyeText}>{showPass ? '🙈' : '👁️'}</Text>

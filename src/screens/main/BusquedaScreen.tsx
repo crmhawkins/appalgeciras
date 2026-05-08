@@ -5,30 +5,19 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
 import { Noticia } from '../../types';
+import { fotoUrl, nombreCompleto, JugadorBase } from '../../utils/jugadorUtils';
 
-interface Jugador {
+interface Jugador extends JugadorBase {
   id: number;
-  nombre: string;
-  apellidos?: string;
-  dorsal?: number;
   posicion?: string;
-  foto?: string;
 }
 
-function fotoUrl(j: Jugador): string | null {
-  if (j.foto) return j.foto;
-  if (j.dorsal && j.dorsal >= 1 && j.dorsal <= 25) {
-    return `https://backend-algeciras.hawkins.es/acf/2025/10/${j.dorsal}.png`;
-  }
-  return null;
-}
-
-function nombreCompleto(j: Jugador): string {
-  return j.apellidos ? `${j.nombre} ${j.apellidos}` : j.nombre;
-}
+const HISTORY_KEY = 'busquedas_recientes';
+const MAX_HISTORY = 5;
 
 export default function BusquedaScreen() {
   const navigation = useNavigation<any>();
@@ -39,6 +28,30 @@ export default function BusquedaScreen() {
   const [loadingN, setLoadingN] = useState(false);
   const [loadingJ, setLoadingJ] = useState(false);
   const allJugadoresRef = useRef<Jugador[] | null>(null);
+  const [historial, setHistorial] = useState<string[]>([]);
+
+  // Load historial on mount
+  useEffect(() => {
+    AsyncStorage.getItem(HISTORY_KEY)
+      .then(raw => {
+        if (raw) setHistorial(JSON.parse(raw));
+      })
+      .catch(() => {});
+  }, []);
+
+  const saveToHistorial = useCallback(async (term: string) => {
+    setHistorial(prev => {
+      const filtered = prev.filter(t => t !== term);
+      const updated = [term, ...filtered].slice(0, MAX_HISTORY);
+      AsyncStorage.setItem(HISTORY_KEY, JSON.stringify(updated)).catch(() => {});
+      return updated;
+    });
+  }, []);
+
+  const clearHistorial = useCallback(() => {
+    setHistorial([]);
+    AsyncStorage.removeItem(HISTORY_KEY).catch(() => {});
+  }, []);
 
   // Debounce
   useEffect(() => {
@@ -73,24 +86,32 @@ export default function BusquedaScreen() {
     }
     // Noticias
     setLoadingN(true);
+    let noticiasResult: Noticia[] = [];
     try {
       const { data } = await api.get<{ noticias: Noticia[] }>('/api/noticias', { params: { q, limit: 5 } });
-      setNoticias(data?.noticias ?? []);
+      noticiasResult = data?.noticias ?? [];
+      setNoticias(noticiasResult);
     } catch (_) { setNoticias([]); }
     finally { setLoadingN(false); }
 
     // Jugadores
     setLoadingJ(true);
+    let jugadoresResult: Jugador[] = [];
     try {
       const ql = q.toLowerCase();
       const list = allJugadoresRef.current ?? [];
-      const filtered = list.filter((j) =>
+      jugadoresResult = list.filter((j) =>
         nombreCompleto(j).toLowerCase().includes(ql)
       ).slice(0, 8);
-      setJugadores(filtered);
+      setJugadores(jugadoresResult);
     } catch (_) { setJugadores([]); }
     finally { setLoadingJ(false); }
-  }, []);
+
+    // Save to historial if results found
+    if (noticiasResult.length > 0 || jugadoresResult.length > 0) {
+      saveToHistorial(q);
+    }
+  }, [saveToHistorial]);
 
   useEffect(() => { search(debounced); }, [debounced, search]);
 
@@ -203,9 +224,32 @@ export default function BusquedaScreen() {
         }}
         ListEmptyComponent={
           !debounced ? (
-            <View style={styles.hintBox}>
-              <Text style={styles.hintIcon}>🔍</Text>
-              <Text style={styles.hintText}>Escribe para buscar noticias y jugadores</Text>
+            <View>
+              {historial.length > 0 && (
+                <View style={styles.historialSection}>
+                  <View style={styles.historialHeader}>
+                    <Text style={styles.historialTitle}>Búsquedas recientes</Text>
+                    <TouchableOpacity onPress={clearHistorial}>
+                      <Text style={styles.historialClear}>Limpiar</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <View style={styles.historialChips}>
+                    {historial.map((term) => (
+                      <TouchableOpacity
+                        key={term}
+                        style={styles.chip}
+                        onPress={() => setQuery(term)}
+                      >
+                        <Text style={styles.chipText}>{term}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </View>
+                </View>
+              )}
+              <View style={styles.hintBox}>
+                <Text style={styles.hintIcon}>🔍</Text>
+                <Text style={styles.hintText}>Escribe para buscar noticias y jugadores</Text>
+              </View>
             </View>
           ) : null
         }
@@ -273,4 +317,18 @@ const styles = StyleSheet.create({
   hintBox: { alignItems: 'center', paddingTop: 60 },
   hintIcon: { fontSize: 44, marginBottom: 12 },
   hintText: { color: colors.textSecondary, fontSize: 14, textAlign: 'center', paddingHorizontal: 30 },
+  historialSection: { marginBottom: 8 },
+  historialHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  historialTitle: { fontSize: 13, fontWeight: 'bold', color: colors.primary, letterSpacing: 0.5, textTransform: 'uppercase' },
+  historialClear: { fontSize: 13, color: colors.textSecondary, fontWeight: '600' },
+  historialChips: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
+  chip: {
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 20,
+    paddingHorizontal: 14,
+    paddingVertical: 7,
+  },
+  chipText: { fontSize: 13, color: colors.text },
 });

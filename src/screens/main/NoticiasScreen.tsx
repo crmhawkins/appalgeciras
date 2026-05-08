@@ -17,6 +17,7 @@ import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { Noticia } from '../../types';
 import { MainStackParamList } from '../../navigation/MainStack';
 
@@ -142,6 +143,7 @@ function NoticiasListTab() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchNoticias = useCallback(async (pg: number, cat: CategoriaFilter, append = false) => {
     try {
@@ -154,8 +156,18 @@ function NoticiasListTab() {
         setNoticias(prev => [...prev, ...list]);
       } else {
         setNoticias(list);
+        await setCached('noticias_' + cat, list);
       }
-    } catch (_) {}
+      setIsOffline(false);
+    } catch (_) {
+      if (!append) {
+        const stale = await getCachedStale<Noticia[]>('noticias_' + cat);
+        if (stale) {
+          setNoticias(stale);
+          setIsOffline(true);
+        }
+      }
+    }
   }, []);
 
   const load = useCallback(async (cat: CategoriaFilter) => {
@@ -212,6 +224,12 @@ function NoticiasListTab() {
         ))}
       </ScrollView>
 
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>📡 Sin conexión — mostrando datos guardados</Text>
+        </View>
+      )}
+
       {loading ? (
         <ScrollView contentContainerStyle={styles.listContent}>
           {Array.from({ length: 4 }).map((_, i) => (
@@ -235,15 +253,11 @@ function NoticiasListTab() {
           ListEmptyComponent={
             <Text style={styles.emptyText}>No hay noticias disponibles</Text>
           }
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
           ListFooterComponent={
-            page < totalPaginas ? (
-              <TouchableOpacity style={styles.loadMoreBtn} onPress={loadMore} disabled={loadingMore}>
-                {loadingMore ? (
-                  <ActivityIndicator color={colors.white} size="small" />
-                ) : (
-                  <Text style={styles.loadMoreText}>Cargar más</Text>
-                )}
-              </TouchableOpacity>
+            loadingMore ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 16 }} />
             ) : null
           }
         />
@@ -387,6 +401,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loadMoreText: { color: colors.white, fontWeight: 'bold', fontSize: 14 },
+
+  // Offline banner
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderColor: '#ffe69c',
+    borderWidth: 1,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginHorizontal: 12,
+    marginTop: 8,
+    borderRadius: 8,
+  },
+  offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
 
   // TV loader overlay
   loaderOverlay: {

@@ -64,6 +64,7 @@ export default function FanZoneScreen() {
   const [chatConectado, setChatConectado] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList>(null);
+  const scrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const loadJugadores = useCallback(async () => {
     try {
@@ -200,8 +201,14 @@ export default function FanZoneScreen() {
   // Scroll al fondo cuando llegan mensajes nuevos
   useEffect(() => {
     if (mensajes.length > 0) {
-      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+      scrollTimeoutRef.current = setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     }
+    return () => {
+      if (scrollTimeoutRef.current !== null) {
+        clearTimeout(scrollTimeoutRef.current);
+        scrollTimeoutRef.current = null;
+      }
+    };
   }, [mensajes.length]);
 
   // Socket.io: conectar al entrar al tab, desconectar al salir

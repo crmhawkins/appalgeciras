@@ -10,15 +10,11 @@ import { colors } from '../../theme/colors';
 import api from '../../services/api';
 import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
+import { fotoUrl, nombreCompleto, JugadorBase } from '../../utils/jugadorUtils';
 
-interface Jugador {
+interface Jugador extends JugadorBase {
   id: number;
-  nombre: string;
-  apellidos?: string;
-  dorsal?: number;
   posicion?: string;
-  sofascoreId?: number;
-  foto?: string;
 }
 
 type PosicionGrupo = 'Porteros' | 'Defensas' | 'Centrocampistas' | 'Delanteros' | 'Otros';
@@ -41,18 +37,6 @@ function normalizarPosicion(posicion?: string): PosicionGrupo {
   return 'Otros';
 }
 
-function fotoUrl(jugador: Jugador): string | null {
-  if (jugador.foto) return jugador.foto;
-  if (jugador.dorsal && jugador.dorsal >= 1 && jugador.dorsal <= 25) {
-    return `https://backend-algeciras.hawkins.es/acf/2025/10/${jugador.dorsal}.png`;
-  }
-  if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
-  return null;
-}
-
-function nombreCompleto(jugador: Jugador): string {
-  return jugador.apellidos ? `${jugador.nombre} ${jugador.apellidos}` : jugador.nombre;
-}
 
 function SkeletonBox({ width, height, style }: { width: number | string; height: number; style?: any }) {
   const anim = useRef(new Animated.Value(0)).current;
@@ -210,15 +194,22 @@ export default function PlantillaScreen() {
         </View>
       )}
       <View style={styles.searchWrap}>
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Buscar jugador..."
-          value={search}
-          onChangeText={setSearch}
-          placeholderTextColor={colors.textSecondary}
-          autoCorrect={false}
-          autoCapitalize="none"
-        />
+        <View style={styles.searchRow}>
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Buscar jugador..."
+            value={search}
+            onChangeText={setSearch}
+            placeholderTextColor={colors.textSecondary}
+            autoCorrect={false}
+            autoCapitalize="none"
+          />
+          {search.length > 0 && (
+            <TouchableOpacity style={styles.clearBtn} onPress={() => setSearch('')}>
+              <Text style={styles.clearBtnText}>✕</Text>
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
       <SectionList
         sections={filteredSections}
@@ -340,16 +331,28 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     backgroundColor: colors.background,
   },
-  searchInput: {
+  searchRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: colors.white,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: 10,
+  },
+  searchInput: {
+    flex: 1,
     paddingHorizontal: 14,
     paddingVertical: 10,
     fontSize: 14,
     color: colors.text,
   },
+  clearBtn: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  clearBtnText: { fontSize: 14, color: colors.textSecondary, fontWeight: 'bold' },
   skeletonRow: {
     flexDirection: 'row',
     alignItems: 'center',
