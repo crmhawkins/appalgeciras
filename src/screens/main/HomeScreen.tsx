@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, RefreshControl,
@@ -12,6 +12,7 @@ import api from '../../services/api';
 import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { ClasificacionItem, Noticia } from '../../types';
 import { ESCUDO_URL, COMPETICION, TEMPORADA, SPONSORS as DEFAULT_SPONSORS, Sponsor } from '../../constants';
+import { useCountdown } from '../../hooks/useCountdown';
 
 const YOUTUBE_VIDEO_ID = '1B7o0uklMW8';
 const youtubeHtml = `
@@ -193,9 +194,7 @@ export default function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
-  const [countdown, setCountdown] = useState<string | null>(null);
   const [offlineTs, setOfflineTs] = useState<number | null>(null);
-  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -210,37 +209,16 @@ export default function HomeScreen() {
     partido !== null &&
     (partido.marcador != null && partido.marcador !== '');
 
-  // Countdown para próximo partido (solo si faltan < 7 días)
-  useEffect(() => {
-    if (countdownRef.current) clearInterval(countdownRef.current);
-    if (!partido || partidoJugado) { setCountdown(null); return; }
-
-    const getTarget = () => {
-      const d = new Date(partido.fecha);
-      if (partido.hora) {
-        const [h, m] = partido.hora.split(':');
-        d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
-      }
-      return d;
-    };
-
-    const target = getTarget();
-    const sevenDays = 7 * 24 * 60 * 60 * 1000;
-    if (target.getTime() - Date.now() > sevenDays) { setCountdown(null); return; }
-
-    const tick = () => {
-      const diff = target.getTime() - Date.now();
-      if (diff <= 0) { setCountdown('¡Partido en curso!'); clearInterval(countdownRef.current!); return; }
-      const days = Math.floor(diff / 86400000);
-      const hours = Math.floor((diff % 86400000) / 3600000);
-      const mins = Math.floor((diff % 3600000) / 60000);
-      const secs = Math.floor((diff % 60000) / 1000);
-      setCountdown(`${days}d ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`);
-    };
-    tick();
-    countdownRef.current = setInterval(tick, 1000);
-    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  const countdownTarget = useMemo(() => {
+    if (!partido || partidoJugado) return null;
+    const d = new Date(partido.fecha);
+    if (partido.hora) {
+      const [h, m] = partido.hora.split(':');
+      d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    }
+    return d;
   }, [partido?.id, partidoJugado]);
+  const countdown = useCountdown(countdownTarget);
 
   // Cargar timestamp de caché stale para banner offline
   useEffect(() => {

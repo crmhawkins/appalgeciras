@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
-  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Image,
+  TextInput, ScrollView, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Animated,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -59,6 +59,7 @@ export default function PerfilScreen() {
   const [dni, setDni] = useState('');
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const toastAnim = useRef(new Animated.Value(0)).current;
 
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loadingAbonos, setLoadingAbonos] = useState(false);
@@ -67,6 +68,11 @@ export default function PerfilScreen() {
   // Fidelidad
   const [partidosAsistidos, setPartidosAsistidos] = useState(0);
   const [loadingFidelidad, setLoadingFidelidad] = useState(false);
+
+  // Historial fan stats
+  const [totalEntradas, setTotalEntradas] = useState(0);
+  const [totalAbonos, setTotalAbonos] = useState(0);
+  const [loadingStats, setLoadingStats] = useState(false);
 
   const handlePickAvatar = async () => {
     try {
@@ -139,8 +145,34 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  const loadStats = useCallback(async () => {
+    if (!user) return;
+    setLoadingStats(true);
+    try {
+      const [historialRes, abonosRes] = await Promise.allSettled([
+        api.get<any>('/api/pagos/historial'),
+        api.get<any>(`/api/abonos/usuario/${user.id}`),
+      ]);
+      if (historialRes.status === 'fulfilled') {
+        const d = historialRes.value.data;
+        const lista = Array.isArray(d) ? d : (d?.entradas ?? d?.pagos ?? []);
+        setTotalEntradas(lista.length);
+      }
+      if (abonosRes.status === 'fulfilled') {
+        const d = abonosRes.value.data;
+        const lista = Array.isArray(d) ? d : [];
+        setTotalAbonos(lista.length);
+      }
+    } catch {
+      // silent
+    } finally {
+      setLoadingStats(false);
+    }
+  }, [user]);
+
   useEffect(() => { loadAbonos(); }, [loadAbonos]);
   useEffect(() => { loadFidelidad(); }, [loadFidelidad]);
+  useEffect(() => { loadStats(); }, [loadStats]);
 
   const [showPassForm, setShowPassForm] = useState(false);
   const [passActual, setPassActual] = useState('');
@@ -185,7 +217,11 @@ export default function PerfilScreen() {
       });
       await updateUser(data.usuario ?? { nombre: nombre.trim(), telefono: telefono.trim(), dni: dni.trim() });
       setProfileSaved(true);
-      setTimeout(() => setProfileSaved(false), 2500);
+      Animated.sequence([
+        Animated.timing(toastAnim, { toValue: 1, duration: 300, useNativeDriver: true }),
+        Animated.delay(1900),
+        Animated.timing(toastAnim, { toValue: 0, duration: 300, useNativeDriver: true }),
+      ]).start(() => setProfileSaved(false));
     } catch (e: any) {
       Alert.alert('Error', e?.response?.data?.msg || 'Error al guardar el perfil');
     } finally {
@@ -249,6 +285,11 @@ export default function PerfilScreen() {
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Mi Perfil</Text>
       </View>
+      {profileSaved && (
+        <Animated.View style={[styles.toast, { opacity: toastAnim }]}>
+          <Text style={styles.toastText}>✓ Perfil guardado</Text>
+        </Animated.View>
+      )}
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -329,6 +370,31 @@ export default function PerfilScreen() {
                 </Text>
               )}
             </TouchableOpacity>
+          </View>
+
+          {/* Mi historial como aficionado */}
+          <View style={styles.card}>
+            <Text style={styles.cardTitle}>Mi historial como aficionado</Text>
+            {loadingStats ? (
+              <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+            ) : totalEntradas === 0 && totalAbonos === 0 ? (
+              <Text style={styles.label}>Aún no has comprado entradas</Text>
+            ) : (
+              <View style={styles.statsRow}>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{totalEntradas}</Text>
+                  <Text style={styles.statLabel}>Entradas compradas</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{totalAbonos}</Text>
+                  <Text style={styles.statLabel}>Temporadas abonado</Text>
+                </View>
+                <View style={styles.statCard}>
+                  <Text style={styles.statValue}>{getNivel(partidosAsistidos).icono}</Text>
+                  <Text style={styles.statLabel}>Nivel {getNivel(partidosAsistidos).nombre}</Text>
+                </View>
+              </View>
+            )}
           </View>
 
           {/* Mi Fidelidad */}
@@ -735,6 +801,19 @@ const styles = StyleSheet.create({
   carnetValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
   carnetQrWrap: { alignItems: 'center', marginLeft: 16 },
   carnetQrLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4 },
+  // Fan stats
+  statsRow: { flexDirection: 'row', gap: 8, marginTop: 8 },
+  statCard: {
+    flex: 1,
+    backgroundColor: colors.background,
+    borderRadius: 10,
+    padding: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
+  statValue: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
+  statLabel: { fontSize: 11, color: colors.textSecondary, textAlign: 'center', marginTop: 4 },
   // Fidelidad
   fidelidadBadge: {
     flexDirection: 'row',
@@ -766,4 +845,18 @@ const styles = StyleSheet.create({
     marginTop: 2,
     fontStyle: 'italic',
   },
+  toast: {
+    position: 'absolute',
+    bottom: 80,
+    left: 20,
+    right: 20,
+    backgroundColor: '#2e7d32',
+    borderRadius: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    zIndex: 999,
+    elevation: 10,
+  },
+  toastText: { color: '#fff', fontWeight: 'bold', fontSize: 15 },
 });

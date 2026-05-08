@@ -35,3 +35,9 @@ export async function getCachedStaleWithTs<T>(key: string): Promise<{ data: T; t
     return { data: parsed.data as T, ts: parsed.ts as number };
   } catch { return null; }
 }
+
+export async function clearCached(key: string): Promise<void> {
+  try {
+    await AsyncStorage.removeItem(`cache_${key}`);
+  } catch {}
+}

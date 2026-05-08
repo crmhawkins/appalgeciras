@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
-  TouchableOpacity, Image, Share,
+  TouchableOpacity, Image, Share, Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import * as Calendar from 'expo-calendar';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
@@ -154,6 +155,53 @@ export default function PartidoDetalleScreen() {
     };
   }, [partido?.id, partido?.marcador, pollMarcador]);
 
+  const addToCalendar = useCallback(async () => {
+    if (!partido) return;
+    try {
+      const { status } = await Calendar.requestCalendarPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permiso denegado', 'Necesitamos acceso al calendario para añadir el evento.');
+        return;
+      }
+      const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
+      let calendarId: string | undefined;
+      const editable = calendars.find(c => c.allowsModifications);
+      if (editable) {
+        calendarId = editable.id;
+      } else {
+        calendarId = await Calendar.createCalendarAsync({
+          title: 'Algeciras CF',
+          color: colors.primary,
+          entityType: Calendar.EntityTypes.EVENT,
+          sourceId: undefined,
+          source: { isLocalAccount: true, name: 'Algeciras CF', type: Calendar.CalendarType.LOCAL },
+          name: 'algecirascf',
+          ownerAccount: 'algecirascf',
+          accessLevel: Calendar.CalendarAccessLevel.OWNER,
+        });
+      }
+      const rival = partido.equipoLocal.toLowerCase().includes('algeciras')
+        ? partido.equipoVisitante
+        : partido.equipoLocal;
+      const startDate = new Date(partido.fecha);
+      if (partido.hora) {
+        const [h, m] = partido.hora.split(':');
+        startDate.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      }
+      const endDate = new Date(startDate.getTime() + 2 * 60 * 60 * 1000);
+      await Calendar.createEventAsync(calendarId, {
+        title: `⚽ Algeciras CF vs ${rival}`,
+        startDate,
+        endDate,
+        notes: `Primera RFEF — ${COMPETICION.split(' · ')[0]}`,
+        timeZone: 'Europe/Madrid',
+      });
+      Alert.alert('Partido añadido al calendario');
+    } catch (e: any) {
+      Alert.alert('Error', e?.message || 'No se pudo añadir al calendario');
+    }
+  }, [partido]);
+
   const handleShare = useCallback(async () => {
     if (!partido) return;
     const marcador = partido.marcador ?? 'vs';
@@ -237,6 +285,11 @@ export default function PartidoDetalleScreen() {
             {' • '}
             {COMPETICION.split(' · ')[0]}
           </Text>
+          {!tieneMarcador && (
+            <TouchableOpacity style={styles.calendarBtn} onPress={addToCalendar}>
+              <Text style={styles.calendarBtnText}>📅 Añadir al calendario</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* Eventos */}
@@ -357,4 +410,14 @@ const styles = StyleSheet.create({
   eventInfo: { flex: 1 },
   eventText: { fontSize: 14, color: colors.text },
   empty: { textAlign: 'center', color: colors.textSecondary, paddingVertical: 12 },
+  calendarBtn: {
+    marginTop: 12,
+    backgroundColor: 'rgba(255,255,255,0.15)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.4)',
+  },
+  calendarBtnText: { color: colors.white, fontWeight: '600', fontSize: 14 },
 });

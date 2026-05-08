@@ -9,6 +9,7 @@ import * as Haptics from 'expo-haptics';
 import QRCode from 'react-native-qrcode-svg';
 import { useKeepAwake } from 'expo-keep-awake';
 import api from '../../services/api';
+import { clearCached } from '../../services/cache';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -91,6 +92,7 @@ export default function MisAbonosScreen() {
             Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
             try {
               await api.post('/api/abonos/liberar', { abonoId });
+              await clearCached('socios_abonos_' + user?.id);
               load();
             } catch (e: any) {
               Alert.alert('Error', e?.response?.data?.msg || 'No se pudo liberar el asiento');

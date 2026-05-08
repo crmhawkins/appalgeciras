@@ -15,6 +15,7 @@ import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import api from '../../services/api';
+import { clearCached } from '../../services/cache';
 import { colors } from '../../theme/colors';
 import { AbonosStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -59,6 +60,8 @@ export default function CheckoutScreen() {
         const { data: statusData } = await api.get<{ completado: boolean }>(`/api/pagos/status?session_id=${sessionId}`);
         if (statusData?.completado) {
           Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await clearCached('socios_abonos_' + user?.id);
+          await clearCached('perfil_abonos_' + user?.id);
           Alert.alert('¡Pago completado!', 'Tu abono ha sido procesado. Recibirás confirmación por email.');
           navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
         } else {
