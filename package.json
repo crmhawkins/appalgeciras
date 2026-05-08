@@ -23,7 +23,7 @@
     "expo-secure-store": "~15.0.8",
     "expo-status-bar": "~3.0.9",
     "expo-web-browser": "~15.0.11",
-    "react": "19.1.0",
+    "react": "18.3.1",
     "react-native": "0.81.5",
     "react-native-qrcode-svg": "^6.3.21",
     "react-native-render-html": "^6.3.4",
@@ -34,7 +34,7 @@
     "socket.io-client": "^4.8.3"
   },
   "devDependencies": {
-    "@types/react": "~19.1.0",
+    "@types/react": "~18.3.0",
     "typescript": "~5.7.2"
   },
   "private": true
