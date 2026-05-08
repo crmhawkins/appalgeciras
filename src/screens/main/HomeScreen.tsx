@@ -104,17 +104,20 @@ export default function HomeScreen() {
   const [patrocinadores, setPatrocinadores] = useState<Sponsor[]>(DEFAULT_SPONSORS);
   const [offline, setOffline] = useState(false);
 
+  const toArray = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : [];
+
   const loadClasificacion = useCallback(async (signal?: AbortSignal) => {
     const cached = await getCached<ClasificacionItem[]>('clasificacion');
-    if (cached) setClasificacion(cached);
+    if (cached) setClasificacion(toArray<ClasificacionItem>(cached));
     try {
       const { data } = await api.get<ClasificacionItem[]>('/api/clasificacion', { signal });
-      setClasificacion(data ?? []);
-      await setCached('clasificacion', data ?? []);
+      const list = toArray<ClasificacionItem>(data);
+      setClasificacion(list);
+      await setCached('clasificacion', list);
     } catch (e: any) {
       if (e?.name === 'CanceledError' || e?.name === 'AbortError') return;
       const stale = await getCachedStale<ClasificacionItem[]>('clasificacion');
-      if (stale) { setClasificacion(stale); setOffline(true); }
+      if (stale) { setClasificacion(toArray<ClasificacionItem>(stale)); setOffline(true); }
     }
     finally { setLoadingClasif(false); }
   }, []);
@@ -124,7 +127,7 @@ export default function HomeScreen() {
     if (cached) setPartido(cached);
     try {
       const { data } = await api.get<PartidoAPI[]>('/api/partidos', { signal });
-      if (!data || data.length === 0) return;
+      if (!Array.isArray(data) || data.length === 0) return;
       const today = new Date().toISOString().split('T')[0];
       // Partidos con marcador = ya jugados
       const jugados = data.filter(p => p.marcador != null && p.marcador !== '');

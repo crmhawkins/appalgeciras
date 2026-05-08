@@ -32,18 +32,11 @@ const linking: LinkingOptions<any> = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 interface RootNavigatorProps {
-  navigationRef?: React.RefObject<NavigationContainerRef<any>>;
+  navigationRef?: React.RefObject<NavigationContainerRef<any> | null>;
 }
 
 export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   const { loading, token } = useAuth();
-
-  // FIX-1: Reset nav stack on logout so MainStack history doesn't persist
-  useEffect(() => {
-    if (!loading && !token && navigationRef?.current?.isReady()) {
-      navigationRef.current.reset({ index: 0, routes: [{ name: 'Auth' }] });
-    }
-  }, [token, loading]);
 
   if (loading) {
     return (
@@ -56,14 +49,14 @@ export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   return (
     <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
-        initialRouteName={token ? 'Main' : 'Auth'}
+        initialRouteName="Main"
         screenOptions={{ headerShown: false }}
       >
         <Stack.Screen name="Auth" component={AuthStack} />
         <Stack.Screen name="Main">
-          {(props) => (
+          {() => (
             <ErrorBoundary>
-              <MainStack {...props} />
+              <MainStack />
             </ErrorBoundary>
           )}
         </Stack.Screen>
