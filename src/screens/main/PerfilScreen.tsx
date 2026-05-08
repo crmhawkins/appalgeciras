@@ -9,10 +9,46 @@ import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import PhoneInput from '../../components/PhoneInput';
-import { Abono } from '../../types';
+import { Abono, Entrada } from '../../types';
 import QRCode from 'react-native-qrcode-svg';
 import * as ImagePicker from 'expo-image-picker';
 import { ESCUDO_URL, TEMPORADA_CORTA } from '../../constants';
+
+// ─── Loyalty helpers ──────────────────────────────────────────────────────────
+
+interface NivelFidelidad {
+  nombre: string;
+  icono: string;
+  color: string;
+  minPartidos: number;
+  maxPartidos: number | null;
+}
+
+const NIVELES: NivelFidelidad[] = [
+  { nombre: 'Hincha',   icono: '🔴', color: '#C8102E', minPartidos: 0,  maxPartidos: 4  },
+  { nombre: 'Fiel',     icono: '🟠', color: '#E07020', minPartidos: 5,  maxPartidos: 14 },
+  { nombre: 'Veterano', icono: '⚪', color: '#888888', minPartidos: 15, maxPartidos: 29 },
+  { nombre: 'Leyenda',  icono: '🏆', color: '#C8A000', minPartidos: 30, maxPartidos: null },
+];
+
+function getNivel(partidos: number): NivelFidelidad {
+  return (
+    [...NIVELES].reverse().find((n) => partidos >= n.minPartidos) ?? NIVELES[0]
+  );
+}
+
+function getSiguienteNivel(partidos: number): NivelFidelidad | null {
+  return NIVELES.find((n) => n.minPartidos > partidos) ?? null;
+}
+
+function getProgresoNivel(partidos: number): number {
+  const nivel = getNivel(partidos);
+  const siguiente = getSiguienteNivel(partidos);
+  if (!siguiente) return 1; // Leyenda → barra llena
+  const rango = siguiente.minPartidos - nivel.minPartidos;
+  const avance = partidos - nivel.minPartidos;
+  return Math.min(avance / rango, 1);
+}
 
 export default function PerfilScreen() {
   const { user, logout, updateUser } = useAuth();
@@ -27,6 +63,10 @@ export default function PerfilScreen() {
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loadingAbonos, setLoadingAbonos] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+
+  // Fidelidad
+  const [partidosAsistidos, setPartidosAsistidos] = useState(0);
+  const [loadingFidelidad, setLoadingFidelidad] = useState(false);
 
   const handlePickAvatar = async () => {
     try {
@@ -76,7 +116,31 @@ export default function PerfilScreen() {
     finally { setLoadingAbonos(false); }
   }, [user]);
 
+  const loadFidelidad = useCallback(async () => {
+    if (!user) return;
+    setLoadingFidelidad(true);
+    try {
+      // Try dedicated historial endpoint first; fallback to mis-entradas
+      let entradas: Entrada[] = [];
+      try {
+        const { data } = await api.get<any>('/api/pagos/historial');
+        const lista = Array.isArray(data) ? data : (data?.entradas ?? data?.pagos ?? []);
+        entradas = lista;
+      } catch {
+        const { data } = await api.get<Entrada[]>('/api/mis-entradas');
+        entradas = Array.isArray(data) ? data : [];
+      }
+      const usadas = entradas.filter((e: Entrada) => e.estado === 'usada').length;
+      setPartidosAsistidos(usadas);
+    } catch {
+      setPartidosAsistidos(0);
+    } finally {
+      setLoadingFidelidad(false);
+    }
+  }, [user]);
+
   useEffect(() => { loadAbonos(); }, [loadAbonos]);
+  useEffect(() => { loadFidelidad(); }, [loadFidelidad]);
 
   const [showPassForm, setShowPassForm] = useState(false);
   const [passActual, setPassActual] = useState('');
@@ -95,7 +159,7 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
-  useEffect(() => { if (!user) setAbonos([]); }, [user]);
+  useEffect(() => { if (!user) { setAbonos([]); setPartidosAsistidos(0); } }, [user]);
 
   const goLogin = () => navigation.navigate('Auth', { screen: 'Login' });
   const goRegister = () => navigation.navigate('Auth', { screen: 'Register' });
@@ -266,6 +330,55 @@ export default function PerfilScreen() {
               )}
             </TouchableOpacity>
           </View>
+
+          {/* Mi Fidelidad */}
+          {(() => {
+            const nivel = getNivel(partidosAsistidos);
+            const siguiente = getSiguienteNivel(partidosAsistidos);
+            const progreso = getProgresoNivel(partidosAsistidos);
+            return (
+              <View style={styles.card}>
+                <Text style={styles.cardTitle}>Mi Fidelidad</Text>
+                {loadingFidelidad ? (
+                  <ActivityIndicator color={colors.primary} style={{ marginVertical: 12 }} />
+                ) : (
+                  <>
+                    {/* Badge de nivel */}
+                    <View style={[styles.fidelidadBadge, { backgroundColor: nivel.color + '18', borderColor: nivel.color }]}>
+                      <Text style={styles.fidelidadIcono}>{nivel.icono}</Text>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={[styles.fidelidadNivelNombre, { color: nivel.color }]}>{nivel.nombre}</Text>
+                        <Text style={styles.fidelidadPartidos}>
+                          {partidosAsistidos} {partidosAsistidos === 1 ? 'partido asistido' : 'partidos asistidos'}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Barra de progreso */}
+                    <View style={styles.fidelidadBarraFondo}>
+                      <View
+                        style={[
+                          styles.fidelidadBarraRelleno,
+                          { width: `${Math.round(progreso * 100)}%` as any, backgroundColor: nivel.color },
+                        ]}
+                      />
+                    </View>
+
+                    {/* Texto motivador */}
+                    {siguiente ? (
+                      <Text style={styles.fidelidadMotivador}>
+                        ¡{siguiente.minPartidos - partidosAsistidos} {siguiente.minPartidos - partidosAsistidos === 1 ? 'partido más' : 'partidos más'} para ser {siguiente.nombre} {siguiente.icono}!
+                      </Text>
+                    ) : (
+                      <Text style={styles.fidelidadMotivador}>
+                        🏆 ¡Eres una leyenda del Algeciras CF! Nivel máximo alcanzado.
+                      </Text>
+                    )}
+                  </>
+                )}
+              </View>
+            );
+          })()}
 
           {/* Cambiar contraseña */}
           <TouchableOpacity
@@ -622,4 +735,35 @@ const styles = StyleSheet.create({
   carnetValue: { fontSize: 14, color: colors.text, fontWeight: '600' },
   carnetQrWrap: { alignItems: 'center', marginLeft: 16 },
   carnetQrLabel: { fontSize: 10, color: colors.textSecondary, marginTop: 4 },
+  // Fidelidad
+  fidelidadBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1.5,
+    borderRadius: 10,
+    padding: 12,
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  fidelidadIcono: { fontSize: 32 },
+  fidelidadNivelNombre: { fontSize: 18, fontWeight: 'bold' },
+  fidelidadPartidos: { fontSize: 13, color: colors.textSecondary, marginTop: 2 },
+  fidelidadBarraFondo: {
+    height: 8,
+    backgroundColor: colors.border,
+    borderRadius: 4,
+    marginBottom: 8,
+    overflow: 'hidden',
+  },
+  fidelidadBarraRelleno: {
+    height: 8,
+    borderRadius: 4,
+  },
+  fidelidadMotivador: {
+    fontSize: 13,
+    color: colors.textSecondary,
+    textAlign: 'center',
+    marginTop: 2,
+    fontStyle: 'italic',
+  },
 });

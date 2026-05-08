@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
   TouchableOpacity, Image,
@@ -10,6 +10,7 @@ import { colors } from '../../theme/colors';
 import { Partido } from '../../types';
 import { ESCUDO_URL, COMPETICION } from '../../constants';
 import { MainStackParamList } from '../../navigation/MainStack';
+import { notificarGol } from '../../services/marcadorPolling';
 
 interface EventoPartido {
   id: number;
@@ -71,6 +72,38 @@ export default function PartidoDetalleScreen() {
   const [eventos, setEventos] = useState<EventoPartido[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const marcadorPrevio = useRef<string | null | undefined>(undefined);
+  const pollingRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Partido activo = tiene fecha de hoy y sin marcador aún, o marcador en formato X-Y con partido reciente
+  function esPartidoActivo(p: Partido): boolean {
+    const hoy = new Date().toISOString().split('T')[0];
+    const fechaPartido = p.fecha.split('T')[0];
+    return fechaPartido === hoy;
+  }
+
+  const pollMarcador = useCallback(async (p: Partido) => {
+    try {
+      const { data } = await api.get<any>(`/api/partidos/${p.id}`);
+      const nuevo: Partido = data?.partido ?? data;
+      if (!nuevo) return;
+      const marcadorNuevo = nuevo.marcador ?? null;
+      // marcadorPrevio.current === undefined means first load — just store, no notification
+      if (
+        marcadorPrevio.current !== undefined &&
+        marcadorNuevo !== null &&
+        marcadorNuevo !== marcadorPrevio.current
+      ) {
+        await notificarGol(nuevo.equipoLocal, nuevo.equipoVisitante, marcadorNuevo);
+      }
+      marcadorPrevio.current = marcadorNuevo;
+      setPartido(nuevo);
+      const evs = data?.eventos ?? [];
+      if (Array.isArray(evs) && evs.length > 0) setEventos(evs);
+    } catch {
+      // silent — no disturb UX on poll error
+    }
+  }, []);
 
   const load = useCallback(async () => {
     setError(null);
@@ -99,6 +132,27 @@ export default function PartidoDetalleScreen() {
   }, [id]);
 
   useEffect(() => { load(); }, [load]);
+
+  // Start/stop polling when partido changes
+  useEffect(() => {
+    if (pollingRef.current) {
+      clearInterval(pollingRef.current);
+      pollingRef.current = null;
+    }
+    if (partido && esPartidoActivo(partido)) {
+      // First store current marcador without notification
+      marcadorPrevio.current = partido.marcador ?? null;
+      pollingRef.current = setInterval(() => {
+        pollMarcador(partido);
+      }, 30000); // poll every 30s
+    }
+    return () => {
+      if (pollingRef.current) {
+        clearInterval(pollingRef.current);
+        pollingRef.current = null;
+      }
+    };
+  }, [partido?.id, partido?.marcador, pollMarcador]);
 
   if (loading) {
     return (
