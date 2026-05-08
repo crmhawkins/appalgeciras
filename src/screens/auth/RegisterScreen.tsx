@@ -6,16 +6,14 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import { AuthStackParamList } from '../../types';
 import PhoneInput from '../../components/PhoneInput';
 import { ESCUDO_URL } from '../../constants';
 
 export default function RegisterScreen() {
   const { register } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const navigation = useNavigation<any>();
   const [nombre, setNombre] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');

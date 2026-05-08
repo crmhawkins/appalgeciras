@@ -165,7 +165,7 @@ export default function PartidoDetalleScreen() {
       }
       const calendars = await Calendar.getCalendarsAsync(Calendar.EntityTypes.EVENT);
       let calendarId: string | undefined;
-      const editable = calendars.find(c => c.allowsModifications);
+      const editable = calendars.find((c: Calendar.Calendar) => c.allowsModifications);
       if (editable) {
         calendarId = editable.id;
       } else {

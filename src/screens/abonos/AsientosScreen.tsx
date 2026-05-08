@@ -30,7 +30,6 @@ export default function AsientosScreen() {
     try {
       const { data } = await api.get<{ asientos: Asiento[] }>(
         `/api/asientos/sector/${sectorId}`,
-        { params: { partidoId: 'proximos' } },
       );
       setAsientos(data.asientos ?? []);
     } catch (e: any) {

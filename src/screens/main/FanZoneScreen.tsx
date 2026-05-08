@@ -307,15 +307,6 @@ export default function FanZoneScreen() {
     }
   };
 
-  if (loading) {
-    return (
-      <SafeAreaView style={styles.safe} edges={['top']}>
-        <View style={styles.header}><Text style={styles.headerTitle}>Fan Zone</Text></View>
-        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
-      </SafeAreaView>
-    );
-  }
-
   const renderHeader = useMemo(() => (
     <>
       {/* Partido activo */}
@@ -528,6 +519,15 @@ export default function FanZoneScreen() {
       </View>
     </>
   ), [estadioInfo, partidoActivo, user, inputMensaje, enviando, handleEnviarMensaje, navigation]); // eslint-disable-line
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        <View style={styles.header}><Text style={styles.headerTitle}>Fan Zone</Text></View>
+        <ActivityIndicator color={colors.primary} style={{ marginTop: 40 }} />
+      </SafeAreaView>
+    );
+  }
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

@@ -96,9 +96,7 @@ export default function PerfilScreen() {
       const type = asset.mimeType || 'image/jpeg';
       // @ts-ignore RN FormData file shape
       form.append('image', { uri: asset.uri, name: filename, type });
-      const { data } = await api.put('/api/user/profile-image', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
+      const { data } = await api.put('/api/user/profile-image', form);
       const newUser = data?.usuario ?? { profileImage: data?.profileImage ?? data?.url };
       await updateUser(newUser);
     } catch (e: any) {

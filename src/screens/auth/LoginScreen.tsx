@@ -5,15 +5,13 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import { AuthStackParamList } from '../../types';
 import { ESCUDO_URL } from '../../constants';
 
 export default function LoginScreen() {
   const { login } = useAuth();
-  const navigation = useNavigation<NativeStackNavigationProp<AuthStackParamList>>();
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -30,7 +28,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(email.trim(), password);
-      navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
+      navigation.navigate('Main' as never);
     } catch (e: any) {
       const msg =
         e?.response?.data?.msg ||

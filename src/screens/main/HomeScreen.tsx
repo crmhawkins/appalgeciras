@@ -107,11 +107,19 @@ export default function HomeScreen() {
     const cached = await getCached<PartidoAPI>('home_partido');
     if (cached) setPartido(cached);
     try {
-      const { data } = await api.get<PartidoAPI[]>('/api/partidos', { signal });
-      if (!Array.isArray(data) || data.length === 0) return;
+      const { data } = await api.get<any>('/api/partidos', { signal });
+      // Backend returns { partidos: [...], proximoPartido: {...} }
+      if ((data as any)?.proximoPartido) {
+        const next = (data as any).proximoPartido as PartidoAPI;
+        setPartido(next);
+        await setCached('home_partido', next);
+        return;
+      }
+      const list: PartidoAPI[] = Array.isArray(data) ? data : ((data as any)?.partidos ?? []);
+      if (list.length === 0) return;
       const today = new Date().toISOString().split('T')[0];
       // Partidos con marcador = ya jugados
-      const jugados = data.filter(p => p.marcador != null && p.marcador !== '');
+      const jugados = list.filter(p => p.marcador != null && p.marcador !== '');
       let chosen: PartidoAPI | null = null;
       if (jugados.length > 0) {
         const sorted = jugados.sort(
@@ -120,10 +128,10 @@ export default function HomeScreen() {
         chosen = sorted[0];
       } else {
         // No played match — show next upcoming
-        const proximos = data
+        const proximos = list
           .filter(p => !p.marcador && p.fecha >= today)
           .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-        chosen = proximos[0] ?? data[0] ?? null;
+        chosen = proximos[0] ?? list[0] ?? null;
       }
       setPartido(chosen);
       if (chosen) await setCached('home_partido', chosen);
