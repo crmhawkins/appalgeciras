@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, ActivityIndicator, StyleSheet } from 'react-native';
-import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
+import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AuthStack from './AuthStack';
 import MainStack from './MainStack';
@@ -9,7 +9,7 @@ import { RootStackParamList } from '../types';
 import { colors } from '../theme/colors';
 
 const linking: LinkingOptions<any> = {
-  prefixes: ['algeciras://', 'https://algecirasclubdefutbol.com'],
+  prefixes: ['algecirascf://', 'algeciras://', 'https://algecirasclubdefutbol.com'],
   config: {
     screens: {
       Main: {
@@ -30,7 +30,11 @@ const linking: LinkingOptions<any> = {
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
-export default function RootNavigator() {
+interface RootNavigatorProps {
+  navigationRef?: React.RefObject<NavigationContainerRef<any>>;
+}
+
+export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   const { loading, token } = useAuth();
 
   if (loading) {
@@ -42,7 +46,7 @@ export default function RootNavigator() {
   }
 
   return (
-    <NavigationContainer linking={linking}>
+    <NavigationContainer ref={navigationRef} linking={linking}>
       <Stack.Navigator
         initialRouteName={token ? 'Main' : 'Auth'}
         screenOptions={{ headerShown: false }}

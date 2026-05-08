@@ -9,6 +9,7 @@ import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { Abono } from '../../types';
+import { setCached, getCachedStale } from '../../services/cache';
 
 const VENTAJAS = [
   {
@@ -44,6 +45,7 @@ export default function SociosScreen() {
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loading, setLoading] = useState(false);
   const [loaded, setLoaded] = useState(false);
+  const [isOffline, setIsOffline] = useState(false);
 
   const loadAbonos = useCallback(async () => {
     if (!user) {
@@ -52,11 +54,22 @@ export default function SociosScreen() {
       return;
     }
     setLoading(true);
+    const cacheKey = `socios_abonos_${user.id}`;
     try {
       const { data } = await api.get<Abono[]>(`/api/abonos/usuario/${user.id}`);
-      setAbonos(Array.isArray(data) ? data : []);
+      const lista = Array.isArray(data) ? data : [];
+      setAbonos(lista);
+      setIsOffline(false);
+      await setCached(cacheKey, lista);
     } catch {
-      setAbonos([]);
+      const stale = await getCachedStale<Abono[]>(cacheKey);
+      if (stale) {
+        setAbonos(stale);
+        setIsOffline(true);
+      } else {
+        setAbonos([]);
+        setIsOffline(false);
+      }
     } finally {
       setLoading(false);
       setLoaded(true);
@@ -137,6 +150,11 @@ export default function SociosScreen() {
         <Text style={styles.headerSub}>Ventajas exclusivas para abonados</Text>
       </View>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {isOffline && (
+          <View style={styles.offlineBanner}>
+            <Text style={styles.offlineBannerText}>⚠️ Datos sin conexión</Text>
+          </View>
+        )}
         <View style={styles.heroBanner}>
           <Image
             source={{ uri: 'https://backend-algeciras.hawkins.es/acf/2022/06/abonados-home.jpg' }}
@@ -248,4 +266,14 @@ const styles = StyleSheet.create({
   ventajaInfo: { flex: 1 },
   ventajaTitulo: { fontSize: 15, fontWeight: 'bold', color: colors.text },
   ventajaDesc: { fontSize: 12, color: colors.textSecondary, marginTop: 2 },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 12,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ffc107',
+  },
+  offlineBannerText: { color: '#856404', fontWeight: '600', fontSize: 13 },
 });

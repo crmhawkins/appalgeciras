@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
-  TouchableOpacity, Image,
+  TouchableOpacity, Image, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -154,6 +154,21 @@ export default function PartidoDetalleScreen() {
     };
   }, [partido?.id, partido?.marcador, pollMarcador]);
 
+  const handleShare = useCallback(async () => {
+    if (!partido) return;
+    const marcador = partido.marcador ?? 'vs';
+    const rival = partido.equipoLocal === 'Algeciras C.F.' || partido.equipoLocal.toLowerCase().includes('algeciras')
+      ? partido.equipoVisitante
+      : partido.equipoLocal;
+    const competicion = COMPETICION.split(' · ')[0];
+    try {
+      await Share.share({
+        message: `Algeciras CF ${marcador} ${rival} — ${competicion}\n¡Vamos Algeciras! 🔴⚪`,
+        title: 'Resultado Algeciras CF',
+      });
+    } catch {}
+  }, [partido]);
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -191,7 +206,9 @@ export default function PartidoDetalleScreen() {
           <Text style={styles.backText}>← Volver</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Partido</Text>
-        <View style={{ width: 60 }} />
+        <TouchableOpacity onPress={handleShare} style={styles.shareBtn}>
+          <Text style={styles.shareText}>Compartir</Text>
+        </TouchableOpacity>
       </View>
 
       <ScrollView contentContainerStyle={styles.container}>
@@ -269,6 +286,8 @@ const styles = StyleSheet.create({
   backBtn: { paddingVertical: 4, paddingHorizontal: 8 },
   backText: { color: colors.white, fontSize: 14, fontWeight: '600' },
   headerTitle: { color: colors.white, fontSize: 18, fontWeight: 'bold' },
+  shareBtn: { paddingVertical: 4, paddingHorizontal: 8 },
+  shareText: { color: colors.secondary, fontSize: 13, fontWeight: '600' },
   container: { padding: 16, paddingBottom: 32 },
 
   scoreCard: {

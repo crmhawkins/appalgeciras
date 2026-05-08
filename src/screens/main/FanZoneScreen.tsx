@@ -2,7 +2,7 @@ import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Alert, RefreshControl, FlatList,
-  TextInput, KeyboardAvoidingView, Platform, Linking,
+  TextInput, KeyboardAvoidingView, Platform, Linking, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
@@ -13,6 +13,7 @@ import api, { API_BASE_URL } from '../../services/api';
 import { Partido } from '../../types';
 import { io, Socket } from 'socket.io-client';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
+import { setCached, getCachedStale } from '../../services/cache';
 
 interface VotoResult {
   jugador: string;
@@ -31,6 +32,12 @@ interface ChatMessage {
   timestamp: string;
 }
 
+interface MvpEntry {
+  jugador: string;
+  foto?: string;
+  veces: number;
+}
+
 // Players loaded dynamically from API — see loadJugadores()
 
 export default function FanZoneScreen() {
@@ -47,6 +54,8 @@ export default function FanZoneScreen() {
   const [loading, setLoading] = useState(true);
   const [votando, setVotando] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const [mvpHistory, setMvpHistory] = useState<MvpEntry[]>([]);
+  const [isOffline, setIsOffline] = useState(false);
 
   // Chat state
   const [mensajes, setMensajes] = useState<ChatMessage[]>([]);
@@ -77,12 +86,63 @@ export default function FanZoneScreen() {
       const { data } = await api.get('/api/partidos');
       const lista: Partido[] = Array.isArray(data) ? data : ((data as any).partidos ?? []);
       setPartidos(lista);
+      await setCached('fanzone_partidos', lista);
+      setIsOffline(false);
       const activo = [...lista]
         .filter(p => p.marcador !== null && p.marcador !== undefined && p.marcador !== '')
         .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? lista[0] ?? null;
       setPartidoActivo(activo);
       return activo;
-    } catch { return null; }
+    } catch {
+      const stale = await getCachedStale<Partido[]>('fanzone_partidos');
+      if (stale) {
+        setIsOffline(true);
+        setPartidos(stale);
+        const activo = [...stale]
+          .filter(p => p.marcador !== null && p.marcador !== undefined && p.marcador !== '')
+          .sort((a, b) => b.fecha.localeCompare(a.fecha))[0] ?? stale[0] ?? null;
+        setPartidoActivo(activo);
+        return activo;
+      }
+      return null;
+    }
+  }, []);
+
+  const loadMvpHistory = useCallback(async (lista: Partido[]) => {
+    // Try dedicated endpoint first
+    try {
+      const { data } = await api.get('/api/fanzone/historial-mvp');
+      const entries: MvpEntry[] = data?.historial ?? data ?? [];
+      if (entries.length > 0) {
+        setMvpHistory(entries.slice(0, 3));
+        return;
+      }
+    } catch {}
+    // Fallback: aggregate votos from last 5 finished partidos
+    try {
+      const finished = lista
+        .filter(p => p.marcador != null && p.marcador !== '')
+        .sort((a, b) => b.fecha.localeCompare(a.fecha))
+        .slice(0, 5);
+      const tally: Record<string, number> = {};
+      await Promise.all(
+        finished.map(async (p) => {
+          try {
+            const { data } = await api.get(`/api/fanzone/${p.id}/votos`);
+            const resultado: VotoResult[] = data?.resultado ?? [];
+            if (resultado.length > 0) {
+              const winner = resultado[0].jugador;
+              tally[winner] = (tally[winner] ?? 0) + 1;
+            }
+          } catch {}
+        })
+      );
+      const sorted = Object.entries(tally)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([jugador, veces]) => ({ jugador, veces }));
+      setMvpHistory(sorted);
+    } catch {}
   }, []);
 
   const loadVotos = useCallback(async (pid: number) => {
@@ -104,12 +164,19 @@ export default function FanZoneScreen() {
   const load = useCallback(async () => {
     setLoading(true);
     // loadPartidos and loadJugadores in parallel
-    const [activo] = await Promise.all([loadPartidos(), loadJugadores()]);
+    const [activo, , partidosList] = await Promise.all([
+      loadPartidos(),
+      loadJugadores(),
+      api.get('/api/partidos').then(({ data }) =>
+        (Array.isArray(data) ? data : ((data as any).partidos ?? [])) as Partido[]
+      ).catch(() => [] as Partido[]),
+    ]);
     if (activo) {
       await Promise.all([loadVotos(activo.id), loadMiVoto(activo.id)]);
     }
+    loadMvpHistory(partidosList);
     setLoading(false);
-  }, [loadPartidos, loadJugadores, loadVotos, loadMiVoto]);
+  }, [loadPartidos, loadJugadores, loadVotos, loadMiVoto, loadMvpHistory]);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -318,6 +385,41 @@ export default function FanZoneScreen() {
                     <View style={[styles.bar, { width: `${v.porcentaje}%` as any }]} />
                   </View>
                   <Text style={styles.resultPct}>{v.porcentaje}%</Text>
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Offline banner */}
+          {isOffline && (
+            <View style={styles.offlineBanner}>
+              <Text style={styles.offlineBannerText}>⚠️ Datos sin conexión</Text>
+            </View>
+          )}
+
+          {/* MVP History — top 3 últimos partidos */}
+          {mvpHistory.length > 0 && (
+            <View style={styles.card}>
+              <Text style={styles.sectionTitle}>🏆 Mejores del mes</Text>
+              <Text style={styles.sectionSubtitle}>Jugadores más votados en los últimos partidos</Text>
+              {mvpHistory.map((entry, i) => (
+                <View key={entry.jugador} style={styles.mvpRow}>
+                  <View style={styles.mvpMedal}>
+                    <Text style={styles.mvpMedalText}>
+                      {i === 0 ? '🥇' : i === 1 ? '🥈' : '🥉'}
+                    </Text>
+                  </View>
+                  {entry.foto ? (
+                    <Image source={{ uri: entry.foto }} style={styles.mvpAvatar} />
+                  ) : (
+                    <View style={[styles.mvpAvatar, styles.mvpAvatarPlaceholder]}>
+                      <Text style={styles.mvpAvatarInitial}>{entry.jugador.charAt(0).toUpperCase()}</Text>
+                    </View>
+                  )}
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.mvpName}>{entry.jugador}</Text>
+                    <Text style={styles.mvpVeces}>{entry.veces} {entry.veces === 1 ? 'vez MVP' : 'veces MVP'}</Text>
+                  </View>
                 </View>
               ))}
             </View>
@@ -537,4 +639,22 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
     textDecorationLine: 'underline',
   },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    borderRadius: 8,
+    padding: 10,
+    marginBottom: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#ffc107',
+  },
+  offlineBannerText: { color: '#856404', fontWeight: '600', fontSize: 13 },
+  mvpRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 8, gap: 10 },
+  mvpMedal: { width: 28, alignItems: 'center' },
+  mvpMedalText: { fontSize: 20 },
+  mvpAvatar: { width: 44, height: 44, borderRadius: 22, backgroundColor: colors.border },
+  mvpAvatarPlaceholder: { backgroundColor: colors.primary, alignItems: 'center', justifyContent: 'center' },
+  mvpAvatarInitial: { color: colors.white, fontWeight: 'bold', fontSize: 16 },
+  mvpName: { fontSize: 14, fontWeight: '600', color: colors.text },
+  mvpVeces: { fontSize: 12, color: colors.textSecondary, marginTop: 1 },
 });

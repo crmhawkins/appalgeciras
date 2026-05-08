@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity, Modal,
+  RefreshControl, TouchableOpacity, Modal, Share,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -180,6 +180,17 @@ export default function MisEntradasScreen() {
           const estadoColor = ESTADO_COLOR[item.estado] ?? '#888';
           const partido = item.Partido;
           const asiento = item.Asiento;
+          const handleShareEntrada = async () => {
+            const nombrePartido = partido
+              ? `${partido.equipoLocal} vs ${partido.equipoVisitante}`
+              : `Entrada #${item.id}`;
+            const fecha = partido ? formatDate(partido.fecha) : '—';
+            try {
+              await Share.share({
+                message: `Tengo entrada para ${nombrePartido} el ${fecha}. ¡Nos vemos en El Mirador! 🏟️`,
+              });
+            } catch {}
+          };
           return (
             <View style={[styles.card, { borderLeftColor: estadoColor }]}>
               <View style={styles.cardHeader}>
@@ -233,6 +244,9 @@ export default function MisEntradasScreen() {
                   <Text style={styles.codigoCodigo}>{item.codigoAcceso ?? ''}</Text>
                 </TouchableOpacity>
               )}
+              <TouchableOpacity style={styles.shareEntradaBtn} onPress={handleShareEntrada}>
+                <Text style={styles.shareEntradaBtnText}>📤 Compartir entrada</Text>
+              </TouchableOpacity>
             </View>
           );
         }}
@@ -314,6 +328,15 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   registerBtnText: { color: colors.primary, fontWeight: 'bold', fontSize: 16 },
+  shareEntradaBtn: {
+    marginTop: 10,
+    paddingVertical: 10,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: colors.primary,
+    alignItems: 'center',
+  },
+  shareEntradaBtnText: { color: colors.primary, fontWeight: '600', fontSize: 14 },
   codigoBox: {
     marginTop: 10,
     backgroundColor: '#fff5f5',

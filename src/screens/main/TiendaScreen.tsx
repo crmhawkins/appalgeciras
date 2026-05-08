@@ -15,6 +15,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { setCached, getCachedStale } from '../../services/cache';
 
 interface Producto {
   id: number;
@@ -45,14 +46,26 @@ export default function TiendaScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [categoriaActiva, setCategoriaActiva] = useState('');
+  const [isOffline, setIsOffline] = useState(false);
 
   const fetchProductos = useCallback(async (cat = categoriaActiva) => {
+    const cacheKey = `tienda_productos_${cat || 'all'}`;
     try {
       const params = cat ? { categoria: cat } : {};
       const { data } = await api.get('/api/productos', { params });
-      setProductos(data.productos || []);
+      const lista: Producto[] = data.productos || [];
+      setProductos(lista);
+      setIsOffline(false);
+      await setCached(cacheKey, lista);
     } catch {
-      setProductos([]);
+      const stale = await getCachedStale<Producto[]>(cacheKey);
+      if (stale && stale.length > 0) {
+        setProductos(stale);
+        setIsOffline(true);
+      } else {
+        setProductos([]);
+        setIsOffline(false);
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -175,6 +188,12 @@ export default function TiendaScreen() {
         <Text style={styles.webBannerText}>🌐 Ver tienda online completa →</Text>
       </TouchableOpacity>
 
+      {isOffline && (
+        <View style={styles.offlineBanner}>
+          <Text style={styles.offlineBannerText}>⚠️ Datos sin conexión</Text>
+        </View>
+      )}
+
       {productos.length === 0 ? (
         <View style={styles.center}>
           <Text style={{ fontSize: 52, marginBottom: 14 }}>⚽</Text>
@@ -216,6 +235,15 @@ const styles = StyleSheet.create({
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 12, marginTop: 2 },
   webBanner: { backgroundColor: '#f5c518', paddingVertical: 10, paddingHorizontal: 16, alignItems: 'center' },
   webBannerText: { color: '#1a1a1a', fontWeight: 'bold', fontSize: 13 },
+  offlineBanner: {
+    backgroundColor: '#fff3cd',
+    paddingVertical: 8,
+    paddingHorizontal: 16,
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#ffc107',
+  },
+  offlineBannerText: { color: '#856404', fontWeight: '600', fontSize: 13 },
   categorias: {
     backgroundColor: colors.white,
     borderBottomWidth: 1,
