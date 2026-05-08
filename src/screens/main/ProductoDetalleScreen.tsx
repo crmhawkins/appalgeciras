@@ -23,8 +23,8 @@ interface Producto {
   destacado: boolean;
 }
 
-const WHATSAPP_NUMERO = 'PENDIENTE';
-const WHATSAPP_DISPONIBLE = WHATSAPP_NUMERO !== 'PENDIENTE' && WHATSAPP_NUMERO.length > 5;
+const WHATSAPP_NUMERO: string = (process.env.EXPO_PUBLIC_WHATSAPP_NUMERO ?? '').trim();
+const WHATSAPP_DISPONIBLE = WHATSAPP_NUMERO.length > 5;
 const SCREEN_W = Dimensions.get('window').width;
 
 export default function ProductoDetalleScreen() {

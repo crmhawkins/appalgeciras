@@ -1,16 +1,57 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity, Alert,
+  RefreshControl, TouchableOpacity, Alert, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
+import QRCode from 'react-native-qrcode-svg';
+import { useKeepAwake } from 'expo-keep-awake';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
+
+interface QRModalData {
+  value: string;
+  titulo: string;
+  subtitulo: string;
+}
+
+function QRFullscreenModal({ data, onClose }: { data: QRModalData | null; onClose: () => void }) {
+  useKeepAwake();
+  if (!data) return null;
+  return (
+    <Modal visible={!!data} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.container}>
+          <Text style={modalStyles.titulo}>{data.titulo}</Text>
+          <Text style={modalStyles.subtitulo}>{data.subtitulo}</Text>
+          <View style={modalStyles.qrBox}>
+            <QRCode value={data.value} size={280} />
+          </View>
+          <Text style={modalStyles.hint}>Mantén la pantalla en el acceso</Text>
+          <TouchableOpacity style={modalStyles.closeBtn} onPress={onClose}>
+            <Text style={modalStyles.closeBtnText}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  container: { backgroundColor: '#fff', borderRadius: 16, padding: 28, alignItems: 'center', width: '90%' },
+  titulo: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4, textAlign: 'center' },
+  subtitulo: { fontSize: 13, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' },
+  qrBox: { padding: 12, backgroundColor: '#fff', borderRadius: 8, marginBottom: 16 },
+  hint: { fontSize: 12, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' },
+  closeBtn: { backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 40, borderRadius: 8 },
+  closeBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+});
 
 export default function MisAbonosScreen() {
   const { user, token } = useAuth();
@@ -19,6 +60,7 @@ export default function MisAbonosScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<QRModalData | null>(null);
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -107,6 +149,7 @@ export default function MisAbonosScreen() {
         <Text style={styles.headerTitle}>🎟️ Mis Abonos</Text>
         <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
       </View>
+      <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={abonos}
@@ -150,10 +193,21 @@ export default function MisAbonosScreen() {
             <Row label="Desde" value={formatDate(item.fechaInicio)} />
             <Row label="Hasta" value={formatDate(item.fechaFin)} />
             {item.codigoAcceso && (
-              <View style={styles.codigoBox}>
-                <Text style={styles.codigoLabel}>Código de acceso</Text>
+              <TouchableOpacity
+                style={styles.codigoBox}
+                onPress={() => setQrModal({
+                  value: item.codigoAcceso!,
+                  titulo: `${item.nombre} ${item.apellidos}`,
+                  subtitulo: `Temporada ${TEMPORADA_CORTA}`,
+                })}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.codigoLabel}>Código de acceso · Toca para ampliar</Text>
+                <View style={styles.qrPreviewBox}>
+                  <QRCode value={item.codigoAcceso} size={80} />
+                </View>
                 <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
-              </View>
+              </TouchableOpacity>
             )}
             {item.activo && (
               <View style={styles.liberarRow}>
@@ -266,8 +320,9 @@ const styles = StyleSheet.create({
     borderColor: colors.primary,
     borderStyle: 'dashed',
   },
-  codigoLabel: { fontSize: 11, color: colors.primary, fontWeight: '600', marginBottom: 4 },
-  codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: colors.primary },
+  codigoLabel: { fontSize: 11, color: colors.primary, fontWeight: '600', marginBottom: 8 },
+  codigoCodigo: { fontSize: 18, fontWeight: 'bold', letterSpacing: 4, color: colors.primary, marginTop: 6 },
+  qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
   liberarRow: { alignItems: 'flex-end', marginTop: 10 },
   liberarBtn: {
     borderWidth: 1,

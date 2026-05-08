@@ -1,15 +1,56 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity,
+  RefreshControl, TouchableOpacity, Modal,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import QRCode from 'react-native-qrcode-svg';
+import { useKeepAwake } from 'expo-keep-awake';
 import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Entrada } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { ESTADIO } from '../../constants';
+
+interface QRModalData {
+  value: string;
+  titulo: string;
+  subtitulo: string;
+}
+
+function QRFullscreenModal({ data, onClose }: { data: QRModalData | null; onClose: () => void }) {
+  useKeepAwake();
+  if (!data) return null;
+  return (
+    <Modal visible={!!data} transparent animationType="fade" onRequestClose={onClose}>
+      <View style={modalStyles.overlay}>
+        <View style={modalStyles.container}>
+          <Text style={modalStyles.titulo}>{data.titulo}</Text>
+          <Text style={modalStyles.subtitulo}>{data.subtitulo}</Text>
+          <View style={modalStyles.qrBox}>
+            <QRCode value={data.value} size={280} />
+          </View>
+          <Text style={modalStyles.hint}>Mantén la pantalla en el acceso</Text>
+          <TouchableOpacity style={modalStyles.closeBtn} onPress={onClose}>
+            <Text style={modalStyles.closeBtnText}>Cerrar</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const modalStyles = StyleSheet.create({
+  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.85)', justifyContent: 'center', alignItems: 'center' },
+  container: { backgroundColor: '#fff', borderRadius: 16, padding: 28, alignItems: 'center', width: '90%' },
+  titulo: { fontSize: 18, fontWeight: 'bold', color: colors.text, marginBottom: 4, textAlign: 'center' },
+  subtitulo: { fontSize: 13, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' },
+  qrBox: { padding: 12, backgroundColor: '#fff', borderRadius: 8, marginBottom: 16 },
+  hint: { fontSize: 12, color: colors.textSecondary, marginBottom: 20, textAlign: 'center' },
+  closeBtn: { backgroundColor: colors.primary, paddingVertical: 12, paddingHorizontal: 40, borderRadius: 8 },
+  closeBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+});
 
 const ESTADO_COLOR: Record<Entrada['estado'], string> = {
   valida: '#1a8a3b',
@@ -40,6 +81,7 @@ export default function MisEntradasScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [qrModal, setQrModal] = useState<QRModalData | null>(null);
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -100,6 +142,7 @@ export default function MisEntradasScreen() {
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
+      <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
       <View style={styles.header}>
         <Text style={styles.headerTitle}>🏟️ Mis Entradas</Text>
         <Text style={styles.headerSub}>{ESTADIO}</Text>
@@ -164,11 +207,31 @@ export default function MisEntradasScreen() {
               <Row label="Precio" value={`${item.precio} €`} highlight />
               {item.tipo && <Row label="Tipo" value={item.tipo} />}
               {item.metodoPago && <Row label="Pago" value={item.metodoPago} />}
-              {item.codigoAcceso && (
-                <View style={styles.codigoBox}>
-                  <Text style={styles.codigoLabel}>Código de acceso</Text>
-                  <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
-                </View>
+              {(item.codigoAcceso || item.token) && (
+                <TouchableOpacity
+                  style={styles.codigoBox}
+                  onPress={() => {
+                    const qrValue = item.codigoAcceso || item.token || '';
+                    const partido = item.Partido;
+                    const asiento = item.Asiento;
+                    setQrModal({
+                      value: qrValue,
+                      titulo: partido
+                        ? `${partido.equipoLocal} vs ${partido.equipoVisitante}`
+                        : `Entrada #${item.id}`,
+                      subtitulo: asiento
+                        ? `${asiento.Sector?.nombre ?? 'Sector'} — Fila ${asiento.fila} — Nº ${asiento.numero}`
+                        : item.codigoAcceso ?? '',
+                    });
+                  }}
+                  activeOpacity={0.75}
+                >
+                  <Text style={styles.codigoLabel}>Código de acceso · Toca para ampliar</Text>
+                  <View style={styles.qrPreviewBox}>
+                    <QRCode value={item.codigoAcceso || item.token || 'invalid'} size={80} />
+                  </View>
+                  <Text style={styles.codigoCodigo}>{item.codigoAcceso ?? ''}</Text>
+                </TouchableOpacity>
               )}
             </View>
           );
@@ -261,6 +324,7 @@ const styles = StyleSheet.create({
     borderColor: '#C8102E',
     borderStyle: 'dashed',
   },
-  codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 4 },
-  codigoCodigo: { fontSize: 28, fontWeight: 'bold', letterSpacing: 6, color: '#C8102E' },
+  codigoLabel: { fontSize: 11, color: '#C8102E', fontWeight: '600', marginBottom: 8 },
+  codigoCodigo: { fontSize: 18, fontWeight: 'bold', letterSpacing: 4, color: '#C8102E', marginTop: 6 },
+  qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
 });

@@ -52,6 +52,7 @@ export default function FanZoneScreen() {
   const [mensajes, setMensajes] = useState<ChatMessage[]>([]);
   const [inputMensaje, setInputMensaje] = useState('');
   const [enviando, setEnviando] = useState(false);
+  const [chatConectado, setChatConectado] = useState(false);
   const socketRef = useRef<Socket | null>(null);
   const flatListRef = useRef<FlatList>(null);
 
@@ -102,8 +103,8 @@ export default function FanZoneScreen() {
 
   const load = useCallback(async () => {
     setLoading(true);
-    const activo = await loadPartidos();
-    await loadJugadores();
+    // loadPartidos and loadJugadores in parallel
+    const [activo] = await Promise.all([loadPartidos(), loadJugadores()]);
     if (activo) {
       await Promise.all([loadVotos(activo.id), loadMiVoto(activo.id)]);
     }
@@ -152,10 +153,16 @@ export default function FanZoneScreen() {
       socketRef.current = socket;
 
       socket.on('connect', () => {
+        setChatConectado(true);
         socket.emit('join_partido', partidoActivo.id);
       });
 
+      socket.on('disconnect', () => {
+        setChatConectado(false);
+      });
+
       socket.on('connect_error', (err) => {
+        setChatConectado(false);
         console.warn('[Chat] Error de conexión:', err.message);
       });
 
@@ -174,6 +181,7 @@ export default function FanZoneScreen() {
       return () => {
         socket.disconnect();
         socketRef.current = null;
+        setChatConectado(false);
       };
     }, [partidoActivo?.id])
   );
@@ -318,7 +326,14 @@ export default function FanZoneScreen() {
           {/* Chat en tiempo real */}
           {partidoActivo && (
             <View style={styles.card}>
-              <Text style={styles.sectionTitle}>💬 Chat</Text>
+              <View style={styles.chatHeaderRow}>
+                <Text style={styles.sectionTitle}>💬 Chat</Text>
+                <View style={[styles.chatStatusBadge, chatConectado ? styles.chatStatusLive : styles.chatStatusOff]}>
+                  <Text style={styles.chatStatusText}>
+                    {chatConectado ? '● En vivo' : '● Sin conexión'}
+                  </Text>
+                </View>
+              </View>
 
               {/* Lista mensajes */}
               <View style={styles.chatContainer}>
@@ -474,6 +489,12 @@ const styles = StyleSheet.create({
   infoLine: { fontSize: 13, color: colors.textSecondary, marginTop: 6, lineHeight: 20 },
   socialBtn: { paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.border },
   socialBtnText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
+  // Chat header + status badge
+  chatHeaderRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  chatStatusBadge: { paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
+  chatStatusLive: { backgroundColor: '#e8f5e9' },
+  chatStatusOff: { backgroundColor: '#fce4e4' },
+  chatStatusText: { fontSize: 12, fontWeight: '700' },
   // Chat styles
   chatContainer: {
     height: 300,

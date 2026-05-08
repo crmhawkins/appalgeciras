@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, RefreshControl,
@@ -193,6 +193,9 @@ export default function HomeScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const [offlineTs, setOfflineTs] = useState<number | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const onRefresh = useCallback(async () => {
     setRefreshing(true);
@@ -202,6 +205,49 @@ export default function HomeScreen() {
     await Promise.all([loadClasificacion(), loadPartido(), loadDestacadas()]);
     setRefreshing(false);
   }, [loadClasificacion, loadPartido, loadDestacadas]);
+
+  // Countdown para próximo partido (solo si faltan < 7 días)
+  useEffect(() => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    if (!partido || partidoJugado) { setCountdown(null); return; }
+
+    const getTarget = () => {
+      const d = new Date(partido.fecha);
+      if (partido.hora) {
+        const [h, m] = partido.hora.split(':');
+        d.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+      }
+      return d;
+    };
+
+    const target = getTarget();
+    const sevenDays = 7 * 24 * 60 * 60 * 1000;
+    if (target.getTime() - Date.now() > sevenDays) { setCountdown(null); return; }
+
+    const tick = () => {
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) { setCountdown('¡Partido en curso!'); clearInterval(countdownRef.current!); return; }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${days}d ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`);
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  }, [partido?.id, partidoJugado]);
+
+  // Cargar timestamp de caché stale para banner offline
+  useEffect(() => {
+    if (!offline) { setOfflineTs(null); return; }
+    import('../../services/cache').then(({ getCachedStaleWithTs }) => {
+      if (!getCachedStaleWithTs) return;
+      getCachedStaleWithTs('home_partido').then((res: any) => {
+        if (res?.ts) setOfflineTs(res.ts);
+      });
+    }).catch(() => {});
+  }, [offline]);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
   const goPartidos = () => navigation.navigate('Partidos');
@@ -228,7 +274,12 @@ export default function HomeScreen() {
       >
         {offline && (
           <View style={styles.offlineBanner}>
-            <Text style={styles.offlineBannerText}>📡 Sin conexión — mostrando datos guardados</Text>
+            <Text style={styles.offlineBannerText}>
+              📡 Sin conexión —{' '}
+              {offlineTs
+                ? `Datos de hace ${Math.round((Date.now() - offlineTs) / 60000)} min`
+                : 'mostrando datos guardados'}
+            </Text>
           </View>
         )}
         {/* VIDEO HERO */}
@@ -341,6 +392,9 @@ export default function HomeScreen() {
               <View style={styles.matchScoreBlock}>
                 <Text style={styles.matchVs}>VS</Text>
                 <Text style={styles.matchFecha}>{formatFecha(partido.fecha)}</Text>
+                {countdown && (
+                  <Text style={styles.matchCountdown}>{countdown}</Text>
+                )}
               </View>
               <View style={styles.matchTeamBlock}>
                 <View style={[styles.matchTeamRow, styles.matchTeamRowRight]}>
@@ -608,6 +662,7 @@ const styles = StyleSheet.create({
   matchScore: { fontSize: 22, fontWeight: 'bold', color: colors.primary },
   matchVs: { fontSize: 16, fontWeight: 'bold', color: colors.primary },
   matchFecha: { fontSize: 11, color: colors.textSecondary, marginTop: 4, textAlign: 'center' },
+  matchCountdown: { fontSize: 12, color: colors.primary, fontWeight: 'bold', marginTop: 4, textAlign: 'center', letterSpacing: 0.5 },
 
   // NOTICIAS BANNER
   noticiasBanner: {

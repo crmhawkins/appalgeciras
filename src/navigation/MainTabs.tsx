@@ -8,6 +8,7 @@ import FanZoneScreen from '../screens/main/FanZoneScreen';
 import TiendaScreen from '../screens/main/TiendaScreen';
 import SociosScreen from '../screens/main/SociosScreen';
 import PerfilScreen from '../screens/main/PerfilScreen';
+import MasScreen from '../screens/main/MasScreen';
 import AbonosStack from './AbonosStack';
 import { MainTabParamList } from '../types';
 import { colors } from '../theme/colors';
@@ -20,6 +21,9 @@ function tabIcon(label: string) {
   );
 }
 
+// Hidden tab button — keeps screen navigable but invisible in tab bar
+const hiddenTab = { tabBarButton: () => null, tabBarStyle: { display: 'none' as const } };
+
 export default function MainTabs() {
   return (
     <Tab.Navigator
@@ -31,20 +35,11 @@ export default function MainTabs() {
         tabBarLabelStyle: { fontSize: 10 },
       }}
     >
+      {/* ── Visible tabs (5) ── */}
       <Tab.Screen
         name="InicioTab"
         component={HomeScreen}
         options={{ title: 'Inicio', tabBarIcon: tabIcon('🏠') }}
-      />
-      <Tab.Screen
-        name="NoticiasTab"
-        component={NoticiasScreen}
-        options={{ title: 'Noticias', tabBarIcon: tabIcon('📰') }}
-      />
-      <Tab.Screen
-        name="PlantillaTab"
-        component={PlantillaScreen}
-        options={{ title: 'Plantilla', tabBarIcon: tabIcon('👥') }}
       />
       <Tab.Screen
         name="AbonosTab"
@@ -57,19 +52,36 @@ export default function MainTabs() {
         options={{ title: 'Fan Zone', tabBarIcon: tabIcon('⭐') }}
       />
       <Tab.Screen
+        name="PerfilTab"
+        component={PerfilScreen}
+        options={{ title: 'Perfil', tabBarIcon: tabIcon('👤') }}
+      />
+      <Tab.Screen
+        name="MasTab"
+        component={MasScreen}
+        options={{ title: 'Más', tabBarIcon: tabIcon('☰') }}
+      />
+
+      {/* ── Hidden tabs — accessible via navigate() but not shown in bar ── */}
+      <Tab.Screen
+        name="NoticiasTab"
+        component={NoticiasScreen}
+        options={{ title: 'Noticias', ...hiddenTab }}
+      />
+      <Tab.Screen
+        name="PlantillaTab"
+        component={PlantillaScreen}
+        options={{ title: 'Plantilla', ...hiddenTab }}
+      />
+      <Tab.Screen
         name="TiendaTab"
         component={TiendaScreen}
-        options={{ title: 'Tienda', tabBarIcon: tabIcon('🛍️') }}
+        options={{ title: 'Tienda', ...hiddenTab }}
       />
       <Tab.Screen
         name="SociosTab"
         component={SociosScreen}
-        options={{ title: 'Socios', tabBarIcon: tabIcon('🏅') }}
-      />
-      <Tab.Screen
-        name="PerfilTab"
-        component={PerfilScreen}
-        options={{ title: 'Perfil', tabBarIcon: tabIcon('👤') }}
+        options={{ title: 'Socios', ...hiddenTab }}
       />
     </Tab.Navigator>
   );

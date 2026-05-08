@@ -144,11 +144,13 @@ export interface Noticia {
 
 export type MainTabParamList = {
   InicioTab: undefined;
-  NoticiasTab: undefined;
-  PlantillaTab: undefined;
   AbonosTab: undefined;
   FanZoneTab: undefined;
+  PerfilTab: undefined;
+  MasTab: undefined;
+  // kept for stack navigation references
+  NoticiasTab: undefined;
+  PlantillaTab: undefined;
   TiendaTab: undefined;
   SociosTab: undefined;
-  PerfilTab: undefined;
 };

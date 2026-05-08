@@ -26,3 +26,12 @@ export async function getCachedStale<T>(key: string): Promise<T | null> {
     return JSON.parse(raw).data as T;
   } catch { return null; }
 }
+
+export async function getCachedStaleWithTs<T>(key: string): Promise<{ data: T; ts: number } | null> {
+  try {
+    const raw = await AsyncStorage.getItem(`cache_${key}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw);
+    return { data: parsed.data as T, ts: parsed.ts as number };
+  } catch { return null; }
+}

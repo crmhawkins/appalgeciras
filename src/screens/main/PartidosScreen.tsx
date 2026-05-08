@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
   RefreshControl, Image, TouchableOpacity, Alert,
@@ -97,6 +97,8 @@ export default function PartidosScreen() {
   const [tab, setTab] = useState<Tab>('proximos');
   const [eventos, setEventos] = useState<Record<number, EventoPartido[]>>({});
   const [offline, setOffline] = useState(false);
+  const [countdown, setCountdown] = useState<string | null>(null);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
@@ -135,6 +137,32 @@ export default function PartidosScreen() {
   }, []);
 
   useEffect(() => { load(); }, [load]);
+
+  // Countdown al próximo partido (< 7 días)
+  useEffect(() => {
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    const next = proximoPartido ?? proximos[0] ?? null;
+    if (!next) { setCountdown(null); return; }
+    const target = new Date(next.fecha);
+    if (next.hora) {
+      const [h, m] = next.hora.split(':');
+      target.setHours(parseInt(h, 10), parseInt(m, 10), 0, 0);
+    }
+    if (target.getTime() - Date.now() > 7 * 24 * 60 * 60 * 1000) { setCountdown(null); return; }
+    const tick = () => {
+      const diff = target.getTime() - Date.now();
+      if (diff <= 0) { setCountdown('¡Partido en curso!'); clearInterval(countdownRef.current!); return; }
+      const days = Math.floor(diff / 86400000);
+      const hours = Math.floor((diff % 86400000) / 3600000);
+      const mins = Math.floor((diff % 3600000) / 60000);
+      const secs = Math.floor((diff % 60000) / 1000);
+      setCountdown(`${days}d ${String(hours).padStart(2,'0')}:${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`);
+    };
+    tick();
+    countdownRef.current = setInterval(tick, 1000);
+    return () => { if (countdownRef.current) clearInterval(countdownRef.current); };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [proximoPartido?.id, proximos.length]);
 
   const today = new Date().toISOString().split('T')[0];
 
@@ -241,6 +269,9 @@ export default function PartidosScreen() {
                       <Text style={styles.proximoVs}>VS</Text>
                       <Text style={styles.proximoFecha}>{formatFecha(next.fecha)}</Text>
                       {next.hora ? <Text style={styles.proximoHora}>{next.hora}</Text> : null}
+                      {countdown && (
+                        <Text style={styles.proximoCountdown}>{countdown}</Text>
+                      )}
                       <TouchableOpacity
                         style={styles.recordarBtn}
                         onPress={(e) => { e.stopPropagation?.(); programarRecordatorio(next); }}
@@ -425,6 +456,7 @@ const styles = StyleSheet.create({
   proximoVs: { fontSize: 20, fontWeight: 'bold', color: colors.secondary },
   proximoFecha: { color: 'rgba(255,255,255,0.85)', fontSize: 11, marginTop: 4 },
   proximoHora: { color: colors.secondary, fontSize: 14, fontWeight: 'bold' },
+  proximoCountdown: { color: colors.secondary, fontSize: 13, fontWeight: 'bold', marginTop: 4, letterSpacing: 0.5 },
   recordarBtn: {
     marginTop: 8,
     paddingHorizontal: 10,
