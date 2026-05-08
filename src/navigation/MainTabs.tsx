@@ -22,7 +22,10 @@ function tabIcon(label: string) {
 }
 
 // Hidden tab button — keeps screen navigable but invisible in tab bar
-const hiddenTab = { tabBarButton: () => null, tabBarStyle: { display: 'none' as const } };
+const hiddenTab = {
+  tabBarButton: () => null,
+  tabBarItemStyle: { width: 0, overflow: 'hidden' as const },
+};
 
 export default function MainTabs() {
   return (
