@@ -1,7 +1,7 @@
 {
-  "tool_name": "WebFetch",
-  "tool_input_preview": "{\"url\":\"https://latiendadelalgeciras.com/wp-json/wc/v3/products?per_page=100\",\"prompt\":\"Lista todos los productos con id, nombre, precio, precio regular, precio sale, imágenes, categorías, atributos (...",
-  "error": "Request failed with status code 401",
-  "timestamp": "2026-05-07T11:13:00.019Z",
-  "retry_count": 1
+  "tool_name": "Bash",
+  "tool_input_preview": "{\"command\":\"ssh -i \\\"C:/Users/Dani-Mefle/.ssh/hawcert_dani\\\" -o StrictHostKeyChecking=no dani@217.160.39.81 'docker exec 20314b847165 bash -c \\\"cat > /tmp/clasificacion_fix.py << '\\\"'\\\"'PYEOF'\\\"'\\\"'\\n...",
+  "error": "Exit code 127\nbash: line 16: python3: command not found",
+  "timestamp": "2026-05-07T20:10:27.708Z",
+  "retry_count": 2
 }

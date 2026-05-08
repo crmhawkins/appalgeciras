@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
   ScrollView, TextInput as RNTextInput, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -56,7 +56,6 @@ export default function RegisterScreen() {
         e?.message ||
         'Error al registrarse';
       setError(msg);
-      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }

@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo, useCallback } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, Share,
@@ -117,21 +117,27 @@ export default function JugadorDetalleScreen() {
   const [jugador, setJugador] = useState<JugadorDetalle | null>(null);
   const [loading, setLoading] = useState(true);
   const [fotoError, setFotoError] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchJugador = useCallback(() => {
+    setLoading(true);
+    setFetchError(null);
     let mounted = true;
     api.get<any>(`/api/jugadores/${id}`)
       .then(({ data }) => {
         if (mounted) {
-          // Backend returns { ok, jugador } — unwrap
           const j = data?.jugador ?? data;
           setJugador(j);
         }
       })
-      .catch(() => {})
+      .catch((e: any) => {
+        if (mounted) setFetchError(e?.response?.data?.msg || e?.message || 'Error cargando jugador');
+      })
       .finally(() => { if (mounted) setLoading(false); });
     return () => { mounted = false; };
   }, [id]);
+
+  useEffect(() => { fetchJugador(); }, [fetchJugador]);
 
   if (loading) {
     return (
@@ -150,7 +156,10 @@ export default function JugadorDetalleScreen() {
           <Text style={styles.backText}>‹ Volver</Text>
         </TouchableOpacity>
         <View style={styles.centered}>
-          <Text style={styles.errorText}>No se pudo cargar el jugador</Text>
+          <Text style={styles.errorText}>{fetchError || 'No se pudo cargar el jugador'}</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchJugador}>
+            <Text style={styles.retryText}>Reintentar</Text>
+          </TouchableOpacity>
         </View>
       </SafeAreaView>
     );
@@ -303,7 +312,9 @@ const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: colors.background },
   scroll: { paddingBottom: 32 },
   centered: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  errorText: { color: colors.textSecondary, fontSize: 15 },
+  errorText: { color: colors.textSecondary, fontSize: 15, marginBottom: 16, textAlign: 'center' },
+  retryBtn: { backgroundColor: colors.primary, paddingVertical: 10, paddingHorizontal: 24, borderRadius: 8 },
+  retryText: { color: colors.white, fontWeight: 'bold', fontSize: 14 },
 
   hero: {
     backgroundColor: colors.primary,

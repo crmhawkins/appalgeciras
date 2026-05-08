@@ -8,6 +8,7 @@ import {
   Alert,
   TextInput,
   Image,
+  ScrollView,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -32,6 +33,7 @@ export default function CheckoutScreen() {
   const dniFromProfile = !!(user as any)?.dni;
 
   const handlePay = async () => {
+    if (!user) { Alert.alert('Error', 'Debes iniciar sesión'); return; }
     if (!dni.trim()) {
       setDniError('El DNI es obligatorio para recibir tu código de acceso');
       return;
@@ -48,7 +50,7 @@ export default function CheckoutScreen() {
         nombre: (user as any)?.nombre || '',
         tipo: 'abono',
       });
-      if (!data?.url) throw new Error('URL de pago no recibida');
+      if (!data?.url || !data?.sessionId) throw new Error('Respuesta inválida del servidor');
       const sessionId = data.sessionId;
       await WebBrowser.openBrowserAsync(data.url);
 
@@ -85,7 +87,7 @@ export default function CheckoutScreen() {
         <Text style={styles.headerTitle}>Resumen del Abono</Text>
         <Text style={styles.headerSub}>Temporada {TEMPORADA_CORTA} · {COMPETICION.split(' · ')[0]}</Text>
       </View>
-
+      <ScrollView keyboardShouldPersistTaps="handled" contentContainerStyle={{ flexGrow: 1 }}>
       <View style={styles.clubCard}>
         <Image
           source={{ uri: ESCUDO_URL }}
@@ -146,6 +148,7 @@ export default function CheckoutScreen() {
           <Text style={styles.cancelBtnText}>Cancelar</Text>
         </TouchableOpacity>
       </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

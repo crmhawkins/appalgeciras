@@ -7,7 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
 import api, { API_BASE_URL } from '../../services/api';
 import { Partido } from '../../types';
@@ -138,43 +138,45 @@ export default function FanZoneScreen() {
     }
   }, [mensajes.length]);
 
-  // Socket.io: conectar cuando hay partido activo
-  useEffect(() => {
-    if (!partidoActivo) return;
+  // Socket.io: conectar al entrar al tab, desconectar al salir
+  useFocusEffect(
+    useCallback(() => {
+      if (!partidoActivo) return;
 
-    const socket = io(API_BASE_URL, {
-      transports: ['websocket'],
-      reconnection: true,
-      reconnectionAttempts: 5,
-      reconnectionDelay: 2000,
-    });
-    socketRef.current = socket;
+      const socket = io(API_BASE_URL, {
+        transports: ['websocket'],
+        reconnection: true,
+        reconnectionAttempts: 5,
+        reconnectionDelay: 2000,
+      });
+      socketRef.current = socket;
 
-    socket.on('connect', () => {
-      socket.emit('join_partido', partidoActivo.id);
-    });
+      socket.on('connect', () => {
+        socket.emit('join_partido', partidoActivo.id);
+      });
 
-    socket.on('connect_error', (err) => {
-      console.warn('[Chat] Error de conexión:', err.message);
-    });
+      socket.on('connect_error', (err) => {
+        console.warn('[Chat] Error de conexión:', err.message);
+      });
 
-    socket.on('history', (history: ChatMessage[]) => {
-      setMensajes(history);
-    });
+      socket.on('history', (history: ChatMessage[]) => {
+        setMensajes(history);
+      });
 
-    socket.on('new_message', (msg: ChatMessage) => {
-      setMensajes(prev => [...prev, msg]);
-    });
+      socket.on('new_message', (msg: ChatMessage) => {
+        setMensajes(prev => [...prev, msg]);
+      });
 
-    socket.on('rate_limit', ({ msg }: { msg: string }) => {
-      Alert.alert('Chat', msg);
-    });
+      socket.on('rate_limit', ({ msg }: { msg: string }) => {
+        Alert.alert('Chat', msg);
+      });
 
-    return () => {
-      socket.disconnect();
-      socketRef.current = null;
-    };
-  }, [partidoActivo?.id]);
+      return () => {
+        socket.disconnect();
+        socketRef.current = null;
+      };
+    }, [partidoActivo?.id])
+  );
 
   const handleEnviarMensaje = () => {
     const texto = inputMensaje.trim();
@@ -328,6 +330,7 @@ export default function FanZoneScreen() {
                     data={mensajes}
                     keyExtractor={(item) => item.id}
                     style={styles.chatList}
+                    nestedScrollEnabled={true}
                     renderItem={({ item }) => {
                       const esMio = user && (
                         item.userName === ((user as any)?.nombre || (user as any)?.email)
@@ -473,8 +476,7 @@ const styles = StyleSheet.create({
   socialBtnText: { fontSize: 14, color: colors.primary, fontWeight: '500' },
   // Chat styles
   chatContainer: {
-    minHeight: 180,
-    maxHeight: 300,
+    height: 300,
     backgroundColor: colors.background,
     borderRadius: 8,
     marginBottom: 12,

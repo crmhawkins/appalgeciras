@@ -95,6 +95,8 @@ export default function PerfilScreen() {
     }
   }, [user]);
 
+  useEffect(() => { if (!user) setAbonos([]); }, [user]);
+
   const goLogin = () => navigation.navigate('Auth', { screen: 'Login' });
   const goRegister = () => navigation.navigate('Auth', { screen: 'Register' });
 

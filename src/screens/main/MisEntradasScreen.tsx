@@ -123,7 +123,7 @@ export default function MisEntradasScreen() {
               <Text style={styles.emptyText}>¡Compra tu entrada para el próximo partido!</Text>
               <TouchableOpacity
                 style={styles.buyBtn}
-                onPress={() => navigation.navigate('AbonosTab')}
+                onPress={() => navigation.getParent()?.navigate('Tabs', { screen: 'AbonosTab' })}
               >
                 <Text style={styles.buyBtnText}>Ver entradas disponibles</Text>
               </TouchableOpacity>

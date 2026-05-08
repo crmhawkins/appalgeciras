@@ -31,7 +31,7 @@ const linking: LinkingOptions<any> = {
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function RootNavigator() {
-  const { loading } = useAuth();
+  const { loading, token } = useAuth();
 
   if (loading) {
     return (
@@ -43,9 +43,12 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer linking={linking}>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Main" component={MainStack} />
+      <Stack.Navigator
+        initialRouteName={token ? 'Main' : 'Auth'}
+        screenOptions={{ headerShown: false }}
+      >
         <Stack.Screen name="Auth" component={AuthStack} />
+        <Stack.Screen name="Main" component={MainStack} />
       </Stack.Navigator>
     </NavigationContainer>
   );

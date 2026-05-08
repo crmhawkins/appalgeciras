@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Image,
+  ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -34,7 +34,6 @@ export default function LoginScreen() {
         e?.message ||
         'Error al iniciar sesión';
       setError(msg);
-      Alert.alert('Error', msg);
     } finally {
       setLoading(false);
     }

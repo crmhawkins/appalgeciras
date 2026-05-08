@@ -126,7 +126,7 @@ export default function MisAbonosScreen() {
               <Text style={styles.emptyText}>Aún no tienes abonos para esta temporada</Text>
               <TouchableOpacity
                 style={styles.buyBtn}
-                onPress={() => navigation.navigate('AbonosTab')}
+                onPress={() => navigation.getParent()?.navigate('Tabs', { screen: 'AbonosTab' })}
               >
                 <Text style={styles.buyBtnText}>Comprar un abono</Text>
               </TouchableOpacity>
