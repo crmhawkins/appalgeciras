@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import api from '../../services/api';
 import { getCached, setCached, getCachedStale } from '../../services/cache';
 import { ClasificacionItem, Noticia } from '../../types';
-import { ESCUDO_URL, COMPETICION, TEMPORADA, SPONSORS as DEFAULT_SPONSORS, Sponsor } from '../../constants';
+import { ESCUDO_URL, COMPETICION, TEMPORADA, Sponsor, SPONSORS_DESTACADOS, SPONSORS_PATROCINADORES, SPONSORS_PROVEEDORES } from '../../constants';
 import { useCountdown } from '../../hooks/useCountdown';
 
 
@@ -82,7 +82,9 @@ export default function HomeScreen() {
   const [loadingPartido, setLoadingPartido] = useState(true);
   const [noticiasDestacadas, setNoticiasDestacadas] = useState<Noticia[]>([]);
   const [loadingDestacadas, setLoadingDestacadas] = useState(true);
-  const [patrocinadores, setPatrocinadores] = useState<Sponsor[]>(DEFAULT_SPONSORS);
+  const [sponsorsDestacados]    = useState<Sponsor[]>(SPONSORS_DESTACADOS);
+  const [sponsorsPatrocinadores]= useState<Sponsor[]>(SPONSORS_PATROCINADORES);
+  const [sponsorsProveedores]   = useState<Sponsor[]>(SPONSORS_PROVEEDORES);
   const [offline, setOffline] = useState(false);
 
   const toArray = <T,>(v: unknown): T[] => Array.isArray(v) ? v as T[] : [];
@@ -168,27 +170,6 @@ export default function HomeScreen() {
     return () => controller.abort();
   }, [loadClasificacion, loadPartido, loadDestacadas]);
 
-  // Intentar cargar patrocinadores desde /api/estadio (opcional)
-  useEffect(() => {
-    let cancelled = false;
-    api.get('/api/estadio')
-      .then(({ data }) => {
-        if (cancelled) return;
-        const info = data?.estadio ?? data;
-        const remoteSponsors = info?.patrocinadores;
-        if (Array.isArray(remoteSponsors) && remoteSponsors.length > 0) {
-          // Aceptar shape { name|nombre, url|imagen, dark? }
-          const normalized: Sponsor[] = remoteSponsors.map((s: any) => ({
-            name: s.name ?? s.nombre ?? '',
-            url: s.url ?? s.imagen ?? s.logo ?? '',
-            dark: !!s.dark,
-          })).filter((s: Sponsor) => s.url);
-          if (normalized.length > 0) setPatrocinadores(normalized);
-        }
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, []);
 
   const [refreshing, setRefreshing] = useState(false);
   const [verTodaClasif, setVerTodaClasif] = useState(false);
@@ -370,11 +351,33 @@ export default function HomeScreen() {
         {/* PATROCINADORES */}
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>Patrocinadores</Text>
+
+          {/* Fila 1 — Destacados */}
+          <Text style={styles.sponsorsRowLabel}>Patrocinadores Destacados</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
-            {patrocinadores.map((s) => (
+            {sponsorsDestacados.map((s) => (
+              <View key={s.name} style={[styles.sponsorCard, styles.sponsorCardLg, s.dark && styles.sponsorCardDark]}>
+                <Image source={{ uri: s.url }} style={styles.sponsorImgLg} resizeMode="contain" />
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Fila 2 — Patrocinadores */}
+          <Text style={styles.sponsorsRowLabel}>Patrocinadores</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+            {sponsorsPatrocinadores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
-                <Text style={[styles.sponsorName, s.dark && styles.sponsorNameDark]}>{s.name}</Text>
+              </View>
+            ))}
+          </ScrollView>
+
+          {/* Fila 3 — Proveedores */}
+          <Text style={styles.sponsorsRowLabel}>Proveedores</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+            {sponsorsProveedores.map((s) => (
+              <View key={s.name} style={[styles.sponsorCard, styles.sponsorCardSm, s.dark && styles.sponsorCardDark]}>
+                <Image source={{ uri: s.url }} style={styles.sponsorImgSm} resizeMode="contain" />
               </View>
             ))}
           </ScrollView>
@@ -632,12 +635,15 @@ const styles = StyleSheet.create({
   noticiasArrow: { color: colors.secondary, fontSize: 28, fontWeight: 'bold' },
 
   // SPONSORS
+  sponsorsRowLabel: { fontSize: 10, fontWeight: '700', letterSpacing: 1.4, textTransform: 'uppercase', color: '#999', marginBottom: 6, marginTop: 14, paddingHorizontal: 2 },
   sponsorsRow: { gap: 10, paddingVertical: 4, paddingHorizontal: 2 },
-  sponsorCard: { width: 120, height: 80, borderRadius: 10, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', padding: 8, gap: 4 },
+  sponsorCard: { width: 120, height: 72, borderRadius: 8, backgroundColor: '#f0f0f0', alignItems: 'center', justifyContent: 'center', padding: 8 },
+  sponsorCardLg: { width: 150, height: 90 },
+  sponsorCardSm: { width: 100, height: 60 },
   sponsorCardDark: { backgroundColor: '#1a1a2e' },
-  sponsorImg: { width: 90, height: 42 },
-  sponsorName: { fontSize: 12, color: '#666', fontWeight: '600' },
-  sponsorNameDark: { color: 'rgba(255,255,255,0.6)' },
+  sponsorImg:   { width: 90,  height: 40 },
+  sponsorImgLg: { width: 120, height: 54 },
+  sponsorImgSm: { width: 76,  height: 32 },
 
   // NOTICIAS DESTACADAS
   destacadasRow: { gap: 8, paddingVertical: 4 },
