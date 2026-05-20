@@ -6,12 +6,12 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "algecirascf",
-    "userInterfaceStyle": "automatic",
+    "userInterfaceStyle": "light",
     "newArchEnabled": false,
     "splash": {
-      "image": "./assets/splash-icon.png",
+      "image": "./assets/algeciras_shield.png",
       "resizeMode": "contain",
-      "backgroundColor": "#C8102E"
+      "backgroundColor": "#ffffff"
     },
     "ios": {
       "bundleIdentifier": "es.algecirascf.abonos",
@@ -23,7 +23,7 @@
         "backgroundColor": "#C8102E"
       },
       "package": "es.algecirascf.abonos",
-      "versionCode": 2,
+      "versionCode": 3,
       "permissions": [
         "INTERNET"
       ],
@@ -37,7 +37,20 @@
     "plugins": [
       "expo-secure-store",
       "expo-web-browser",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/algeciras_shield.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "dark": {
+            "backgroundColor": "#ffffff",
+            "image": "./assets/algeciras_shield.png"
+          }
+        }
+      ]
     ],
     "extra": {
       "eas": {

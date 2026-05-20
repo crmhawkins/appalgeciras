@@ -139,6 +139,13 @@ export default function JugadorDetalleScreen() {
 
   useEffect(() => { fetchJugador(); }, [fetchJugador]);
 
+  // Hooks must be called unconditionally — before any early return
+  const url = jugador ? fotoUrl(jugador) : null;
+  const stats = useMemo(
+    () => (jugador ? buildStats(jugador.estadisticas, (jugador as any)?.stats) : []),
+    [jugador],
+  );
+
   if (loading) {
     return (
       <SafeAreaView style={styles.safe} edges={['top']}>
@@ -164,12 +171,6 @@ export default function JugadorDetalleScreen() {
       </SafeAreaView>
     );
   }
-
-  const url = fotoUrl(jugador);
-  const stats = useMemo(
-    () => buildStats(jugador?.estadisticas, (jugador as any)?.stats),
-    [jugador]
-  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>

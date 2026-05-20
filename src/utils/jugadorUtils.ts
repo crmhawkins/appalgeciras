@@ -10,10 +10,10 @@ export interface JugadorBase {
 
 export function fotoUrl(jugador: JugadorBase): string | null {
   if (jugador.foto) return jugador.foto;
+  if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
   if (jugador.dorsal && jugador.dorsal >= 1 && jugador.dorsal <= 25) {
     return `https://backend-algeciras.hawkins.es/acf/2025/10/${jugador.dorsal}.png`;
   }
-  if (jugador.sofascoreId) return `https://api.sofascore.app/api/v1/player/${jugador.sofascoreId}/image`;
   return null;
 }
 

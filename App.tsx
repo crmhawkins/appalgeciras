@@ -3,14 +3,19 @@ import { StatusBar } from 'expo-status-bar';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import * as NavigationBar from 'expo-navigation-bar';
 import * as Notifications from 'expo-notifications';
+import * as ExpoSplash from 'expo-splash-screen';
 import { createNavigationContainerRef } from '@react-navigation/native';
-import { Platform, View, ActivityIndicator } from 'react-native';
+import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
+import SplashScreen from './src/screens/SplashScreen';
 import OnboardingScreen, { ONBOARDING_KEY } from './src/screens/onboarding/OnboardingScreen';
 import { colors } from './src/theme/colors';
 import { setupNotifications } from './src/services/marcadorPolling';
+
+// Mantener splash nativo visible hasta primer render de RN
+ExpoSplash.preventAutoHideAsync().catch(() => {});
 
 export const navigationRef = createNavigationContainerRef<any>();
 
@@ -19,10 +24,8 @@ export default function App() {
   const [showOnboarding, setShowOnboarding] = useState(false);
 
   useEffect(() => {
-    // Setup notification channel + handler
     setupNotifications().catch(() => {});
 
-    // Handle notification taps → deep link into app
     const sub = Notifications.addNotificationResponseReceivedListener((response) => {
       const data = response.notification.request.content.data as any;
       if (!navigationRef.isReady()) return;
@@ -55,14 +58,13 @@ export default function App() {
     })();
   }, []);
 
+  // Ocultar splash nativo en primer render — window blanco ya cubre el gap
+  useEffect(() => {
+    ExpoSplash.hideAsync().catch(() => {});
+  }, []);
+
   if (!onboardingChecked) {
-    return (
-      <SafeAreaProvider>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.white }}>
-          <ActivityIndicator size="large" color={colors.primary} />
-        </View>
-      </SafeAreaProvider>
-    );
+    return <SplashScreen />;
   }
 
   if (showOnboarding) {

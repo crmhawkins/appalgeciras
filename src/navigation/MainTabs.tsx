@@ -1,6 +1,6 @@
 import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { Text } from 'react-native';
+import { Text, useWindowDimensions } from 'react-native';
 import HomeScreen from '../screens/main/HomeScreen';
 import NoticiasScreen from '../screens/main/NoticiasScreen';
 import PlantillaScreen from '../screens/main/PlantillaScreen';
@@ -15,58 +15,62 @@ import { colors } from '../theme/colors';
 
 const Tab = createBottomTabNavigator<MainTabParamList>();
 
+const VISIBLE_TABS = 5;
+
 function tabIcon(label: string) {
   return ({ color }: { color: string }) => (
-    <Text style={{ color, fontSize: 18 }}>{label}</Text>
+    <Text style={{ color, fontSize: 16 }}>{label}</Text>
   );
 }
 
-// Hidden tab button — keeps screen navigable but invisible in tab bar
 const hiddenTab = {
   tabBarButton: () => null,
-  tabBarItemStyle: { width: 0, overflow: 'hidden' as const },
+  tabBarItemStyle: { width: 0, height: 0, overflow: 'hidden' as const, flex: 0 },
 };
 
 export default function MainTabs() {
+  const { width } = useWindowDimensions();
+  const tabWidth = Math.floor(width / VISIBLE_TABS);
+  const visibleTab = { tabBarItemStyle: { width: tabWidth } };
+
   return (
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
         tabBarActiveTintColor: colors.primary,
         tabBarInactiveTintColor: colors.textSecondary,
-        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border, height: 60, paddingBottom: 6, paddingTop: 4 },
-        tabBarLabelStyle: { fontSize: 11 },
-        tabBarItemStyle: { flex: 1 },
+        tabBarStyle: { backgroundColor: colors.white, borderTopColor: colors.border, height: 58, paddingBottom: 5, paddingTop: 4 },
+        tabBarLabelStyle: { fontSize: 10 },
       }}
     >
-      {/* ── Visible tabs (5) ── */}
+      {/* ── Visible tabs (5) — explicit width so hidden tabs don't shrink them ── */}
       <Tab.Screen
         name="InicioTab"
         component={HomeScreen}
-        options={{ title: 'Inicio', tabBarIcon: tabIcon('🏠') }}
+        options={{ title: 'Inicio', tabBarIcon: tabIcon('🏠'), ...visibleTab }}
       />
       <Tab.Screen
         name="AbonosTab"
         component={AbonosStack}
-        options={{ title: 'Comprar', tabBarIcon: tabIcon('🎟️') }}
+        options={{ title: 'Comprar', tabBarIcon: tabIcon('🎟️'), ...visibleTab }}
       />
       <Tab.Screen
         name="FanZoneTab"
         component={FanZoneScreen}
-        options={{ title: 'Fan Zone', tabBarIcon: tabIcon('⭐') }}
+        options={{ title: 'Fan Zone', tabBarIcon: tabIcon('⭐'), ...visibleTab }}
       />
       <Tab.Screen
         name="PerfilTab"
         component={PerfilScreen}
-        options={{ title: 'Perfil', tabBarIcon: tabIcon('👤') }}
+        options={{ title: 'Perfil', tabBarIcon: tabIcon('👤'), ...visibleTab }}
       />
       <Tab.Screen
         name="MasTab"
         component={MasScreen}
-        options={{ title: 'Más', tabBarIcon: tabIcon('☰') }}
+        options={{ title: 'Más', tabBarIcon: tabIcon('☰'), ...visibleTab }}
       />
 
-      {/* ── Hidden tabs — accessible via navigate() but not shown in bar ── */}
+      {/* ── Hidden tabs — navigable but invisible ── */}
       <Tab.Screen
         name="NoticiasTab"
         component={NoticiasScreen}

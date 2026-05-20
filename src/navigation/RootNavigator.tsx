@@ -1,13 +1,12 @@
-import React, { useEffect } from 'react';
-import { View, ActivityIndicator, StyleSheet } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import { NavigationContainer, LinkingOptions, NavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import AuthStack from './AuthStack';
 import MainStack from './MainStack';
 import { useAuth } from '../context/AuthContext';
 import { RootStackParamList } from '../types';
-import { colors } from '../theme/colors';
 import { ErrorBoundary } from '../components/ErrorBoundary';
+import SplashScreen from '../screens/SplashScreen';
 
 const linking: LinkingOptions<any> = {
   prefixes: ['algecirascf://', 'algeciras://', 'https://algecirasclubdefutbol.com'],
@@ -35,15 +34,19 @@ interface RootNavigatorProps {
   navigationRef?: React.RefObject<NavigationContainerRef<any> | null>;
 }
 
+const SPLASH_MIN_MS = 2500;
+
 export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   const { loading, token } = useAuth();
+  const [splashDone, setSplashDone] = useState(false);
 
-  if (loading) {
-    return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
+  useEffect(() => {
+    const timer = setTimeout(() => setSplashDone(true), SPLASH_MIN_MS);
+    return () => clearTimeout(timer);
+  }, []);
+
+  if (loading || !splashDone) {
+    return <SplashScreen />;
   }
 
   return (
@@ -65,11 +68,3 @@ export default function RootNavigator({ navigationRef }: RootNavigatorProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  center: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: colors.white,
-  },
-});

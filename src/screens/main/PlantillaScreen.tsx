@@ -115,7 +115,7 @@ export default function PlantillaScreen() {
         ...(plantilla.defensas ?? []),
         ...(plantilla.centrocampistas ?? []),
         ...(plantilla.delanteros ?? []),
-      ];
+      ].filter((j) => fotoUrl(j) !== null);
       setSections(buildSections(flat));
       await setCached('plantilla', flat);
       setOffline(false);

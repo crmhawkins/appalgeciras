@@ -1,8 +1,46 @@
-import React, { useEffect, useState, useCallback, useMemo } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
+
+// Carrusel auto-scroll infinito
+function AutoScrollRow({ children, itemWidth, gap = 10, speed = 0.5 }: {
+  children: React.ReactNode[];
+  itemWidth: number;
+  gap?: number;
+  speed?: number;
+}) {
+  const scrollRef = useRef<ScrollView>(null);
+  const posRef    = useRef(0);
+  const items     = React.Children.toArray(children);
+  // Duplicar items para loop sin saltos
+  const looped    = [...items, ...items, ...items, ...items];
+  const setWidth  = items.length * (itemWidth + gap);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      posRef.current += speed;
+      if (posRef.current >= setWidth * 2) {
+        posRef.current -= setWidth * 2;
+      }
+      scrollRef.current?.scrollTo({ x: posRef.current, animated: false });
+    }, 16);
+    return () => clearInterval(id);
+  }, [setWidth, speed]);
+
+  return (
+    <ScrollView
+      ref={scrollRef}
+      horizontal
+      scrollEnabled={false}
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{ gap, paddingVertical: 4, paddingHorizontal: 2 }}
+    >
+      {looped}
+    </ScrollView>
+  );
+}
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
@@ -260,13 +298,6 @@ export default function HomeScreen() {
               {user ? `Hola, ${user.nombre || user.email}` : 'Bienvenido, aficionado'}
             </Text>
           </View>
-          <TouchableOpacity
-            style={styles.searchBtn}
-            onPress={() => navigation.navigate('Busqueda')}
-            accessibilityLabel="Buscar"
-          >
-            <Text style={styles.searchBtnIcon}>🔍</Text>
-          </TouchableOpacity>
         </View>
 
         {/* ACTION BUTTONS */}
@@ -364,23 +395,23 @@ export default function HomeScreen() {
 
           {/* Fila 2 — Patrocinadores */}
           <Text style={styles.sponsorsRowLabel}>Patrocinadores</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+          <AutoScrollRow itemWidth={120} gap={10} speed={0.45}>
             {sponsorsPatrocinadores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
               </View>
             ))}
-          </ScrollView>
+          </AutoScrollRow>
 
           {/* Fila 3 — Proveedores */}
           <Text style={styles.sponsorsRowLabel}>Proveedores</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.sponsorsRow}>
+          <AutoScrollRow itemWidth={100} gap={10} speed={0.6}>
             {sponsorsProveedores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, styles.sponsorCardSm, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImgSm} resizeMode="contain" />
               </View>
             ))}
-          </ScrollView>
+          </AutoScrollRow>
         </View>
 
         {/* ÚLTIMAS NOTICIAS */}
@@ -514,16 +545,6 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   offlineBannerText: { color: '#7a5c00', fontSize: 12, textAlign: 'center', fontWeight: '600' },
-  searchBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  searchBtnIcon: { fontSize: 18 },
-
   // HEADER
   header: {
     backgroundColor: colors.primary,

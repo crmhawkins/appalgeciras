@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
-  TouchableOpacity, Image, Share, Alert,
+  TouchableOpacity, Image, Share, Alert, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
@@ -168,7 +168,7 @@ export default function PartidoDetalleScreen() {
       const editable = calendars.find((c: Calendar.Calendar) => c.allowsModifications);
       if (editable) {
         calendarId = editable.id;
-      } else {
+      } else if (Platform.OS === 'ios') {
         calendarId = await Calendar.createCalendarAsync({
           title: 'Algeciras CF',
           color: colors.primary,
@@ -179,6 +179,10 @@ export default function PartidoDetalleScreen() {
           ownerAccount: 'algecirascf',
           accessLevel: Calendar.CalendarAccessLevel.OWNER,
         });
+      } else {
+        // Android: use primary calendar or first available
+        const primary = calendars.find((c: Calendar.Calendar) => (c as any).isPrimary) ?? calendars[0];
+        calendarId = primary?.id;
       }
       const rival = partido.equipoLocal.toLowerCase().includes('algeciras')
         ? partido.equipoVisitante

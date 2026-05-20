@@ -55,16 +55,17 @@ export default function EstadioScreen() {
   const lat = typeof info?.coordenadas === 'object' ? info?.coordenadas?.lat : info?.lat;
   const lng = typeof info?.coordenadas === 'object' ? info?.coordenadas?.lng : info?.lng;
 
+  // Estadio Municipal El Mirador — coords reales
+  const FALLBACK_LAT = 36.1285;
+  const FALLBACK_LNG = -5.4537;
+
   const openMaps = () => {
-    if (lat != null && lng != null) {
-      Linking.openURL(`https://maps.google.com/?q=${lat},${lng}`);
-    } else {
-      const q = encodeURIComponent(`${nombre} ${ciudad}`);
-      Linking.openURL(`https://maps.google.com/?q=${q}`);
-    }
+    const latFinal = lat ?? FALLBACK_LAT;
+    const lngFinal = lng ?? FALLBACK_LNG;
+    Linking.openURL(`https://maps.google.com/?q=${latFinal},${lngFinal}`);
   };
 
-  const igUrl = info?.instagram ?? 'https://www.instagram.com/algecirascf_oficial/';
+  const igUrl = info?.instagram ?? 'https://www.instagram.com/algecirascf/';
   const twUrl = info?.twitter ?? 'https://twitter.com/AlgecirasCF';
   const ytUrl = info?.youtube ?? 'https://www.youtube.com/@Algeciras_cf';
 
