@@ -15,7 +15,19 @@
     },
     "ios": {
       "bundleIdentifier": "es.algecirascf.abonos",
-      "supportsTablet": false
+      "supportsTablet": false,
+      "infoPlist": {
+        "NSAppTransportSecurity": {
+          "NSAllowsArbitraryLoads": true,
+          "NSExceptionDomains": {
+            "217.160.39.79.sslip.io": {
+              "NSIncludesSubdomains": true,
+              "NSExceptionAllowsInsecureHTTPLoads": true,
+              "NSExceptionRequiresForwardSecrecy": false
+            }
+          }
+        }
+      }
     },
     "android": {
       "adaptiveIcon": {
