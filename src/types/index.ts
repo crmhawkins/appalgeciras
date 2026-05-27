@@ -1,10 +1,52 @@
+export type Tier = 'aficionado' | 'abonado' | 'abonado_vip' | 'peñista';
+
+export interface CustomerInfo {
+  tier?: Tier;
+  tierLabel?: string;
+  attendanceRate?: number;
+  isSocio?: boolean;
+  socioNumber?: string | number;
+  [k: string]: any;
+}
+
 export interface Usuario {
   id: number;
   nombre?: string;
+  name?: string;
   email: string;
   telefono?: string;
   dni?: string;
+  direccion?: string;
   profileImage?: string | null;
+  isSocio?: boolean;
+  socioNumber?: string | number | null;
+  customer?: CustomerInfo;
+  matchdayToday?: boolean;
+}
+
+export type UsuarioConTier = Usuario;
+
+export interface CompraItem {
+  id?: number;
+  nombre?: string;
+  descripcion?: string;
+  cantidad?: number;
+  precio?: number;
+  total?: number;
+  imagen?: string;
+}
+
+export interface Compra {
+  id: number;
+  reference?: string;
+  referencia?: string;
+  total: number;
+  status?: string;
+  estado?: string;
+  created_at?: string;
+  fecha?: string;
+  items?: CompraItem[];
+  [k: string]: any;
 }
 
 export interface LoginResponse {
@@ -151,6 +193,19 @@ export interface Noticia {
   activo: boolean;
   destacado: boolean;
 }
+
+export type CuentaStackParamList = {
+  MiCuentaHome: undefined;
+  Perfil: undefined;
+  MisAbonosCuenta: undefined;
+  MisEntradasCuenta: undefined;
+  MisCompras: undefined;
+  MisComprasDetalle: { id: number };
+  Beneficios: undefined;
+  Actividad: undefined;
+  Notificaciones: undefined;
+  Carnet: undefined;
+};
 
 export type MainTabParamList = {
   InicioTab: undefined;

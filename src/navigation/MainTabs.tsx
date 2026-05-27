@@ -7,9 +7,9 @@ import PlantillaScreen from '../screens/main/PlantillaScreen';
 import FanZoneScreen from '../screens/main/FanZoneScreen';
 import TiendaScreen from '../screens/main/TiendaScreen';
 import SociosScreen from '../screens/main/SociosScreen';
-import PerfilScreen from '../screens/main/PerfilScreen';
 import MasScreen from '../screens/main/MasScreen';
 import AbonosStack from './AbonosStack';
+import CuentaStack from './CuentaStack';
 import { MainTabParamList } from '../types';
 import { colors } from '../theme/colors';
 
@@ -61,8 +61,8 @@ export default function MainTabs() {
       />
       <Tab.Screen
         name="PerfilTab"
-        component={PerfilScreen}
-        options={{ title: 'Perfil', tabBarIcon: tabIcon('👤'), ...visibleTab }}
+        component={CuentaStack}
+        options={{ title: 'Mi Cuenta', tabBarIcon: tabIcon('👤'), ...visibleTab }}
       />
       <Tab.Screen
         name="MasTab"

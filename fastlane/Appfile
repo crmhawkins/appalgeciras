@@ -1,0 +1,2 @@
+app_identifier("es.algecirascf.abonos")
+team_id(ENV["APPLE_TEAM_ID"])
