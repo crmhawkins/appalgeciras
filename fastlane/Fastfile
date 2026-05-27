@@ -3,22 +3,23 @@ default_platform(:ios)
 # ---------------------------------------------------------------------------
 # Algeciras CF Abonados — build + TestFlight upload con Fastlane
 #
-# Variables de entorno requeridas (pasadas desde GitHub Actions):
-#   ASC_KEY_ID            → Key ID de App Store Connect API
-#   ASC_ISSUER_ID         → Issuer ID (UUID) de App Store Connect API
-#   ASC_API_KEY_PATH      → ruta absoluta al archivo .p8
-#   APPLE_TEAM_ID         → Team ID de la cuenta de Apple Developer
-#   APP_BUNDLE_ID         → es.algecirascf.abonos (opcional, default abajo)
+# Usa `match` en vez de cert/sigh para que el certificado de distribución
+# y el provisioning profile se sincronicen entre runs de CI vía un repo
+# git privado cifrado (crmhawkins/appalgeciras-fastlane-match).
 #
-# El xcodeproj se genera con `expo prebuild --platform ios` y su nombre
-# se deriva de `name` en app.json. Para "Algeciras CF Abonados" Expo
-# produce `AlgecirasCFAbonados.xcodeproj`.
+# Env vars requeridas:
+#   ASC_KEY_ID              → Key ID de App Store Connect API
+#   ASC_ISSUER_ID           → Issuer ID (UUID)
+#   ASC_API_KEY_PATH        → ruta absoluta al .p8
+#   APPLE_TEAM_ID           → Team ID
+#   APP_BUNDLE_ID           → es.algecirascf.abonos (default abajo)
+#   MATCH_PASSWORD          → contraseña para cifrar el repo de match
+#   MATCH_GIT_BASIC_AUTHORIZATION → base64("username:PAT") para clonar el repo
 # ---------------------------------------------------------------------------
 
 platform :ios do
   desc "Build the iOS app and submit it to TestFlight"
   lane :beta do
-    # Autenticación contra App Store Connect (sin 2FA)
     api_key = app_store_connect_api_key(
       key_id: ENV["ASC_KEY_ID"],
       issuer_id: ENV["ASC_ISSUER_ID"],
@@ -30,7 +31,7 @@ platform :ios do
     team_id   = ENV["APPLE_TEAM_ID"]
     scheme    = "AlgecirasCFAbonados"
 
-    # Keychain dedicado para que codesign pueda correr desatendido
+    # Keychain dedicado en CI
     keychain_name = "algeciras_keychain"
     keychain_pwd  = "algecirastempkeychainpw"
     create_keychain(
@@ -42,19 +43,20 @@ platform :ios do
       lock_when_sleeps: false,
     )
 
-    # Distribution cert (lo crea o reutiliza vía API key)
-    cert(
-      api_key: api_key,
-      development: false,
-      keychain_path: "#{ENV['HOME']}/Library/Keychains/#{keychain_name}-db",
-      keychain_password: keychain_pwd,
-    )
-
-    # Provisioning profile App Store
-    sigh(
-      api_key: api_key,
+    # Sync code signing — cert + profile vivos en un repo git cifrado.
+    # El primer run con repo vacío crea cert + profile y los sube;
+    # los siguientes los descargan y reusan (cero overhead de slots).
+    match(
+      type: "appstore",
       app_identifier: bundle_id,
-      force: true,
+      git_url: "https://github.com/crmhawkins/appalgeciras-fastlane-match",
+      git_branch: "main",
+      api_key: api_key,
+      readonly: false,
+      keychain_name: keychain_name,
+      keychain_password: keychain_pwd,
+      force: false,
+      force_for_new_devices: false,
     )
 
     # Build number basado en último de TestFlight + 1
@@ -68,15 +70,15 @@ platform :ios do
       build_number: (latest_build + 1).to_s,
     )
 
-    # Inyectar Team ID en project (manual signing)
     update_project_team(
       path: "ios/#{scheme}.xcodeproj",
       teamid: team_id,
     )
 
-    profile_name = lane_context[SharedValues::SIGH_NAME] || "iOS Team Provisioning Profile: #{bundle_id}"
+    profile_name = ENV["sigh_#{bundle_id}_appstore_profile-name"] ||
+                   lane_context[SharedValues::SIGH_NAME] ||
+                   "match AppStore #{bundle_id}"
 
-    # Construir el .ipa
     gym(
       workspace: "ios/#{scheme}.xcworkspace",
       scheme: scheme,
@@ -94,7 +96,6 @@ platform :ios do
       xcargs: %Q(DEVELOPMENT_TEAM=#{team_id} CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" PROVISIONING_PROFILE_SPECIFIER="#{profile_name}" -allowProvisioningUpdates),
     )
 
-    # Subir a TestFlight (sin esperar processing)
     pilot(
       api_key: api_key,
       ipa: "ios/build/#{scheme}.ipa",
