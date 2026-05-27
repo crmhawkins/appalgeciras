@@ -81,9 +81,10 @@ platform :ios do
 
     # Patch fmt header: Xcode 26 / clang 17 introdujeron strict consteval
     # checks que rompen la librería `fmt` que viene con React Native 0.81.5.
-    # Reemplazamos `FMT_CONSTEVAL` por `FMT_CONSTEXPR20` en los headers que se
-    # descargan vía CocoaPods. Se ejecuta cada build (idempotente).
-    sh "find ../ios/Pods/fmt -type f \\( -name '*.h' -o -name '*.cc' \\) -exec sed -i.bak 's/FMT_CONSTEVAL20/FMT_CONSTEXPR20/g; s/FMT_CONSTEVAL/FMT_CONSTEXPR/g' {} +" rescue nil
+    # Reemplazamos tanto las macros `FMT_CONSTEVAL*` como la palabra clave
+    # `consteval` directa por `constexpr` en los headers que se descargan
+    # vía CocoaPods. Se ejecuta cada build (idempotente).
+    sh "find ../ios/Pods/fmt -type f \\( -name '*.h' -o -name '*.cc' \\) -exec sed -i.bak -e 's/FMT_CONSTEVAL20/FMT_CONSTEXPR20/g' -e 's/FMT_CONSTEVAL/FMT_CONSTEXPR/g' -e 's/[[:<:]]consteval[[:>:]]/constexpr/g' {} +" rescue nil
 
     gym(
       workspace: "ios/#{scheme}.xcworkspace",
