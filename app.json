@@ -17,17 +17,7 @@
       "bundleIdentifier": "es.algecirascf.abonos",
       "supportsTablet": false,
       "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false,
-        "NSAppTransportSecurity": {
-          "NSAllowsArbitraryLoads": true,
-          "NSExceptionDomains": {
-            "217.160.39.79.sslip.io": {
-              "NSIncludesSubdomains": true,
-              "NSExceptionAllowsInsecureHTTPLoads": true,
-              "NSExceptionRequiresForwardSecrecy": false
-            }
-          }
-        }
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
