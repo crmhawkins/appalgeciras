@@ -4,40 +4,24 @@ import {
   ActivityIndicator, Image, RefreshControl,
 } from 'react-native';
 
-// Carrusel auto-scroll infinito
-function AutoScrollRow({ children, itemWidth, gap = 10, speed = 0.5 }: {
+// Fila de patrocinadores con scroll manual.
+//
+// HISTÓRICO: antes esto era un AutoScrollRow con setInterval(16ms) llamando
+// scrollTo() en cada tick. Saturaba el JS thread en iOS y dejaba la UI sin
+// responder a toques — el usuario reportó "no es clicable nada del menú
+// principal" el 28/05/2026. Reemplazado por un ScrollView estándar con
+// scroll manual del usuario.
+function SponsorsRow({ children, gap = 10 }: {
   children: React.ReactNode[];
-  itemWidth: number;
   gap?: number;
-  speed?: number;
 }) {
-  const scrollRef = useRef<ScrollView>(null);
-  const posRef    = useRef(0);
-  const items     = React.Children.toArray(children);
-  // Duplicar items para loop sin saltos
-  const looped    = [...items, ...items, ...items, ...items];
-  const setWidth  = items.length * (itemWidth + gap);
-
-  useEffect(() => {
-    const id = setInterval(() => {
-      posRef.current += speed;
-      if (posRef.current >= setWidth * 2) {
-        posRef.current -= setWidth * 2;
-      }
-      scrollRef.current?.scrollTo({ x: posRef.current, animated: false });
-    }, 16);
-    return () => clearInterval(id);
-  }, [setWidth, speed]);
-
   return (
     <ScrollView
-      ref={scrollRef}
       horizontal
-      scrollEnabled={false}
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={{ gap, paddingVertical: 4, paddingHorizontal: 2 }}
     >
-      {looped}
+      {children}
     </ScrollView>
   );
 }
@@ -400,23 +384,23 @@ export default function HomeScreen() {
 
           {/* Fila 2 — Patrocinadores */}
           <Text style={styles.sponsorsRowLabel}>Patrocinadores</Text>
-          <AutoScrollRow itemWidth={120} gap={10} speed={0.45}>
+          <SponsorsRow gap={10}>
             {sponsorsPatrocinadores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImg} resizeMode="contain" />
               </View>
             ))}
-          </AutoScrollRow>
+          </SponsorsRow>
 
           {/* Fila 3 — Proveedores */}
           <Text style={styles.sponsorsRowLabel}>Proveedores</Text>
-          <AutoScrollRow itemWidth={100} gap={10} speed={0.6}>
+          <SponsorsRow gap={10}>
             {sponsorsProveedores.map((s) => (
               <View key={s.name} style={[styles.sponsorCard, styles.sponsorCardSm, s.dark && styles.sponsorCardDark]}>
                 <Image source={{ uri: s.url }} style={styles.sponsorImgSm} resizeMode="contain" />
               </View>
             ))}
-          </AutoScrollRow>
+          </SponsorsRow>
         </View>
 
         {/* ÚLTIMAS NOTICIAS */}
