@@ -9,6 +9,7 @@ import NoticiaDetalleScreen from '../screens/main/NoticiaDetalleScreen';
 import PartidoDetalleScreen from '../screens/main/PartidoDetalleScreen';
 import ProductoDetalleScreen from '../screens/main/ProductoDetalleScreen';
 import EstadioScreen from '../screens/main/EstadioScreen';
+import EstadioWebViewScreen from '../screens/abonos/EstadioWebViewScreen';
 import BusquedaScreen from '../screens/main/BusquedaScreen';
 import { colors } from '../theme/colors';
 
@@ -22,6 +23,7 @@ export type MainStackParamList = {
   NoticiaDetalle: { slug: string };
   ProductoDetalle: { id: number };
   Estadio: undefined;
+  EstadioPlano: { matchId?: number } | undefined;
   Busqueda: undefined;
 };
 
@@ -52,6 +54,16 @@ export default function MainStack() {
       <Stack.Screen name="PartidoDetalle" component={PartidoDetalleScreen} options={{ headerShown: false }} />
       <Stack.Screen name="ProductoDetalle" component={ProductoDetalleScreen} options={{ headerShown: false }} />
       <Stack.Screen name="Estadio" component={EstadioScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="EstadioPlano"
+        component={EstadioWebViewScreen}
+        options={{
+          title: 'Plano del Estadio',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.white,
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
       <Stack.Screen name="Busqueda" component={BusquedaScreen} options={{ headerShown: false }} />
     </Stack.Navigator>
   );

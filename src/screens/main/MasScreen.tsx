@@ -12,7 +12,10 @@ interface MenuItem {
 
 const ITEMS: MenuItem[] = [
   { icon: '📰', label: 'Noticias', screen: 'NoticiasTab' },
+  { icon: '⚽', label: 'Partidos', screen: 'Partidos' },
   { icon: '👥', label: 'Plantilla', screen: 'PlantillaTab' },
+  { icon: '🎟️', label: 'Comprar Entrada (Plano)', screen: 'EstadioPlano' },
+  { icon: '🏟️', label: 'Estadio Nuevo Mirador', screen: 'Estadio' },
   { icon: '🛍️', label: 'Tienda', screen: 'TiendaTab' },
   { icon: '🏅', label: 'Socios', screen: 'SociosTab' },
 ];

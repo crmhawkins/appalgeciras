@@ -290,9 +290,17 @@ export default function PartidoDetalleScreen() {
             {COMPETICION.split(' · ')[0]}
           </Text>
           {!tieneMarcador && (
-            <TouchableOpacity style={styles.calendarBtn} onPress={addToCalendar}>
-              <Text style={styles.calendarBtnText}>📅 Añadir al calendario</Text>
-            </TouchableOpacity>
+            <>
+              <TouchableOpacity
+                style={styles.entradaBtn}
+                onPress={() => navigation.navigate('EstadioPlano', { matchId: partido.id })}
+              >
+                <Text style={styles.entradaBtnText}>🎟️ Comprar entrada para este partido</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.calendarBtn} onPress={addToCalendar}>
+                <Text style={styles.calendarBtnText}>📅 Añadir al calendario</Text>
+              </TouchableOpacity>
+            </>
           )}
         </View>
 
@@ -415,7 +423,7 @@ const styles = StyleSheet.create({
   eventText: { fontSize: 14, color: colors.text },
   empty: { textAlign: 'center', color: colors.textSecondary, paddingVertical: 12 },
   calendarBtn: {
-    marginTop: 12,
+    marginTop: 8,
     backgroundColor: 'rgba(255,255,255,0.15)',
     borderRadius: 8,
     paddingVertical: 10,
@@ -424,4 +432,12 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,255,255,0.4)',
   },
   calendarBtnText: { color: colors.white, fontWeight: '600', fontSize: 14 },
+  entradaBtn: {
+    marginTop: 12,
+    backgroundColor: colors.secondary,
+    borderRadius: 8,
+    paddingVertical: 14,
+    alignItems: 'center',
+  },
+  entradaBtnText: { color: colors.primary, fontWeight: 'bold', fontSize: 15 },
 });

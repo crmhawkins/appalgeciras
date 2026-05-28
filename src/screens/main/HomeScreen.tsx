@@ -249,6 +249,7 @@ export default function HomeScreen() {
   }, [offline]);
 
   const goAbonos = () => navigation.navigate('AbonosTab');
+  const goEntradas = () => navigation.navigate('EstadioPlano');
   const goPartidos = () => navigation.navigate('Partidos');
   const goNoticias = () => navigation.navigate('NoticiasTab');
 
@@ -303,12 +304,16 @@ export default function HomeScreen() {
         {/* ACTION BUTTONS */}
         <View style={styles.actionsRow}>
           <TouchableOpacity style={styles.actionBtn} onPress={goAbonos}>
+            <Text style={styles.actionIcon}>🎫</Text>
+            <Text style={styles.actionLabel}>Abono</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.actionBtn} onPress={goEntradas}>
             <Text style={styles.actionIcon}>🎟️</Text>
-            <Text style={styles.actionLabel}>Comprar Abono</Text>
+            <Text style={styles.actionLabel}>Entrada</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={goPartidos}>
             <Text style={styles.actionIcon}>⚽</Text>
-            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Ver Partidos</Text>
+            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Partidos</Text>
           </TouchableOpacity>
         </View>
 
