@@ -44,3 +44,4 @@ yarn-error.*
 # Claude Code / OMC agent artifacts
 .omc/
 .claude/
+algeciras-release.keystore
