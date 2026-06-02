@@ -173,7 +173,10 @@ export default function CheckoutScreen() {
         <Row label="Fila" value={String(fila)} />
         <Row label="Asiento" value={String(numero)} />
         <View style={styles.divider} />
-        <Row label="Precio" value={`${precio} €`} highlight />
+        <Row label="Subtotal" value={`${Number(precio).toFixed(2)} €`} />
+        <Row label="Gastos de gestión (5%)" value={`${(Math.floor(precio * 0.05 * 100) / 100).toFixed(2)} €`} />
+        <View style={styles.divider} />
+        <Row label="Total" value={`${(Number(precio) + Math.floor(precio * 0.05 * 100) / 100).toFixed(2)} €`} highlight />
       </View>
 
       <View style={styles.dniContainer}>

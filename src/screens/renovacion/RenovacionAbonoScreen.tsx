@@ -36,6 +36,8 @@ interface AbonadoData {
   asiento?: string | number | null;
   season_name?: string | null;
   precio_renovacion: number;
+  gastos_gestion?: number;
+  total_renovacion?: number;
   renovacion_season?: string | null;
   renovacion_product_id?: number | null;
 }
@@ -329,11 +331,29 @@ export default function RenovacionAbonoScreen() {
 
                 <View style={styles.divider} />
 
-                <Row
-                  label={`Renovación ${abonado.renovacion_season ?? ''}`.trim()}
-                  value={`${abonado.precio_renovacion.toFixed(2)} €`}
-                  highlight
-                />
+                {(() => {
+                  const base = Number(abonado.precio_renovacion) || 0;
+                  const fee  = abonado.gastos_gestion ?? (Math.floor(base * 0.05 * 100) / 100);
+                  const tot  = abonado.total_renovacion ?? (base + fee);
+                  return (
+                    <>
+                      <Row
+                        label={`Subtotal ${abonado.renovacion_season ?? ''}`.trim()}
+                        value={`${base.toFixed(2)} €`}
+                      />
+                      <Row
+                        label="Gastos de gestión (5%)"
+                        value={`${fee.toFixed(2)} €`}
+                      />
+                      <View style={styles.divider} />
+                      <Row
+                        label="Total a pagar"
+                        value={`${tot.toFixed(2)} €`}
+                        highlight
+                      />
+                    </>
+                  );
+                })()}
               </View>
 
               <View style={styles.footer}>
@@ -341,13 +361,13 @@ export default function RenovacionAbonoScreen() {
                   style={[styles.primaryBtn, paying && styles.btnDisabled]}
                   onPress={handleRenovar}
                   disabled={paying}
-                  accessibilityLabel={`Renovar abono ${abonado.precio_renovacion} €`}
+                  accessibilityLabel={`Renovar abono ${abonado.total_renovacion ?? abonado.precio_renovacion} €`}
                 >
                   {paying ? (
                     <ActivityIndicator color={colors.white} />
                   ) : (
                     <Text style={styles.primaryBtnText}>
-                      💳 Renovar abono {abonado.precio_renovacion.toFixed(2)} €
+                      💳 Renovar abono {(abonado.total_renovacion ?? abonado.precio_renovacion).toFixed(2)} €
                     </Text>
                   )}
                 </TouchableOpacity>
