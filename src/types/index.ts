@@ -166,9 +166,9 @@ export type RootStackParamList = {
 };
 
 export type AuthStackParamList = {
-  Login: { afterAuthScreen?: string } | undefined;
+  Login: { afterAuthScreen?: string; prefilledEmail?: string } | undefined;
   Register: { afterAuthScreen?: string } | undefined;
-  RecuperarPassword: undefined;
+  RecuperarPassword: { prefilledEmail?: string } | undefined;
 };
 
 export type AbonosStackParamList = {

@@ -4,14 +4,16 @@ import {
   ActivityIndicator, Alert, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
 import { ESCUDO_URL } from '../../constants';
 
 export default function RecuperarPasswordScreen() {
   const navigation = useNavigation<any>();
-  const [email, setEmail] = useState('');
+  const route = useRoute<any>();
+  const prefilledEmail: string | undefined = route.params?.prefilledEmail;
+  const [email, setEmail] = useState(prefilledEmail ?? '');
   const [loading, setLoading] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState<string | null>(null);

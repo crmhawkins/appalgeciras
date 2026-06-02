@@ -4,7 +4,7 @@ import {
   ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import { ESCUDO_URL } from '../../constants';
@@ -12,7 +12,11 @@ import { ESCUDO_URL } from '../../constants';
 export default function LoginScreen() {
   const { login } = useAuth();
   const navigation = useNavigation<any>();
-  const [email, setEmail] = useState('');
+  // Acepta opcionalmente `prefilledEmail` desde RegisterScreen cuando el
+  // usuario intenta registrarse con un email ya existente.
+  const route = useRoute<any>();
+  const prefilledEmail: string | undefined = route.params?.prefilledEmail;
+  const [email, setEmail] = useState(prefilledEmail ?? '');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);

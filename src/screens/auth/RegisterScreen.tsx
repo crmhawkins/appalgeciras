@@ -24,6 +24,11 @@ export default function RegisterScreen() {
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // duplicateField:
+  //   'email'   → CTA "Iniciar sesión" + prellena email + opcional "He olvidado mi contraseña"
+  //   'dni'     → CTA "Iniciar sesión" (puede que el DNI esté asignado a otra cuenta)
+  //   null      → error genérico (sin CTA, solo texto rojo)
+  const [duplicateField, setDuplicateField] = useState<'email' | 'dni' | null>(null);
 
   const emailRef = useRef<RNTextInput>(null);
   const telefonoRef = useRef<RNTextInput>(null);
@@ -45,6 +50,7 @@ export default function RegisterScreen() {
       return;
     }
     setError(null);
+    setDuplicateField(null);
     setLoading(true);
     try {
       await register(nombre.trim(), email.trim().toLowerCase(), password, dni.trim() || undefined, telefono.trim() || undefined);
@@ -52,22 +58,34 @@ export default function RegisterScreen() {
     } catch (e: any) {
       // El backend Laravel devuelve 422 con shape:
       //   { message: "El primer error", errors: { email: ["..."], dni: ["..."] } }
-      // Antes solo leíamos formato Express ({errors:[{msg}]}) y por eso se veía
-      // el genérico "Request failed with status code 422". Ahora priorizamos
-      // el message de Laravel + concatenamos todos los errors específicos
-      // para que el usuario vea "Ya existe una cuenta con este email" en vez
-      // de un código HTTP críptico.
+      // Si el campo duplicado es `email` o `dni`, mostramos CTA accionable
+      // ("Iniciar sesión" pre-rellenando el email) en lugar de solo texto.
       const data = e?.response?.data;
-      let msg: string | null = null;
-      if (data?.errors && typeof data.errors === 'object') {
-        const allErrs = Object.values(data.errors).flat() as string[];
-        if (allErrs.length > 0) msg = allErrs.join('\n');
+      const errs = data?.errors || {};
+      if (errs.email && Array.isArray(errs.email)) {
+        setDuplicateField('email');
+        setError(errs.email[0]);
+      } else if (errs.dni && Array.isArray(errs.dni)) {
+        setDuplicateField('dni');
+        setError(errs.dni[0]);
+      } else if (typeof errs === 'object' && Object.keys(errs).length > 0) {
+        const allErrs = Object.values(errs).flat() as string[];
+        setError(allErrs.join('\n'));
+      } else {
+        setError(data?.message || data?.msg || e?.message || 'Error al registrarse');
       }
-      if (!msg) msg = data?.message || data?.msg || e?.message || 'Error al registrarse';
-      setError(msg);
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoLogin = () => {
+    // Navega a la pantalla de login con el email pre-rellenado.
+    navigation.navigate('Login', { prefilledEmail: email.trim().toLowerCase() });
+  };
+
+  const handleRecuperarPassword = () => {
+    navigation.navigate('RecuperarPassword', { prefilledEmail: email.trim().toLowerCase() });
   };
 
   return (
@@ -176,7 +194,31 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
-            {error && <Text style={styles.error}>{error}</Text>}
+            {error && (
+              <View style={styles.errorBox}>
+                <Text style={styles.errorBoxIcon}>{duplicateField ? '👤' : '⚠️'}</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.errorBoxText}>{error}</Text>
+                  {duplicateField === 'email' && (
+                    <View style={styles.errorBoxCtas}>
+                      <TouchableOpacity style={styles.errorBoxCtaPrimary} onPress={handleGoLogin}>
+                        <Text style={styles.errorBoxCtaPrimaryText}>Iniciar sesión</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity style={styles.errorBoxCtaSecondary} onPress={handleRecuperarPassword}>
+                        <Text style={styles.errorBoxCtaSecondaryText}>He olvidado la contraseña</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                  {duplicateField === 'dni' && (
+                    <View style={styles.errorBoxCtas}>
+                      <TouchableOpacity style={styles.errorBoxCtaPrimary} onPress={handleGoLogin}>
+                        <Text style={styles.errorBoxCtaPrimaryText}>Iniciar sesión</Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
+              </View>
+            )}
 
             <TouchableOpacity
               style={[styles.button, loading && styles.buttonDisabled]}
@@ -241,6 +283,47 @@ const styles = StyleSheet.create({
   eyeBtn: { paddingHorizontal: 12, paddingVertical: 10 },
   eyeText: { fontSize: 18 },
   error: { color: colors.error, marginTop: 12, textAlign: 'center' },
+  errorBox: {
+    marginTop: 16,
+    padding: 14,
+    flexDirection: 'row',
+    gap: 12,
+    backgroundColor: '#FFF4E5',
+    borderLeftWidth: 4,
+    borderLeftColor: colors.primary,
+    borderRadius: 6,
+  },
+  errorBoxIcon: { fontSize: 22 },
+  errorBoxText: {
+    color: colors.text,
+    fontSize: 14,
+    lineHeight: 19,
+    fontWeight: '600',
+  },
+  errorBoxCtas: { flexDirection: 'row', gap: 8, marginTop: 10, flexWrap: 'wrap' },
+  errorBoxCtaPrimary: {
+    backgroundColor: colors.primary,
+    paddingVertical: 8,
+    paddingHorizontal: 14,
+    borderRadius: 6,
+  },
+  errorBoxCtaPrimaryText: {
+    color: colors.white,
+    fontWeight: 'bold',
+    fontSize: 13,
+  },
+  errorBoxCtaSecondary: {
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: colors.primary,
+  },
+  errorBoxCtaSecondaryText: {
+    color: colors.primary,
+    fontWeight: '600',
+    fontSize: 13,
+  },
   button: {
     backgroundColor: colors.primary,
     paddingVertical: 14,
