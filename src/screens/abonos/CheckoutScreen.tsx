@@ -13,10 +13,11 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { useStripe } from '@stripe/stripe-react-native';
+import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
-import api from '../../services/api';
+import api, { API_BASE_URL } from '../../services/api';
 import { clearCached } from '../../services/cache';
+import { getToken } from '../../services/auth';
 import { colors } from '../../theme/colors';
 import { AbonosStackParamList } from '../../types';
 import { useAuth } from '../../context/AuthContext';
@@ -24,20 +25,34 @@ import { ESCUDO_URL, TEMPORADA_CORTA, COMPETICION, ESTADIO } from '../../constan
 
 type CheckoutRouteProp = RouteProp<AbonosStackParamList, 'Checkout'>;
 
-interface PaymentSheetResponse {
-  paymentIntent: string;
-  ephemeralKey: string;
-  customer: string;
-  publishableKey: string;
+interface CreateOrderResp {
   orderReference: string;
+  checkoutUrl: string;   // URL to open in browser to pay via Stripe Elements
 }
 
-interface SyncResponse {
-  status: 'paid' | 'pending' | 'failed' | 'refunded' | string;
+interface SyncResp {
+  status: 'paid' | 'pending' | 'failed' | string;
   reference: string;
-  total: number;
 }
 
+/**
+ * Checkout — flujo de pago via web.
+ *
+ * El cliente confirma la compra → llamamos al backend que crea Order(pending)
+ * y devuelve una URL de checkout web (Stripe Elements montado en Laravel).
+ * Abrimos esa URL en un navegador (WebBrowser de Expo, que en iOS abre SFAuthenticationSession
+ * tipo Apple-Pay-flujo seguro). El cliente paga ahí. Al cerrar el browser:
+ *   1. Comprobamos status real via /api/checkout/sync
+ *   2. Si paid → navegamos a "Mis Abonos" + emitimos Haptic success
+ *   3. Si pending/failed → mostramos mensaje y dejamos al cliente reintentar
+ *
+ * Hicimos este flujo en vez del @stripe/stripe-react-native PaymentSheet
+ * nativo porque éste último daba problemas de compilación iOS con RN 0.81.5
+ * + Xcode 26 (cannot find protocol definition for STP* / PK*). WebView/browser
+ * es más simple, sigue funcionando con Apple Pay si el navegador del sistema
+ * lo soporta, y cuando el club migre de Stripe a Redsys (próximo paso),
+ * sólo cambia la URL del backend — la app no toca nada.
+ */
 export default function CheckoutScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
   const route = useRoute<CheckoutRouteProp>();
@@ -47,8 +62,6 @@ export default function CheckoutScreen() {
   const [dni, setDni] = useState(user?.dni || '');
   const [dniError, setDniError] = useState<string | null>(null);
   const dniFromProfile = !!user?.dni;
-
-  const { initPaymentSheet, presentPaymentSheet } = useStripe();
 
   const handlePay = async () => {
     if (!user) { Alert.alert('Error', 'Debes iniciar sesión'); return; }
@@ -60,81 +73,66 @@ export default function CheckoutScreen() {
     setLoading(true);
 
     try {
-      // 1) Pedir al backend los params del PaymentSheet.
-      //    El backend crea Order pending + PaymentIntent + Stripe Customer
-      //    + EphemeralKey y nos devuelve todo en una sola request.
-      //
-      //    Por ahora la app sólo envía 1 item (el abono del asiento elegido).
-      //    Cuando metamos carrito completo, el body lleva items[] real.
-      const productIdFromAsiento = asientoId; // TODO: mapping asientoId → Product abono cuando exista el endpoint
-      const { data: sheet } = await api.post<PaymentSheetResponse>(
-        '/api/checkout/payment-sheet',
-        {
-          items: [
-            { productId: productIdFromAsiento, qty: 1 },
-          ],
-          customer: {
-            first_name: user.nombre?.split(' ')[0] || user.nombre || 'Socio',
-            last_name:  user.nombre?.split(' ').slice(1).join(' ') || 'Algeciras',
-            email:      user.email,
-            phone:      user.telefono || '',
-            dni:        dni.trim(),
-            address:    user.direccion || 'Dirección pendiente',
-            city:       'Algeciras',
-            province:   'Cádiz',
-            postal_code:'11201',
-          },
-          channel: 'app',
-        },
-      );
-
-      if (!sheet?.paymentIntent) throw new Error('Respuesta inválida del backend');
-
-      // 2) Inicializar PaymentSheet con los params del backend.
-      const init = await initPaymentSheet({
-        merchantDisplayName: 'Algeciras Club de Fútbol',
-        paymentIntentClientSecret: sheet.paymentIntent,
-        customerId: sheet.customer,
-        customerEphemeralKeySecret: sheet.ephemeralKey,
-        defaultBillingDetails: {
-          name:  user.nombre || '',
-          email: user.email,
-        },
-        allowsDelayedPaymentMethods: false,
-        returnURL: 'algecirascf://stripe-redirect',
+      // 1) Llamar al backend para crear Order(pending) y obtener URL de checkout web.
+      //    Si el endpoint no existe aún (pasarela en montaje), avisamos sin crashear.
+      const token = await getToken();
+      const { data } = await api.post<CreateOrderResp>('/api/checkout/web-redirect', {
+        sectorId,
+        asientoId,
+        precio,
+        dni: dni.trim(),
+        type: 'abono',
       });
-      if (init.error) throw new Error(init.error.message || 'Error inicializando pago');
 
-      // 3) Presentar PaymentSheet. Usuario elige tarjeta / Apple Pay / Google Pay.
-      const result = await presentPaymentSheet();
-      if (result.error) {
-        if (result.error.code !== 'Canceled') {
-          Alert.alert('Pago no completado', result.error.message || 'Inténtalo de nuevo');
-        }
-        setLoading(false);
+      if (!data?.checkoutUrl) {
+        Alert.alert(
+          'Pasarela en montaje',
+          'El cobro online estará disponible en breve. Mientras tanto, contacta con el club para reservar tu plaza.',
+        );
         return;
       }
 
-      // 4) Sincronizar con backend para confirmar status real
-      //    (el webhook llegará en paralelo, pero esto da feedback inmediato).
-      const { data: sync } = await api.post<SyncResponse>('/api/checkout/sync', {
-        orderReference:  sheet.orderReference,
-        paymentIntentId: sheet.paymentIntent.split('_secret_')[0], // pi_XXX from pi_XXX_secret_YYY
+      // 2) Abrir el checkout web (Stripe Elements / Redsys cuando esté).
+      //    WebBrowser usa SFAuthenticationSession en iOS — UX como Apple Pay.
+      const url = data.checkoutUrl + (data.checkoutUrl.includes('?') ? '&' : '?') +
+                  `native=1&token=${encodeURIComponent(token || '')}`;
+      await WebBrowser.openBrowserAsync(url, {
+        dismissButtonStyle: 'cancel',
+        readerMode: false,
+        toolbarColor: colors.primary,
       });
 
-      if (sync.status === 'paid') {
-        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-        await clearCached('socios_abonos_' + user?.id);
-        await clearCached('perfil_abonos_' + user?.id);
+      // 3) Tras cerrar el browser, sincronizar status real con el backend.
+      try {
+        const { data: sync } = await api.post<SyncResp>('/api/checkout/sync', {
+          orderReference: data.orderReference,
+        });
+        if (sync.status === 'paid') {
+          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+          await clearCached('socios_abonos_' + user?.id);
+          await clearCached('perfil_abonos_' + user?.id);
+          Alert.alert(
+            '¡Pago completado!',
+            `Pedido ${sync.reference}. Tu abono se enviará por email con el QR.`,
+          );
+          navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
+        } else if (sync.status === 'pending') {
+          Alert.alert(
+            'Pago en proceso',
+            'Estamos confirmando con el banco. Recibirás email cuando termine.',
+          );
+          navigation.navigate('Gradas');
+        } else {
+          Alert.alert(
+            'Pago no completado',
+            'Si cerraste antes de pagar puedes intentarlo de nuevo desde "Comprar".',
+          );
+          navigation.navigate('Gradas');
+        }
+      } catch {
         Alert.alert(
-          '¡Pago completado!',
-          `Pedido ${sync.reference}. Tu abono se enviará por email con el QR.`,
-        );
-        navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
-      } else {
-        Alert.alert(
-          'Pago en proceso',
-          'Estamos confirmando con el banco. Cuando termine recibirás email y el abono aparecerá en tu cuenta.',
+          'Pago',
+          'Si completaste el pago, recibirás email con tu abono. Si no, vuelve a intentarlo.',
         );
         navigation.navigate('Gradas');
       }
@@ -143,7 +141,7 @@ export default function CheckoutScreen() {
         e?.response?.data?.message ||
         e?.response?.data?.msg ||
         e?.message ||
-        'No se pudo procesar el pago';
+        'No se pudo iniciar el pago';
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
@@ -201,7 +199,7 @@ export default function CheckoutScreen() {
           style={[styles.payBtn, loading && styles.payBtnDisabled]}
           onPress={handlePay}
           disabled={loading}
-          accessibilityLabel={`Pagar ${precio} € con Stripe`}
+          accessibilityLabel={`Pagar ${precio} €`}
         >
           {loading ? (
             <ActivityIndicator color={colors.white} />

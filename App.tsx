@@ -7,14 +7,12 @@ import * as ExpoSplash from 'expo-splash-screen';
 import { createNavigationContainerRef } from '@react-navigation/native';
 import { Platform } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { StripeProvider } from '@stripe/stripe-react-native';
 import { AuthProvider } from './src/context/AuthContext';
 import RootNavigator from './src/navigation/RootNavigator';
 import SplashScreen from './src/screens/SplashScreen';
 import OnboardingScreen, { ONBOARDING_KEY } from './src/screens/onboarding/OnboardingScreen';
 import { colors } from './src/theme/colors';
 import { setupNotifications } from './src/services/marcadorPolling';
-import { STRIPE_PUBLISHABLE_KEY } from './src/services/stripeConfig';
 
 // Mantener splash nativo visible hasta primer render de RN
 ExpoSplash.preventAutoHideAsync().catch(() => {});
@@ -80,21 +78,10 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      {/*
-        StripeProvider sin merchantIdentifier — Apple Pay deshabilitado por ahora.
-        Para activarlo más tarde, hace falta:
-          1. Registrar Merchant ID en Apple Developer
-          2. Habilitar Apple Pay capability en el App ID
-          3. Regenerar el provisioning profile vía `fastlane match nuke + match`
-          4. Volver a pasar merchantIdentifier aquí y a app.json plugin
-        El pago con tarjeta vía PaymentSheet funciona sin esto.
-      */}
-      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
-        <AuthProvider>
-          <StatusBar style="light" backgroundColor="#C8102E" />
-          <RootNavigator navigationRef={navigationRef} />
-        </AuthProvider>
-      </StripeProvider>
+      <AuthProvider>
+        <StatusBar style="light" backgroundColor="#C8102E" />
+        <RootNavigator navigationRef={navigationRef} />
+      </AuthProvider>
     </SafeAreaProvider>
   );
 }
