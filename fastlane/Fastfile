@@ -112,39 +112,71 @@ platform :ios do
     UI.success("✅ Algeciras CF Abonados subido a TestFlight. Procesando ~5-15 min.")
   end
 
-  desc "Crear App Store version + asociar último TestFlight build + submit for review"
+  desc "Crear/actualizar App Store version 1.0.7 + asociar build TF (sin submit aún)"
   lane :release do
     cfg = setup_signing
 
-    # Versión a publicar: la versión del último build subido a TestFlight.
-    # Si no se pasa por env, usa la del Info.plist actual.
     app_version = ENV["APP_VERSION"] || get_version_number(
       xcodeproj: "ios/#{cfg[:scheme]}.xcodeproj",
       target: cfg[:scheme],
     )
 
-    UI.message("📦 Submitting version #{app_version} a App Store Review...")
+    UI.message("📦 Uploading metadata para version #{app_version}...")
 
+    # PASO 1: sólo subir metadata (sin submit_for_review).
+    # Esto crea la entrada de App Store version si no existe y sube
+    # description/subtitle/keywords/URLs/etc.
+    #
+    # Si la app NUNCA tuvo una versión en App Store (sólo TestFlight),
+    # Spaceship a veces no consigue encontrar la versión a la primera
+    # — por eso hacemos esto en 2 pasos en lugar de 1.
     deliver(
       api_key: cfg[:api_key],
       app_identifier: cfg[:bundle_id],
       app_version: app_version,
 
-      # Metadata: leído de fastlane/metadata/ — ver ese folder.
-      # screenshots: leído de fastlane/screenshots/. Si están vacíos,
-      # deliver salta screenshots (Apple los pide pero no bloquea el upload
-      # de metadata; tendrás que subirlos manualmente la primera vez).
       skip_screenshots: true,
-      skip_binary_upload: true,         # ya está en TF
+      skip_binary_upload: true,
       skip_app_version_update: false,
 
-      # Submitir automáticamente para review tras subir metadata.
+      submit_for_review: false,
+      force: true,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false,
+    )
+
+    UI.success("✅ Metadata v#{app_version} subida. Próximo paso: lane `ios submit` para asociar build + submit for review.")
+  end
+
+  desc "Asociar último build TestFlight a App Store version + submit for review"
+  lane :submit do
+    cfg = setup_signing
+
+    app_version = ENV["APP_VERSION"] || get_version_number(
+      xcodeproj: "ios/#{cfg[:scheme]}.xcodeproj",
+      target: cfg[:scheme],
+    )
+
+    UI.message("🚀 Submitting v#{app_version} a App Store Review...")
+
+    # PASO 2: sólo submit. La versión ya existe (creada por lane :release),
+    # ahora deliver sólo asocia build + envía a review.
+    deliver(
+      api_key: cfg[:api_key],
+      app_identifier: cfg[:bundle_id],
+      app_version: app_version,
+
+      skip_screenshots: true,
+      skip_binary_upload: true,
+      skip_app_version_update: true,
+      skip_metadata: true,
+
       submit_for_review: true,
       automatic_release: true,
-      force: true,                       # no preguntar interactivo
+      force: true,
       precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false,
 
-      # Compliance: no exporta criptografía (ITSAppUsesNonExemptEncryption=false en Info.plist).
       submission_information: {
         export_compliance_uses_encryption: false,
         export_compliance_encryption_updated: false,
@@ -153,15 +185,14 @@ platform :ios do
         content_rights_contains_third_party_content: false,
       },
 
-      # Sin contraseña de demo (la app no requiere login para review).
       app_review_information: {
-        first_name: "Iván",
-        last_name:  "García",
+        first_name: "Ivan",
+        last_name:  "Garcia",
         phone_number: "+34 600 000 000",
         email_address: "ivan@hawkins.es",
         demo_user: "",
         demo_password: "",
-        notes: "App de gestión de abonos del Algeciras CF. Login opcional. La compra real está en pasarela Stripe (modo live) — para review, no es necesario completar compra.",
+        notes: "App de gestion de abonos del Algeciras CF. Login opcional. La compra real esta en pasarela Stripe (modo live) — para review, no es necesario completar compra.",
       },
     )
 
