@@ -63,6 +63,60 @@ export default function CheckoutScreen() {
   const [dniError, setDniError] = useState<string | null>(null);
   const dniFromProfile = !!user?.dni;
 
+  // Cupón descuento
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const gestionFee = Math.floor(precio * 0.05 * 100) / 100;
+  const totalBruto = Number(precio) + gestionFee;
+  const totalFinal = Math.max(0, totalBruto - couponDiscount);
+
+  const handleApplyCoupon = async () => {
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Introduce un código');
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const { data } = await api.post<{
+        valid: boolean;
+        discount_amount?: number;
+        message?: string;
+      }>('/api/checkout/coupon/preview', {
+        code,
+        subtotal: Number(precio),
+        product_type: 'abono',
+      });
+
+      if (data?.valid) {
+        setCouponApplied(true);
+        setCouponDiscount(Number(data.discount_amount) || 0);
+        setCouponCode(code);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setCouponError(data?.message || 'Código no válido');
+      }
+    } catch (e: any) {
+      setCouponError(
+        e?.response?.data?.message || 'No se pudo validar el cupón',
+      );
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponCode('');
+    setCouponError(null);
+  };
+
   const handlePay = async () => {
     if (!user) { Alert.alert('Error', 'Debes iniciar sesión'); return; }
     if (!dni.trim()) {
@@ -82,6 +136,7 @@ export default function CheckoutScreen() {
         precio,
         dni: dni.trim(),
         type: 'abono',
+        coupon_code: couponApplied ? couponCode : undefined,
       });
 
       if (!data?.checkoutUrl) {
@@ -174,9 +229,66 @@ export default function CheckoutScreen() {
         <Row label="Asiento" value={String(numero)} />
         <View style={styles.divider} />
         <Row label="Subtotal" value={`${Number(precio).toFixed(2)} €`} />
-        <Row label="Gastos de gestión (5%)" value={`${(Math.floor(precio * 0.05 * 100) / 100).toFixed(2)} €`} />
+        <Row label="Gastos de gestión (5%)" value={`${gestionFee.toFixed(2)} €`} />
+        {couponApplied && couponDiscount > 0 && (
+          <Row
+            label={`Descuento ${couponCode}`}
+            value={`−${couponDiscount.toFixed(2)} €`}
+            discount
+          />
+        )}
         <View style={styles.divider} />
-        <Row label="Total" value={`${(Number(precio) + Math.floor(precio * 0.05 * 100) / 100).toFixed(2)} €`} highlight />
+        <Row label="Total" value={`${totalFinal.toFixed(2)} €`} highlight />
+      </View>
+
+      {/* Caja del cupón */}
+      <View style={styles.couponContainer}>
+        <Text style={styles.couponLabel}>Código de descuento</Text>
+        <View style={styles.couponRow}>
+          <TextInput
+            style={[styles.couponInput, couponApplied && styles.couponInputDisabled]}
+            placeholder="ALGECIRAS25"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            value={couponCode}
+            editable={!couponApplied && !couponLoading}
+            onChangeText={(t) => {
+              setCouponCode(t.toUpperCase());
+              if (couponError) setCouponError(null);
+            }}
+          />
+          {couponApplied ? (
+            <TouchableOpacity
+              style={styles.couponBtnRemove}
+              onPress={handleRemoveCoupon}
+              accessibilityLabel="Quitar cupón"
+            >
+              <Text style={styles.couponBtnText}>Quitar</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.couponBtn,
+                (couponLoading || !couponCode.trim()) && styles.couponBtnDisabled,
+              ]}
+              onPress={handleApplyCoupon}
+              disabled={couponLoading || !couponCode.trim()}
+              accessibilityLabel="Aplicar cupón"
+            >
+              {couponLoading ? (
+                <ActivityIndicator color={colors.white} size="small" />
+              ) : (
+                <Text style={styles.couponBtnText}>Aplicar</Text>
+              )}
+            </TouchableOpacity>
+          )}
+        </View>
+        {couponApplied && couponDiscount > 0 && (
+          <Text style={styles.couponSuccess}>
+            ✓ Cupón aplicado: −{couponDiscount.toFixed(2)} €
+          </Text>
+        )}
+        {couponError && <Text style={styles.couponErrorText}>{couponError}</Text>}
       </View>
 
       <View style={styles.dniContainer}>
@@ -202,12 +314,12 @@ export default function CheckoutScreen() {
           style={[styles.payBtn, loading && styles.payBtnDisabled]}
           onPress={handlePay}
           disabled={loading}
-          accessibilityLabel={`Pagar ${precio} €`}
+          accessibilityLabel={`Pagar ${totalFinal.toFixed(2)} €`}
         >
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.payBtnText}>💳 Pagar {precio} €</Text>
+            <Text style={styles.payBtnText}>💳 Pagar {totalFinal.toFixed(2)} €</Text>
           )}
         </TouchableOpacity>
 
@@ -229,15 +341,25 @@ function Row({
   label,
   value,
   highlight,
+  discount,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  discount?: boolean;
 }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, highlight && styles.rowValueHighlight]}>{value}</Text>
+      <Text
+        style={[
+          styles.rowValue,
+          highlight && styles.rowValueHighlight,
+          discount && styles.rowValueDiscount,
+        ]}
+      >
+        {value}
+      </Text>
     </View>
   );
 }
@@ -261,7 +383,51 @@ const styles = StyleSheet.create({
   rowLabel: { color: colors.textSecondary, fontSize: 14 },
   rowValue: { color: colors.text, fontSize: 16, fontWeight: '600' },
   rowValueHighlight: { color: colors.primary, fontSize: 20, fontWeight: 'bold' },
+  rowValueDiscount: { color: '#198754' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
+
+  couponContainer: {
+    marginHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 8,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+  },
+  couponLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 1 },
+  couponRow: { flexDirection: 'row', gap: 8 },
+  couponInput: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.text,
+  },
+  couponInputDisabled: { backgroundColor: '#f3f4f6', color: colors.textSecondary },
+  couponBtn: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  couponBtnDisabled: { opacity: 0.5 },
+  couponBtnRemove: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.textSecondary,
+    borderRadius: 8,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  couponBtnText: { color: colors.white, fontWeight: '600', fontSize: 13 },
+  couponSuccess: { color: '#198754', fontSize: 12, marginTop: 6, fontWeight: '500' },
+  couponErrorText: { color: colors.error, fontSize: 12, marginTop: 6 },
   dniContainer: { marginHorizontal: 16, marginBottom: 8 },
   dniLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 6, fontWeight: '500' },
   dniInput: {

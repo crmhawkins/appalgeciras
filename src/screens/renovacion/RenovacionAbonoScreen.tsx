@@ -85,6 +85,58 @@ export default function RenovacionAbonoScreen() {
   // Renovación
   const [paying, setPaying] = useState(false);
 
+  // Cupón descuento
+  const [couponCode, setCouponCode] = useState('');
+  const [couponApplied, setCouponApplied] = useState(false);
+  const [couponDiscount, setCouponDiscount] = useState(0);
+  const [couponError, setCouponError] = useState<string | null>(null);
+  const [couponLoading, setCouponLoading] = useState(false);
+
+  const handleApplyCoupon = async () => {
+    if (!abonado) return;
+    const code = couponCode.trim().toUpperCase();
+    if (!code) {
+      setCouponError('Introduce un código');
+      return;
+    }
+    setCouponLoading(true);
+    setCouponError(null);
+    try {
+      const subtotalBase = Number(abonado.precio_renovacion) || 0;
+      const { data } = await api.post<{
+        valid: boolean;
+        discount_amount?: number;
+        message?: string;
+      }>('/api/checkout/coupon/preview', {
+        code,
+        subtotal: subtotalBase,
+        product_type: 'abono',
+      });
+
+      if (data?.valid) {
+        setCouponApplied(true);
+        setCouponDiscount(Number(data.discount_amount) || 0);
+        setCouponCode(code);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      } else {
+        setCouponError(data?.message || 'Código no válido');
+      }
+    } catch (e: any) {
+      setCouponError(
+        e?.response?.data?.message || 'No se pudo validar el cupón',
+      );
+    } finally {
+      setCouponLoading(false);
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponApplied(false);
+    setCouponDiscount(0);
+    setCouponCode('');
+    setCouponError(null);
+  };
+
   const handleBuscar = async () => {
     setErrorBusqueda(null);
     const num = numeroAbonado.trim();
@@ -150,6 +202,7 @@ export default function RenovacionAbonoScreen() {
         items: [
           { product_id: abonado.renovacion_product_id, qty: 1 },
         ],
+        coupon_code: couponApplied ? couponCode : undefined,
       });
 
       if (!data?.checkoutUrl) {
@@ -334,7 +387,8 @@ export default function RenovacionAbonoScreen() {
                 {(() => {
                   const base = Number(abonado.precio_renovacion) || 0;
                   const fee  = abonado.gastos_gestion ?? (Math.floor(base * 0.05 * 100) / 100);
-                  const tot  = abonado.total_renovacion ?? (base + fee);
+                  const totBruto = abonado.total_renovacion ?? (base + fee);
+                  const tot      = Math.max(0, totBruto - couponDiscount);
                   return (
                     <>
                       <Row
@@ -345,6 +399,13 @@ export default function RenovacionAbonoScreen() {
                         label="Gastos de gestión (5%)"
                         value={`${fee.toFixed(2)} €`}
                       />
+                      {couponApplied && couponDiscount > 0 && (
+                        <Row
+                          label={`Descuento ${couponCode}`}
+                          value={`−${couponDiscount.toFixed(2)} €`}
+                          discount
+                        />
+                      )}
                       <View style={styles.divider} />
                       <Row
                         label="Total a pagar"
@@ -356,18 +417,68 @@ export default function RenovacionAbonoScreen() {
                 })()}
               </View>
 
+              {/* Caja del cupón */}
+              <View style={styles.couponContainer}>
+                <Text style={styles.couponLabel}>Código de descuento</Text>
+                <View style={styles.couponRow}>
+                  <TextInput
+                    style={[styles.couponInput, couponApplied && styles.couponInputDisabled]}
+                    placeholder="ALGECIRAS25"
+                    autoCapitalize="characters"
+                    autoCorrect={false}
+                    value={couponCode}
+                    editable={!couponApplied && !couponLoading}
+                    onChangeText={(t) => {
+                      setCouponCode(t.toUpperCase());
+                      if (couponError) setCouponError(null);
+                    }}
+                  />
+                  {couponApplied ? (
+                    <TouchableOpacity
+                      style={styles.couponBtnRemove}
+                      onPress={handleRemoveCoupon}
+                      accessibilityLabel="Quitar cupón"
+                    >
+                      <Text style={styles.couponBtnText}>Quitar</Text>
+                    </TouchableOpacity>
+                  ) : (
+                    <TouchableOpacity
+                      style={[
+                        styles.couponBtn,
+                        (couponLoading || !couponCode.trim()) && styles.couponBtnDisabled,
+                      ]}
+                      onPress={handleApplyCoupon}
+                      disabled={couponLoading || !couponCode.trim()}
+                      accessibilityLabel="Aplicar cupón"
+                    >
+                      {couponLoading ? (
+                        <ActivityIndicator color={colors.white} size="small" />
+                      ) : (
+                        <Text style={styles.couponBtnText}>Aplicar</Text>
+                      )}
+                    </TouchableOpacity>
+                  )}
+                </View>
+                {couponApplied && couponDiscount > 0 && (
+                  <Text style={styles.couponSuccess}>
+                    ✓ Cupón aplicado: −{couponDiscount.toFixed(2)} €
+                  </Text>
+                )}
+                {couponError && <Text style={styles.couponErrorText}>{couponError}</Text>}
+              </View>
+
               <View style={styles.footer}>
                 <TouchableOpacity
                   style={[styles.primaryBtn, paying && styles.btnDisabled]}
                   onPress={handleRenovar}
                   disabled={paying}
-                  accessibilityLabel={`Renovar abono ${abonado.total_renovacion ?? abonado.precio_renovacion} €`}
+                  accessibilityLabel={`Renovar abono ${Math.max(0, (abonado.total_renovacion ?? abonado.precio_renovacion) - couponDiscount).toFixed(2)} €`}
                 >
                   {paying ? (
                     <ActivityIndicator color={colors.white} />
                   ) : (
                     <Text style={styles.primaryBtnText}>
-                      💳 Renovar abono {(abonado.total_renovacion ?? abonado.precio_renovacion).toFixed(2)} €
+                      💳 Renovar abono {Math.max(0, (abonado.total_renovacion ?? abonado.precio_renovacion) - couponDiscount).toFixed(2)} €
                     </Text>
                   )}
                 </TouchableOpacity>
@@ -400,15 +511,23 @@ function Row({
   label,
   value,
   highlight,
+  discount,
 }: {
   label: string;
   value: string;
   highlight?: boolean;
+  discount?: boolean;
 }) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
-      <Text style={[styles.rowValue, highlight && styles.rowValueHighlight]}>
+      <Text
+        style={[
+          styles.rowValue,
+          highlight && styles.rowValueHighlight,
+          discount && styles.rowValueDiscount,
+        ]}
+      >
         {value}
       </Text>
     </View>
@@ -488,7 +607,51 @@ const styles = StyleSheet.create({
     textAlign: 'right',
   },
   rowValueHighlight: { color: colors.primary, fontSize: 20, fontWeight: 'bold' },
+  rowValueDiscount: { color: '#198754' },
   divider: { height: 1, backgroundColor: colors.border, marginVertical: 8 },
+
+  couponContainer: {
+    marginHorizontal: 16,
+    marginTop: 0,
+    marginBottom: 8,
+    backgroundColor: colors.white,
+    borderRadius: 12,
+    padding: 14,
+  },
+  couponLabel: { fontSize: 13, color: colors.textSecondary, marginBottom: 8, fontWeight: '500', textTransform: 'uppercase', letterSpacing: 1 },
+  couponRow: { flexDirection: 'row', gap: 8 },
+  couponInput: {
+    flex: 1,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    fontSize: 15,
+    color: colors.text,
+  },
+  couponInputDisabled: { backgroundColor: '#f3f4f6', color: colors.textSecondary },
+  couponBtn: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.primary,
+    borderRadius: 8,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  couponBtnDisabled: { opacity: 0.5 },
+  couponBtnRemove: {
+    paddingHorizontal: 16,
+    justifyContent: 'center',
+    backgroundColor: colors.textSecondary,
+    borderRadius: 8,
+    minWidth: 96,
+    alignItems: 'center',
+  },
+  couponBtnText: { color: colors.white, fontWeight: '600', fontSize: 13 },
+  couponSuccess: { color: '#198754', fontSize: 12, marginTop: 6, fontWeight: '500' },
+  couponErrorText: { color: colors.error, fontSize: 12, marginTop: 6 },
 
   footer: { paddingHorizontal: 16, paddingBottom: 16 },
   primaryBtn: {
