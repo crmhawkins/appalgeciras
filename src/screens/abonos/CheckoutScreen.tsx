@@ -13,7 +13,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import * as WebBrowser from 'expo-web-browser';
+import { useStripe } from '@stripe/stripe-react-native';
 import * as Haptics from 'expo-haptics';
 import api from '../../services/api';
 import { clearCached } from '../../services/cache';
@@ -23,6 +23,20 @@ import { useAuth } from '../../context/AuthContext';
 import { ESCUDO_URL, TEMPORADA_CORTA, COMPETICION, ESTADIO } from '../../constants';
 
 type CheckoutRouteProp = RouteProp<AbonosStackParamList, 'Checkout'>;
+
+interface PaymentSheetResponse {
+  paymentIntent: string;
+  ephemeralKey: string;
+  customer: string;
+  publishableKey: string;
+  orderReference: string;
+}
+
+interface SyncResponse {
+  status: 'paid' | 'pending' | 'failed' | 'refunded' | string;
+  reference: string;
+  total: number;
+}
 
 export default function CheckoutScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<AbonosStackParamList>>();
@@ -34,6 +48,8 @@ export default function CheckoutScreen() {
   const [dniError, setDniError] = useState<string | null>(null);
   const dniFromProfile = !!user?.dni;
 
+  const { initPaymentSheet, presentPaymentSheet } = useStripe();
+
   const handlePay = async () => {
     if (!user) { Alert.alert('Error', 'Debes iniciar sesión'); return; }
     if (!dni.trim()) {
@@ -42,43 +58,92 @@ export default function CheckoutScreen() {
     }
     setDniError(null);
     setLoading(true);
-    try {
-      const { data } = await api.post<{ url: string; sessionId?: string }>('/api/pagos/create-checkout', {
-        asientoId,
-        sectorId,
-        precio,
-        dni: dni.trim(),
-        email: user?.email || '',
-        nombre: user?.nombre || '',
-        tipo: 'abono',
-      });
-      if (!data?.url || !data?.sessionId) throw new Error('Respuesta inválida del servidor');
-      const sessionId = data.sessionId;
-      await WebBrowser.openBrowserAsync(data.url);
 
-      // Verificar estado real del pago tras cerrar el browser
-      try {
-        const { data: statusData } = await api.get<{ completado: boolean }>(`/api/pagos/status?session_id=${sessionId}`);
-        if (statusData?.completado) {
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-          await clearCached('socios_abonos_' + user?.id);
-          await clearCached('perfil_abonos_' + user?.id);
-          Alert.alert('¡Pago completado!', 'Tu abono ha sido procesado. Recibirás confirmación por email.');
-          navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
-        } else {
-          Alert.alert('Pago no completado', 'Si cerraste antes de terminar, puedes intentarlo de nuevo.');
-          navigation.navigate('Gradas');
+    try {
+      // 1) Pedir al backend los params del PaymentSheet.
+      //    El backend crea Order pending + PaymentIntent + Stripe Customer
+      //    + EphemeralKey y nos devuelve todo en una sola request.
+      //
+      //    Por ahora la app sólo envía 1 item (el abono del asiento elegido).
+      //    Cuando metamos carrito completo, el body lleva items[] real.
+      const productIdFromAsiento = asientoId; // TODO: mapping asientoId → Product abono cuando exista el endpoint
+      const { data: sheet } = await api.post<PaymentSheetResponse>(
+        '/api/checkout/payment-sheet',
+        {
+          items: [
+            { productId: productIdFromAsiento, qty: 1 },
+          ],
+          customer: {
+            first_name: user.nombre?.split(' ')[0] || user.nombre || 'Socio',
+            last_name:  user.nombre?.split(' ').slice(1).join(' ') || 'Algeciras',
+            email:      user.email,
+            phone:      user.telefono || '',
+            dni:        dni.trim(),
+            address:    user.direccion || 'Dirección pendiente',
+            city:       'Algeciras',
+            province:   'Cádiz',
+            postal_code:'11201',
+          },
+          channel: 'app',
+        },
+      );
+
+      if (!sheet?.paymentIntent) throw new Error('Respuesta inválida del backend');
+
+      // 2) Inicializar PaymentSheet con los params del backend.
+      const init = await initPaymentSheet({
+        merchantDisplayName: 'Algeciras Club de Fútbol',
+        paymentIntentClientSecret: sheet.paymentIntent,
+        customerId: sheet.customer,
+        customerEphemeralKeySecret: sheet.ephemeralKey,
+        defaultBillingDetails: {
+          name:  user.nombre || '',
+          email: user.email,
+        },
+        allowsDelayedPaymentMethods: false,
+        returnURL: 'algecirascf://stripe-redirect',
+      });
+      if (init.error) throw new Error(init.error.message || 'Error inicializando pago');
+
+      // 3) Presentar PaymentSheet. Usuario elige tarjeta / Apple Pay / Google Pay.
+      const result = await presentPaymentSheet();
+      if (result.error) {
+        if (result.error.code !== 'Canceled') {
+          Alert.alert('Pago no completado', result.error.message || 'Inténtalo de nuevo');
         }
-      } catch {
-        Alert.alert('Pago', 'Si completaste el pago recibirás confirmación por email.');
+        setLoading(false);
+        return;
+      }
+
+      // 4) Sincronizar con backend para confirmar status real
+      //    (el webhook llegará en paralelo, pero esto da feedback inmediato).
+      const { data: sync } = await api.post<SyncResponse>('/api/checkout/sync', {
+        orderReference:  sheet.orderReference,
+        paymentIntentId: sheet.paymentIntent.split('_secret_')[0], // pi_XXX from pi_XXX_secret_YYY
+      });
+
+      if (sync.status === 'paid') {
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+        await clearCached('socios_abonos_' + user?.id);
+        await clearCached('perfil_abonos_' + user?.id);
+        Alert.alert(
+          '¡Pago completado!',
+          `Pedido ${sync.reference}. Tu abono se enviará por email con el QR.`,
+        );
+        navigation.getParent()?.navigate('Tabs', { screen: 'PerfilTab' });
+      } else {
+        Alert.alert(
+          'Pago en proceso',
+          'Estamos confirmando con el banco. Cuando termine recibirás email y el abono aparecerá en tu cuenta.',
+        );
         navigation.navigate('Gradas');
       }
     } catch (e: any) {
       const msg =
-        e?.response?.data?.msg ||
         e?.response?.data?.message ||
+        e?.response?.data?.msg ||
         e?.message ||
-        'No se pudo iniciar el pago';
+        'No se pudo procesar el pago';
       Alert.alert('Error', msg);
     } finally {
       setLoading(false);
@@ -141,7 +206,7 @@ export default function CheckoutScreen() {
           {loading ? (
             <ActivityIndicator color={colors.white} />
           ) : (
-            <Text style={styles.payBtnText}>💳 Pagar {precio} € con Stripe</Text>
+            <Text style={styles.payBtnText}>💳 Pagar {precio} €</Text>
           )}
         </TouchableOpacity>
 
