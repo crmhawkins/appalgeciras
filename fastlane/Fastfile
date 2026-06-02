@@ -152,12 +152,25 @@ platform :ios do
   lane :submit do
     cfg = setup_signing
 
-    app_version = ENV["APP_VERSION"] || get_version_number(
-      xcodeproj: "ios/#{cfg[:scheme]}.xcodeproj",
-      target: cfg[:scheme],
-    )
+    # Versión: priorizar env APP_VERSION; si no hay xcodeproj generado (este lane
+    # corre sin gym), leerla de app.json para evitar app_version vacío que rompe
+    # el filter de App Store API.
+    app_version = ENV["APP_VERSION"]
+    if app_version.nil? || app_version.strip.empty?
+      require "json"
+      app_json = JSON.parse(File.read("../app.json"))
+      app_version = app_json.dig("expo", "version") || "1.0.7"
+    end
 
-    UI.message("🚀 Submitting v#{app_version} a App Store Review...")
+    # Build a asociar: el último de TestFlight para esta versión.
+    latest_build = latest_testflight_build_number(
+      api_key: cfg[:api_key],
+      app_identifier: cfg[:bundle_id],
+      version: app_version,
+      initial_build_number: 1,
+    ).to_s
+
+    UI.message("🚀 Submitting v#{app_version} build #{latest_build} a App Store Review...")
 
     # PASO 2: sólo submit. La versión ya existe (creada por lane :release),
     # ahora deliver sólo asocia build + envía a review.
@@ -165,6 +178,7 @@ platform :ios do
       api_key: cfg[:api_key],
       app_identifier: cfg[:bundle_id],
       app_version: app_version,
+      build_number: latest_build,  # asocia explícitamente este build
 
       skip_screenshots: true,
       skip_binary_upload: true,
