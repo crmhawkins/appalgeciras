@@ -2,7 +2,7 @@
   "expo": {
     "name": "Algeciras CF Abonados",
     "slug": "algeciras-cf-abonos",
-    "version": "1.0.5",
+    "version": "1.0.6",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "algecirascf",
@@ -45,6 +45,14 @@
         "@stripe/stripe-react-native",
         {
           "enableGooglePay": false
+        }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "ios": {
+            "useFrameworks": "static"
+          }
         }
       ],
       [
