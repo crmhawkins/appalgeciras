@@ -50,11 +50,20 @@ export default function RegisterScreen() {
       await register(nombre.trim(), email.trim().toLowerCase(), password, dni.trim() || undefined, telefono.trim() || undefined);
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e: any) {
-      const msg =
-        e?.response?.data?.errors?.[0]?.msg ||
-        e?.response?.data?.msg ||
-        e?.message ||
-        'Error al registrarse';
+      // El backend Laravel devuelve 422 con shape:
+      //   { message: "El primer error", errors: { email: ["..."], dni: ["..."] } }
+      // Antes solo leíamos formato Express ({errors:[{msg}]}) y por eso se veía
+      // el genérico "Request failed with status code 422". Ahora priorizamos
+      // el message de Laravel + concatenamos todos los errors específicos
+      // para que el usuario vea "Ya existe una cuenta con este email" en vez
+      // de un código HTTP críptico.
+      const data = e?.response?.data;
+      let msg: string | null = null;
+      if (data?.errors && typeof data.errors === 'object') {
+        const allErrs = Object.values(data.errors).flat() as string[];
+        if (allErrs.length > 0) msg = allErrs.join('\n');
+      }
+      if (!msg) msg = data?.message || data?.msg || e?.message || 'Error al registrarse';
       setError(msg);
     } finally {
       setLoading(false);
