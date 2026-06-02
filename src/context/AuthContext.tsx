@@ -54,7 +54,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {
-    const { data } = await api.post<LoginResponse>('/api/authenticate/login', {
+    // 2026-06-02: el endpoint correcto del backend es `/api/authenticate`
+    // (sin /login). Antes la app llamaba a `/api/authenticate/login` que
+    // NO existía → 404 silencioso, el usuario veía "Error al iniciar sesión"
+    // sin más detalle y le impedía entrar a la app.
+    const { data } = await api.post<LoginResponse>('/api/authenticate', {
       email,
       password,
     });
