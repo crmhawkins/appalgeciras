@@ -10,6 +10,13 @@ on:
         description: 'Version to publish (e.g. 1.0.7). Empty → usa la del Info.plist actual.'
         required: false
         type: string
+  # Trigger automático cuando cambia el fichero .release-trigger.
+  # Permite lanzar la submission desde un push (en vez de workflow_dispatch que
+  # requiere permiso Actions=write en el PAT).
+  push:
+    branches: [master, main]
+    paths:
+      - '.release-trigger'
 
 concurrency:
   group: ios-release
