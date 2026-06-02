@@ -10,10 +10,12 @@ import QRCode from 'react-native-qrcode-svg';
 import { useKeepAwake } from 'expo-keep-awake';
 import api from '../../services/api';
 import { clearCached } from '../../services/cache';
+import { fetchAbonoMatchQr, AbonoQrResponse } from '../../services/abonosQr';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
+import QrTicketModal from '../../components/QrTicketModal';
 
 interface QRModalData {
   value: string;
@@ -54,14 +56,34 @@ const modalStyles = StyleSheet.create({
   closeBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
 });
 
+function formatKickoff(iso: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const dia = String(d.getDate()).padStart(2, '0');
+    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    const mes = meses[d.getMonth()];
+    const hh = String(d.getHours()).padStart(2, '0');
+    const mm = String(d.getMinutes()).padStart(2, '0');
+    return `${dia} ${mes} · ${hh}:${mm}`;
+  } catch { return iso; }
+}
+
 export default function MisAbonosScreen() {
-  const { user, token } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation<any>();
   const [abonos, setAbonos] = useState<Abono[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qrModal, setQrModal] = useState<QRModalData | null>(null);
+
+  // Estado del nuevo modal de QR por partido
+  const [matchQrVisible, setMatchQrVisible] = useState(false);
+  const [matchQrLoading, setMatchQrLoading] = useState(false);
+  const [matchQrError, setMatchQrError] = useState<string | null>(null);
+  const [matchQrData, setMatchQrData] = useState<AbonoQrResponse | null>(null);
+  const [matchQrAbono, setMatchQrAbono] = useState<Abono | null>(null);
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -78,6 +100,44 @@ export default function MisAbonosScreen() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  const openMatchQr = useCallback(async (abono: Abono, matchId?: number) => {
+    setMatchQrAbono(abono);
+    setMatchQrVisible(true);
+    setMatchQrLoading(true);
+    setMatchQrError(null);
+    if (!matchId) setMatchQrData(null);
+    try {
+      const resp = await fetchAbonoMatchQr(abono.id, matchId);
+      setMatchQrData(resp);
+    } catch (e: any) {
+      const status = e?.response?.status;
+      let msg = e?.response?.data?.message
+        || e?.response?.data?.msg
+        || e?.message
+        || 'No se pudo cargar el QR';
+      if (status === 404) msg = 'No hay próximo partido de local disponible';
+      setMatchQrError(msg);
+    } finally {
+      setMatchQrLoading(false);
+    }
+  }, []);
+
+  const closeMatchQr = useCallback(() => {
+    setMatchQrVisible(false);
+    setMatchQrData(null);
+    setMatchQrError(null);
+    setMatchQrAbono(null);
+  }, []);
+
+  const onChangeMatch = useCallback(() => {
+    // Selector lista de upcoming home matches — pendiente de endpoint dedicado.
+    // De momento avisamos al usuario para no romper el flujo.
+    Alert.alert(
+      'Cambiar de partido',
+      'El selector de partidos estará disponible próximamente. Por ahora se muestra el QR del próximo partido de local.',
+    );
+  }, []);
 
   const confirmarLiberar = (abonoId: number) => {
     Alert.alert(
@@ -145,6 +205,16 @@ export default function MisAbonosScreen() {
     );
   }
 
+  const matchTitle = matchQrData?.match?.label
+    || (matchQrData?.match ? `vs ${matchQrData.match.opponent}` : 'Próximo partido');
+  const matchSubtitle = matchQrData?.match?.kickoff_at
+    ? formatKickoff(matchQrData.match.kickoff_at)
+    : '';
+  const abonoNombre = matchQrAbono
+    ? `${matchQrAbono.nombre} ${matchQrAbono.apellidos}`
+    : (matchQrData?.customerName ?? '');
+  const asientoTexto = matchQrData?.asiento || matchQrData?.zone || '';
+
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <View style={styles.header}>
@@ -157,6 +227,34 @@ export default function MisAbonosScreen() {
         </View>
       </View>
       <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
+
+      <QrTicketModal
+        visible={matchQrVisible}
+        onClose={closeMatchQr}
+        qrSource={matchQrData?.qrDataUri ?? ''}
+        title={matchTitle}
+        subtitle={matchSubtitle}
+        loading={matchQrLoading}
+        error={matchQrError}
+        footer={
+          <View style={{ alignItems: 'center', width: '100%' }}>
+            {!!abonoNombre && <Text style={styles.matchFooterName}>{abonoNombre}</Text>}
+            {!!asientoTexto && <Text style={styles.matchFooterSeat}>{asientoTexto}</Text>}
+            <Text style={styles.matchFooterHint}>
+              Muestra este QR al personal de la puerta.{'\n'}Sólo válido para este partido.
+            </Text>
+            <View style={styles.matchFooterButtons}>
+              <TouchableOpacity style={styles.matchSecondaryBtn} onPress={onChangeMatch}>
+                <Text style={styles.matchSecondaryBtnText}>Cambiar de partido</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.matchPrimaryBtn} onPress={closeMatchQr}>
+                <Text style={styles.matchPrimaryBtnText}>Cerrar</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        }
+      />
+
       {error && <Text style={styles.error}>{error}</Text>}
       <FlatList
         data={abonos}
@@ -214,6 +312,15 @@ export default function MisAbonosScreen() {
                   <QRCode value={item.codigoAcceso} size={80} />
                 </View>
                 <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
+              </TouchableOpacity>
+            )}
+            {item.activo && (
+              <TouchableOpacity
+                style={styles.matchQrBtn}
+                onPress={() => openMatchQr(item)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.matchQrBtnText}>Mostrar QR para próximo partido</Text>
               </TouchableOpacity>
             )}
             {item.activo && (
@@ -341,4 +448,50 @@ const styles = StyleSheet.create({
   liberarText: { fontSize: 12, color: colors.primary, fontWeight: '600' },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   backIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
+  // Botón prominente "Mostrar QR para próximo partido"
+  matchQrBtn: {
+    marginTop: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  matchQrBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.3 },
+  // Footer del modal de QR de partido
+  matchFooterName: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+  matchFooterSeat: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4, textAlign: 'center' },
+  matchFooterHint: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    marginTop: 14,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
+  matchFooterButtons: {
+    flexDirection: 'row',
+    marginTop: 18,
+    gap: 10,
+    width: '100%',
+    justifyContent: 'center',
+  },
+  matchSecondaryBtn: {
+    borderWidth: 1,
+    borderColor: '#fff',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  matchSecondaryBtnText: { color: '#fff', fontWeight: '600', fontSize: 13 },
+  matchPrimaryBtn: {
+    backgroundColor: colors.primary,
+    paddingVertical: 10,
+    paddingHorizontal: 22,
+    borderRadius: 8,
+  },
+  matchPrimaryBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
 });

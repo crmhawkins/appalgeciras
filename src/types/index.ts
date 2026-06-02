@@ -121,6 +121,8 @@ export interface Entrada {
   token?: string;
   qrCode?: string;
   codigoAcceso?: string;
+  qr_image_path?: string;   // ruta relativa en storage/qr
+  qr_url?: string;          // URL completa al PNG (preferida si backend la añade)
   precio: number;
   estado: 'pendiente' | 'valida' | 'usada' | 'cancelada';
   tipo?: string;
@@ -130,6 +132,8 @@ export interface Entrada {
   asientoId?: number;
   createdAt?: string;
   Partido?: {
+    id?: number;
+    matchday?: number | string;
     equipoLocal: string;
     equipoVisitante: string;
     fecha: string;

@@ -7,11 +7,12 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import QRCode from 'react-native-qrcode-svg';
 import { useKeepAwake } from 'expo-keep-awake';
-import api from '../../services/api';
+import api, { API_BASE_URL } from '../../services/api';
 import { colors } from '../../theme/colors';
 import { Entrada } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { ESTADIO } from '../../constants';
+import QrTicketModal from '../../components/QrTicketModal';
 
 interface QRModalData {
   value: string;
@@ -74,6 +75,23 @@ function formatDate(d?: string): string {
   } catch { return d; }
 }
 
+interface EntradaQrModalData {
+  title: string;
+  subtitle: string;
+  qrSource: string;
+  footerName?: string;
+  footerSeat?: string;
+}
+
+function resolveEntradaQrSource(entrada: Entrada): string {
+  if (entrada.qr_url) return entrada.qr_url;
+  if (entrada.qr_image_path) {
+    const path = entrada.qr_image_path.replace(/^\/+/, '');
+    return `${API_BASE_URL}/storage/${path}`;
+  }
+  return `${API_BASE_URL}/storage/qr/${entrada.id}.png`;
+}
+
 export default function MisEntradasScreen() {
   const { user } = useAuth();
   const navigation = useNavigation<any>();
@@ -82,6 +100,7 @@ export default function MisEntradasScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [qrModal, setQrModal] = useState<QRModalData | null>(null);
+  const [entradaQrModal, setEntradaQrModal] = useState<EntradaQrModalData | null>(null);
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -99,6 +118,30 @@ export default function MisEntradasScreen() {
   }, [user]);
 
   useEffect(() => { load(); }, [load]);
+
+  const openEntradaQr = useCallback((entrada: Entrada) => {
+    const partido = entrada.Partido;
+    const asiento = entrada.Asiento;
+    const mdLabel = partido?.matchday ? `J${partido.matchday} ` : '';
+    const titleBase = partido
+      ? `${mdLabel}vs ${partido.equipoVisitante}`
+      : `Entrada #${entrada.id}`;
+    const fecha = partido ? formatDate(partido.fecha) : '';
+    const subtitle = partido
+      ? `${fecha}${partido.hora ? ' · ' + partido.hora : ''}`
+      : '';
+    const footerSeat = asiento
+      ? `${asiento.Sector?.nombre ?? 'Sector'} — Fila ${asiento.fila} — Nº ${asiento.numero}`
+      : '';
+    const footerName = user?.nombre || user?.name || '';
+    setEntradaQrModal({
+      title: titleBase,
+      subtitle,
+      qrSource: resolveEntradaQrSource(entrada),
+      footerName,
+      footerSeat,
+    });
+  }, [user]);
 
   if (!user) {
     return (
@@ -143,6 +186,26 @@ export default function MisEntradasScreen() {
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
       <QRFullscreenModal data={qrModal} onClose={() => setQrModal(null)} />
+      <QrTicketModal
+        visible={!!entradaQrModal}
+        onClose={() => setEntradaQrModal(null)}
+        qrSource={entradaQrModal?.qrSource ?? ''}
+        title={entradaQrModal?.title ?? ''}
+        subtitle={entradaQrModal?.subtitle ?? ''}
+        footer={entradaQrModal ? (
+          <View style={{ alignItems: 'center' }}>
+            {!!entradaQrModal.footerName && (
+              <Text style={styles.entradaFooterName}>{entradaQrModal.footerName}</Text>
+            )}
+            {!!entradaQrModal.footerSeat && (
+              <Text style={styles.entradaFooterSeat}>{entradaQrModal.footerSeat}</Text>
+            )}
+            <Text style={styles.entradaFooterHint}>
+              Muestra este QR al personal de la puerta.
+            </Text>
+          </View>
+        ) : null}
+      />
       <View style={styles.header}>
         <TouchableOpacity style={styles.backBtn} onPress={() => navigation.goBack()}>
           <Text style={styles.backIcon}>‹</Text>
@@ -223,26 +286,35 @@ export default function MisEntradasScreen() {
               <Row label="Precio" value={`${item.precio} €`} highlight />
               {item.tipo && <Row label="Tipo" value={item.tipo} />}
               {item.metodoPago && <Row label="Pago" value={item.metodoPago} />}
+              {item.estado !== 'cancelada' && (
+                <TouchableOpacity
+                  style={styles.matchQrBtn}
+                  onPress={() => openEntradaQr(item)}
+                  activeOpacity={0.85}
+                >
+                  <Text style={styles.matchQrBtnText}>Mostrar QR de la entrada</Text>
+                </TouchableOpacity>
+              )}
               {(item.codigoAcceso || item.token) && (
                 <TouchableOpacity
                   style={styles.codigoBox}
                   onPress={() => {
                     const qrValue = item.codigoAcceso || item.token || '';
-                    const partido = item.Partido;
-                    const asiento = item.Asiento;
+                    const partidoInner = item.Partido;
+                    const asientoInner = item.Asiento;
                     setQrModal({
                       value: qrValue,
-                      titulo: partido
-                        ? `${partido.equipoLocal} vs ${partido.equipoVisitante}`
+                      titulo: partidoInner
+                        ? `${partidoInner.equipoLocal} vs ${partidoInner.equipoVisitante}`
                         : `Entrada #${item.id}`,
-                      subtitulo: asiento
-                        ? `${asiento.Sector?.nombre ?? 'Sector'} — Fila ${asiento.fila} — Nº ${asiento.numero}`
+                      subtitulo: asientoInner
+                        ? `${asientoInner.Sector?.nombre ?? 'Sector'} — Fila ${asientoInner.fila} — Nº ${asientoInner.numero}`
                         : item.codigoAcceso ?? '',
                     });
                   }}
                   activeOpacity={0.75}
                 >
-                  <Text style={styles.codigoLabel}>Código de acceso · Toca para ampliar</Text>
+                  <Text style={styles.codigoLabel}>Código alternativo · Toca para ampliar</Text>
                   <View style={styles.qrPreviewBox}>
                     <QRCode value={item.codigoAcceso || item.token || 'invalid'} size={80} />
                   </View>
@@ -357,4 +429,26 @@ const styles = StyleSheet.create({
   qrPreviewBox: { padding: 6, backgroundColor: '#fff', borderRadius: 4 },
   backBtn: { width: 44, height: 44, justifyContent: 'center', alignItems: 'center' },
   backIcon: { color: colors.white, fontSize: 32, lineHeight: 36, fontWeight: '300' },
+  matchQrBtn: {
+    marginTop: 12,
+    backgroundColor: colors.primary,
+    borderRadius: 10,
+    paddingVertical: 14,
+    alignItems: 'center',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.15,
+    shadowRadius: 2,
+  },
+  matchQrBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 15, letterSpacing: 0.3 },
+  entradaFooterName: { color: '#fff', fontSize: 16, fontWeight: 'bold', textAlign: 'center' },
+  entradaFooterSeat: { color: 'rgba(255,255,255,0.85)', fontSize: 14, marginTop: 4, textAlign: 'center' },
+  entradaFooterHint: {
+    color: 'rgba(255,255,255,0.75)',
+    fontSize: 12,
+    marginTop: 14,
+    textAlign: 'center',
+    lineHeight: 17,
+  },
 });
