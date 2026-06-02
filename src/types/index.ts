@@ -172,6 +172,8 @@ export type AuthStackParamList = {
 };
 
 export type AbonosStackParamList = {
+  ComprarHome: undefined;
+  Entradas: undefined;
   Gradas: undefined;
   Sectores: { gradaId: number; gradaNombre: string };
   Asientos: { sectorId: number; sectorNombre: string; precio: number };

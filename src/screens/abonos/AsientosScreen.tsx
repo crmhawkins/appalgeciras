@@ -155,14 +155,30 @@ export default function AsientosScreen() {
         ) : (
           <Text style={styles.footerText}>Toca un asiento verde para seleccionarlo</Text>
         )}
+        {/*
+          Botón principal — la regla de habilitación cambió 2026-06-02
+          tras feedback del usuario: cuando NO hay token, el botón debe
+          estar SIEMPRE habilitado para que el aficionado pueda navegar al
+          login (no tenía sentido bloquearlo por "no has elegido asiento"
+          si todavía no le hemos pedido credenciales). Cuando ya hay token,
+          sí exigimos asiento seleccionado.
+        */}
         <TouchableOpacity
-          style={[styles.buyBtn, !selected && styles.buyBtnDisabled]}
+          style={[styles.buyBtn, token && !selected && styles.buyBtnDisabled]}
           onPress={onBuy}
-          disabled={!selected}
-          accessibilityLabel={selected ? `Comprar abono, asiento ${selected.numero} fila ${selected.fila}, ${precio} €` : 'Comprar abono, selecciona un asiento primero'}
+          disabled={!!token && !selected}
+          accessibilityLabel={
+            !token
+              ? 'Iniciar sesión para comprar abono'
+              : selected
+                ? `Comprar abono, asiento ${selected.numero} fila ${selected.fila}, ${precio} €`
+                : 'Comprar abono, selecciona un asiento primero'
+          }
         >
           <Text style={styles.buyBtnText}>
-            {token ? '🛒 Comprar Abono' : 'Iniciar sesión para comprar'}
+            {token
+              ? (selected ? '🛒 Comprar Abono' : 'Selecciona un asiento')
+              : 'Iniciar sesión para comprar'}
           </Text>
         </TouchableOpacity>
       </View>
