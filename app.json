@@ -1,8 +1,8 @@
 {
   "expo": {
-    "name": "Algeciras CF Abonados",
+    "name": "Algeciras CF",
     "slug": "algeciras-cf-abonos",
-    "version": "1.0.7",
+    "version": "1.0.8",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "scheme": "algecirascf",
