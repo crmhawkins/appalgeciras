@@ -80,10 +80,16 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <StripeProvider
-        publishableKey={STRIPE_PUBLISHABLE_KEY}
-        merchantIdentifier="merchant.es.algecirascf.abonos"
-      >
+      {/*
+        StripeProvider sin merchantIdentifier — Apple Pay deshabilitado por ahora.
+        Para activarlo más tarde, hace falta:
+          1. Registrar Merchant ID en Apple Developer
+          2. Habilitar Apple Pay capability en el App ID
+          3. Regenerar el provisioning profile vía `fastlane match nuke + match`
+          4. Volver a pasar merchantIdentifier aquí y a app.json plugin
+        El pago con tarjeta vía PaymentSheet funciona sin esto.
+      */}
+      <StripeProvider publishableKey={STRIPE_PUBLISHABLE_KEY}>
         <AuthProvider>
           <StatusBar style="light" backgroundColor="#C8102E" />
           <RootNavigator navigationRef={navigationRef} />
