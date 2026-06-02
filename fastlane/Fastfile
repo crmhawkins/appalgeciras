@@ -29,7 +29,15 @@ platform :ios do
 
     bundle_id = ENV["APP_BUNDLE_ID"] || "es.algecirascf.abonos"
     team_id   = ENV["APPLE_TEAM_ID"]
-    scheme    = "AlgecirasCFAbonados"
+
+    # Scheme se calcula desde app.json (expo prebuild lo genera quitando
+    # los espacios del campo `expo.name`). Antes estaba hardcoded
+    # "AlgecirasCFAbonados" y rompió cuando se renombró a "Algeciras CF"
+    # en el commit del 02/06 — ahora siempre coincide con el .xcodeproj real.
+    require "json"
+    app_json = JSON.parse(File.read(File.expand_path("../app.json", __dir__)))
+    scheme   = (app_json.dig("expo", "name") || "AlgecirasCF").gsub(/\s+/, "")
+    UI.message("📦 Scheme detectado desde app.json: #{scheme}")
 
     keychain_name = "algeciras_keychain"
     keychain_pwd  = "algecirastempkeychainpw"
@@ -146,6 +154,102 @@ platform :ios do
     )
 
     UI.success("✅ Metadata v#{app_version} subida. Próximo paso: lane `ios submit` para asociar build + submit for review.")
+  end
+
+  desc "Configurar pricing=free + age rating todo None vía ASC API (one-time setup)"
+  lane :setup_appstore do
+    cfg = setup_signing
+    require "spaceship"
+
+    Spaceship::ConnectAPI.token = cfg[:api_key]
+    app = Spaceship::ConnectAPI::App.find(cfg[:bundle_id])
+    if app.nil?
+      UI.user_error!("App #{cfg[:bundle_id]} no encontrada en App Store Connect")
+    end
+
+    UI.message("📋 Configurando age rating (todo None/No)...")
+
+    # Age Rating Declaration: todos los campos a None/No.
+    # Apple cambió 2024 a este esquema granular con ~25 campos.
+    age_rating_attrs = {
+      alcoholTobaccoOrDrugUseOrReferences: "NONE",
+      contests: "NONE",
+      gamblingSimulated: "NONE",
+      medicalOrTreatmentInformation: "NONE",
+      profanityOrCrudeHumor: "NONE",
+      sexualContentGraphicAndNudity: "NONE",
+      sexualContentOrNudity: "NONE",
+      horrorOrFearThemes: "NONE",
+      matureOrSuggestiveThemes: "NONE",
+      unrestrictedWebAccess: false,
+      gambling: false,
+      gamblingAndContests: false,
+      violenceCartoonOrFantasy: "NONE",
+      violenceRealistic: "NONE",
+      violenceRealisticProlongedGraphicOrSadistic: "NONE",
+      gunsOrOtherWeapons: "NONE",
+      healthOrWellnessTopics: "NONE",
+      ageAssurance: "NOT_USED",
+      messagingAndChat: "NOT_USED",
+      parentalControls: "NOT_PRESENT",
+      userGeneratedContent: "NONE",
+      socialNetworkingOrCommunication: "NONE",
+      advertising: "NONE",
+      kidsAgeBand: nil,
+      seventeenPlus: false,
+    }
+
+    begin
+      # Hay 2 sitios donde Apple guarda la declaración:
+      #   - AppInfo.ageRatingDeclaration (preferido)
+      #   - App.ageRatingDeclaration (legacy)
+      app_info = Spaceship::ConnectAPI::AppInfo.get_app_infos(app_id: app.id).first
+      decl = app_info&.fetch_age_rating_declaration
+      if decl
+        Spaceship::ConnectAPI.patch_age_rating_declaration(
+          age_rating_declaration_id: decl.id,
+          attributes: age_rating_attrs,
+        )
+        UI.success("✅ Age rating actualizado en AppInfo declaration #{decl.id}")
+      else
+        UI.important("⚠️  No se encontró age rating declaration — Apple la crea automáticamente al submitear")
+      end
+    rescue => e
+      UI.error("Age rating: #{e.message}")
+    end
+
+    UI.message("💰 Configurando pricing → Free (price tier 0)...")
+    begin
+      # Tier 0 = Free en todos los territorios.
+      # API endpoint: POST /v1/appPriceSchedules
+      Spaceship::ConnectAPI.post(
+        url: "appPriceSchedules",
+        body: {
+          data: {
+            type: "appPriceSchedules",
+            relationships: {
+              app: { data: { type: "apps", id: app.id } },
+              manualPrices: {
+                data: [{ type: "appPrices", id: "${new-price}" }]
+              },
+            }
+          },
+          included: [{
+            type: "appPrices",
+            id: "${new-price}",
+            attributes: { startDate: nil },
+            relationships: {
+              appPricePoint: { data: { type: "appPricePoints", id: "eyJzIjoiNjc3MzY1MjQ3NyIsInQiOiJVU0EiLCJwIjoiMCJ9" } },  # tier 0 USA Free
+            }
+          }]
+        }
+      )
+      UI.success("✅ Pricing → Free")
+    rescue => e
+      UI.important("Pricing: #{e.message} (probablemente ya esté seteado)")
+    end
+
+    UI.success("✅ Setup App Store completado. Sólo faltan screenshots para submit.")
   end
 
   desc "Asociar último build TestFlight a App Store version + submit for review"
