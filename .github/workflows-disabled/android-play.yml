@@ -1,0 +1,93 @@
+name: Android Build & Google Play
+
+# Genera AAB firmado y lo sube a Google Play (track internal por defecto).
+# Trigger manual desde Actions UI. No auto en push.
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: 'Play Store track: internal | alpha | beta | production'
+        required: true
+        default: 'internal'
+        type: choice
+        options:
+          - internal
+          - alpha
+          - beta
+          - production
+
+concurrency:
+  group: android-play
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build AAB and upload to Play Store
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Ruby 3.2
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Node deps
+        run: npm install --no-audit --no-fund
+
+      - name: Install Fastlane
+        run: gem install fastlane -NV
+
+      - name: Expo Prebuild
+        env:
+          EXPO_NO_TELEMETRY: '1'
+        run: npx expo prebuild --platform android --clean --no-install
+
+      - name: Patch Android signing config
+        run: bash scripts/patch-android-signing.sh
+
+      - name: Build AAB and Upload to Play Store
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+          GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64: ${{ secrets.GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64 }}
+          APP_PACKAGE_NAME: es.algecirascf.abonos
+          FASTLANE_SKIP_UPDATE_CHECK: 'true'
+        run: |
+          bundle exec fastlane android internal || fastlane android internal
+
+      - name: Upload AAB artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: AlgecirasCFAbonados-aab
+          path: android/app/build/outputs/bundle/release/*.aab
+          retention-days: 14
+
+      - name: Upload build logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-build-logs
+          path: |
+            android/app/build/outputs/
+            ~/.gradle/daemon/**/*.log
+            fastlane/report.xml
+          retention-days: 7
+          if-no-files-found: ignore

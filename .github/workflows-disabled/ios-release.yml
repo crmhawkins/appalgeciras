@@ -1,0 +1,64 @@
+name: iOS Submit to App Store Review
+
+# Dispatch manual desde la UI de Actions cuando queremos publicar.
+# No se dispara automáticamente en push para no enviar review a Apple
+# cada vez que cambia el código.
+on:
+  workflow_dispatch:
+    inputs:
+      app_version:
+        description: 'Version to publish (e.g. 1.0.7). Empty → usa la del Info.plist actual.'
+        required: false
+        type: string
+
+concurrency:
+  group: ios-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Submit to App Store Review
+    runs-on: macos-26
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Setup Ruby 3.2
+        uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: '3.2'
+
+      - name: Install Node deps
+        run: npm install --no-audit --no-fund
+
+      - name: Install Fastlane
+        run: gem install fastlane -NV
+
+      - name: Decode App Store Connect API Key
+        env:
+          ASC_API_KEY_P8_B64: ${{ secrets.ASC_API_KEY_P8_B64 }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+        run: |
+          mkdir -p $HOME/private_keys
+          echo "$ASC_API_KEY_P8_B64" | base64 --decode > $HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8
+
+      - name: Submit to App Store Review
+        env:
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          APP_BUNDLE_ID: es.algecirascf.abonos
+          ASC_API_KEY_PATH: ${{ format('{0}/private_keys/AuthKey_{1}.p8', github.workspace, secrets.ASC_KEY_ID) }}
+          MATCH_PASSWORD: ${{ secrets.MATCH_PASSWORD }}
+          MATCH_GIT_BASIC_AUTHORIZATION: ${{ secrets.MATCH_GIT_BASIC_AUTHORIZATION }}
+          APP_VERSION: ${{ inputs.app_version }}
+        run: |
+          export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          bundle exec fastlane ios release || fastlane ios release
