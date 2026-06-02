@@ -232,8 +232,11 @@ export default function HomeScreen() {
     }).catch(() => {});
   }, [offline]);
 
-  const goAbonos = () => navigation.navigate('AbonosTab');
-  const goEntradas = () => navigation.navigate('EstadioPlano');
+  // Tanto Abono como Entrada llevan al plano del estadio (WebView del web /estadio).
+  // La diferencia es el `type` query param que la web lee para mostrar precio
+  // de abono (temporada completa) o precio de entrada (un partido).
+  const goAbonos = () => navigation.navigate('EstadioPlano', { type: 'abono' });
+  const goEntradas = () => navigation.navigate('EstadioPlano', { type: 'entrada' });
   const goPartidos = () => navigation.navigate('Partidos');
   const goNoticias = () => navigation.navigate('NoticiasTab');
 

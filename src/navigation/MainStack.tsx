@@ -23,7 +23,7 @@ export type MainStackParamList = {
   NoticiaDetalle: { slug: string };
   ProductoDetalle: { id: number };
   Estadio: undefined;
-  EstadioPlano: { matchId?: number } | undefined;
+  EstadioPlano: { matchId?: number; type?: 'abono' | 'entrada' } | undefined;
   Busqueda: undefined;
 };
 

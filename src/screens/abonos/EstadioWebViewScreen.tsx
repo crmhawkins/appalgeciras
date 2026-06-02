@@ -2,10 +2,11 @@ import React, { useRef, useState } from 'react';
 import { View, StyleSheet, ActivityIndicator, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { WebView } from 'react-native-webview';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { API_BASE_URL } from '../../services/api';
 import { getToken } from '../../services/auth';
 import { colors } from '../../theme/colors';
+import { MainStackParamList } from '../../navigation/MainStack';
 
 /**
  * Pantalla "WebView del estadio" — selector compartido web/app.
@@ -24,6 +25,7 @@ import { colors } from '../../theme/colors';
  */
 export default function EstadioWebViewScreen() {
   const navigation = useNavigation();
+  const route = useRoute<RouteProp<MainStackParamList, 'EstadioPlano'>>();
   const webviewRef = useRef<WebView>(null);
   const [loading, setLoading] = useState(true);
   const [token, setToken] = useState<string | null>(null);
@@ -33,7 +35,14 @@ export default function EstadioWebViewScreen() {
     getToken().then(setToken);
   }, []);
 
-  const uri = `${API_BASE_URL}/estadio?native=1${token ? `&token=${encodeURIComponent(token)}` : ''}`;
+  // Tipo de producto: abono (temporada) o entrada (1 partido). La web /estadio
+  // lo lee para mostrar el precio correcto sobre cada butaca.
+  const type     = (route.params as any)?.type ?? 'abono';
+  const matchId  = (route.params as any)?.matchId;
+  const params   = new URLSearchParams({ native: '1', type });
+  if (matchId) params.set('match', String(matchId));
+  if (token) params.set('token', token);
+  const uri = `${API_BASE_URL}/estadio?${params.toString()}`;
 
   const onMessage = (event: any) => {
     try {
