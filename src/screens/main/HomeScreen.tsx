@@ -238,6 +238,7 @@ export default function HomeScreen() {
   const goAbonos = () => navigation.navigate('EstadioPlano', { type: 'abono' });
   const goEntradas = () => navigation.navigate('EstadioPlano', { type: 'entrada' });
   const goPartidos = () => navigation.navigate('Partidos');
+  const goRenovar = () => navigation.navigate('RenovarAbono');
   const goNoticias = () => navigation.navigate('NoticiasTab');
 
   const formatFecha = (fechaStr: string) => {
@@ -301,6 +302,10 @@ export default function HomeScreen() {
           <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={goPartidos}>
             <Text style={styles.actionIcon}>⚽</Text>
             <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Partidos</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.actionBtn, styles.actionBtnSecondary]} onPress={goRenovar}>
+            <Text style={styles.actionIcon}>🔁</Text>
+            <Text style={[styles.actionLabel, styles.actionLabelSecondary]}>Renovar</Text>
           </TouchableOpacity>
         </View>
 
@@ -563,11 +568,15 @@ const styles = StyleSheet.create({
   welcome: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
 
   // ACTIONS
-  actionsRow: { flexDirection: 'row', gap: 12, marginBottom: 20 },
+  // 4 botones — paddingVertical/gap reducidos para que quepan en móviles
+  // pequeños sin desbordar. flex:1 + flexBasis:0 evita overflow horizontal.
+  actionsRow: { flexDirection: 'row', gap: 8, marginBottom: 20 },
   actionBtn: {
     flex: 1,
+    flexBasis: 0,
     backgroundColor: colors.primary,
-    paddingVertical: 16,
+    paddingVertical: 14,
+    paddingHorizontal: 4,
     borderRadius: 10,
     alignItems: 'center',
   },
@@ -576,8 +585,8 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: colors.primary,
   },
-  actionIcon: { fontSize: 24, marginBottom: 4 },
-  actionLabel: { color: colors.white, fontWeight: 'bold', fontSize: 13 },
+  actionIcon: { fontSize: 22, marginBottom: 4 },
+  actionLabel: { color: colors.white, fontWeight: 'bold', fontSize: 12 },
   actionLabelSecondary: { color: colors.primary },
 
   // SECTION

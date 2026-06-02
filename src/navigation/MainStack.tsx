@@ -11,6 +11,7 @@ import ProductoDetalleScreen from '../screens/main/ProductoDetalleScreen';
 import EstadioScreen from '../screens/main/EstadioScreen';
 import EstadioWebViewScreen from '../screens/abonos/EstadioWebViewScreen';
 import BusquedaScreen from '../screens/main/BusquedaScreen';
+import RenovacionAbonoScreen from '../screens/renovacion/RenovacionAbonoScreen';
 import { colors } from '../theme/colors';
 
 export type MainStackParamList = {
@@ -25,6 +26,7 @@ export type MainStackParamList = {
   Estadio: undefined;
   EstadioPlano: { matchId?: number; type?: 'abono' | 'entrada' } | undefined;
   Busqueda: undefined;
+  RenovarAbono: undefined;
 };
 
 const Stack = createNativeStackNavigator<MainStackParamList>();
@@ -65,6 +67,16 @@ export default function MainStack() {
         }}
       />
       <Stack.Screen name="Busqueda" component={BusquedaScreen} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="RenovarAbono"
+        component={RenovacionAbonoScreen}
+        options={{
+          title: 'Renovar Abono',
+          headerStyle: { backgroundColor: colors.primary },
+          headerTintColor: colors.white,
+          headerTitleStyle: { fontWeight: 'bold' },
+        }}
+      />
     </Stack.Navigator>
   );
 }
