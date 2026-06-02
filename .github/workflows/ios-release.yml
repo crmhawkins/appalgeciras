@@ -68,4 +68,7 @@ jobs:
           APP_VERSION: ${{ inputs.app_version }}
         run: |
           export ASC_API_KEY_PATH="$HOME/private_keys/AuthKey_${ASC_KEY_ID}.p8"
+          # Paso 1: subir metadata (crea version 1.0.7 si no existe)
           bundle exec fastlane ios release || fastlane ios release
+          # Paso 2: asociar build TestFlight + submit for review
+          bundle exec fastlane ios submit || fastlane ios submit
