@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
   Modal,
   View,
@@ -8,9 +8,17 @@ import {
   Image,
   Dimensions,
   ActivityIndicator,
+  FlatList,
+  Pressable,
 } from 'react-native';
 import { useKeepAwake } from 'expo-keep-awake';
 import { colors } from '../theme/colors';
+
+export interface QrTicketMatchOption {
+  id: number;
+  label: string;
+  kickoff_at: string;
+}
 
 export interface QrTicketModalProps {
   visible: boolean;
@@ -21,6 +29,12 @@ export interface QrTicketModalProps {
   footer?: React.ReactNode;
   loading?: boolean;
   error?: string | null;
+  /** Lista de partidos seleccionables (alternativos al actual). Opcional. */
+  matchOptions?: QrTicketMatchOption[];
+  /** ID del partido actualmente seleccionado dentro de matchOptions. */
+  selectedMatchId?: number;
+  /** Callback al seleccionar un partido distinto. */
+  onMatchChange?: (id: number) => void;
 }
 
 /**
@@ -37,11 +51,20 @@ function QrTicketModalInner({
   footer,
   loading,
   error,
+  matchOptions,
+  selectedMatchId,
+  onMatchChange,
 }: Omit<QrTicketModalProps, 'visible'>) {
   useKeepAwake();
   const { width, height } = Dimensions.get('window');
   // QR ocupa el ~60% del lado más corto para evitar overflow en horizontal.
   const qrSize = Math.round(Math.min(width, height) * 0.6);
+
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const hasSelector = !!matchOptions && matchOptions.length > 0 && !!onMatchChange;
+  const selectedOption = hasSelector
+    ? matchOptions!.find((m) => m.id === selectedMatchId) ?? matchOptions![0]
+    : null;
 
   return (
     <View style={styles.overlay}>
@@ -54,6 +77,20 @@ function QrTicketModalInner({
           <Text style={styles.closeBtnText}>✕</Text>
         </TouchableOpacity>
       </View>
+
+      {hasSelector && selectedOption && (
+        <Pressable
+          style={styles.selector}
+          onPress={() => setPickerOpen(true)}
+          accessibilityRole="button"
+          accessibilityLabel="Cambiar de partido"
+        >
+          <Text style={styles.selectorLabel}>Partido</Text>
+          <Text style={styles.selectorValue} numberOfLines={1}>
+            {selectedOption.label}  ▾
+          </Text>
+        </Pressable>
+      )}
 
       <View style={styles.header}>
         <Text style={styles.title} numberOfLines={2}>{title}</Text>
@@ -79,6 +116,45 @@ function QrTicketModalInner({
       </View>
 
       {footer && <View style={styles.footer}>{footer}</View>}
+
+      {hasSelector && (
+        <Modal
+          visible={pickerOpen}
+          transparent
+          animationType="fade"
+          onRequestClose={() => setPickerOpen(false)}
+        >
+          <Pressable style={styles.pickerBackdrop} onPress={() => setPickerOpen(false)}>
+            <Pressable style={styles.pickerCard} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.pickerTitle}>Elige partido</Text>
+              <FlatList
+                data={matchOptions!}
+                keyExtractor={(m) => String(m.id)}
+                renderItem={({ item }) => {
+                  const isSelected = item.id === selectedOption?.id;
+                  return (
+                    <TouchableOpacity
+                      style={[styles.pickerRow, isSelected && styles.pickerRowSelected]}
+                      onPress={() => {
+                        setPickerOpen(false);
+                        if (!isSelected) onMatchChange!(item.id);
+                      }}
+                    >
+                      <Text style={[styles.pickerRowText, isSelected && styles.pickerRowTextSelected]}>
+                        {item.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                }}
+                ItemSeparatorComponent={() => <View style={styles.pickerSep} />}
+              />
+              <TouchableOpacity style={styles.pickerCancel} onPress={() => setPickerOpen(false)}>
+                <Text style={styles.pickerCancelText}>Cancelar</Text>
+              </TouchableOpacity>
+            </Pressable>
+          </Pressable>
+        </Modal>
+      )}
     </View>
   );
 }
@@ -161,5 +237,77 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: 'center',
     paddingHorizontal: 8,
+  },
+  selector: {
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.30)',
+    borderWidth: 1,
+    borderRadius: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    marginBottom: 12,
+  },
+  selectorLabel: {
+    color: 'rgba(255,255,255,0.70)',
+    fontSize: 11,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  selectorValue: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  pickerBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+  },
+  pickerCard: {
+    backgroundColor: '#fff',
+    borderRadius: 14,
+    paddingVertical: 16,
+    width: '100%',
+    maxHeight: '70%',
+  },
+  pickerTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: colors.text,
+    textAlign: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 12,
+  },
+  pickerRow: {
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+  },
+  pickerRowSelected: {
+    backgroundColor: 'rgba(207,46,46,0.08)',
+  },
+  pickerRowText: {
+    fontSize: 14,
+    color: colors.text,
+  },
+  pickerRowTextSelected: {
+    color: colors.primary,
+    fontWeight: '700',
+  },
+  pickerSep: {
+    height: 1,
+    backgroundColor: 'rgba(0,0,0,0.06)',
+  },
+  pickerCancel: {
+    marginTop: 8,
+    paddingVertical: 12,
+    alignItems: 'center',
+  },
+  pickerCancelText: {
+    color: colors.textSecondary,
+    fontSize: 14,
+    fontWeight: '600',
   },
 });

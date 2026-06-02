@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity, Alert, Modal,
+  RefreshControl, TouchableOpacity, Alert, Modal, Platform,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -11,16 +11,50 @@ import { useKeepAwake } from 'expo-keep-awake';
 import api from '../../services/api';
 import { clearCached } from '../../services/cache';
 import { fetchAbonoMatchQr, AbonoQrResponse } from '../../services/abonosQr';
+import { addToAppleWallet, addToGoogleWallet } from '../../services/wallet';
 import { colors } from '../../theme/colors';
 import { Abono } from '../../types';
 import { useAuth } from '../../context/AuthContext';
 import { TEMPORADA_CORTA, COMPETICION } from '../../constants';
-import QrTicketModal from '../../components/QrTicketModal';
+import QrTicketModal, { QrTicketMatchOption } from '../../components/QrTicketModal';
 
 interface QRModalData {
   value: string;
   titulo: string;
   subtitulo: string;
+}
+
+interface PartidoAPI {
+  id: number;
+  equipoLocal?: string;
+  equipoVisitante?: string;
+  fecha: string;
+  hora?: string;
+  jornada?: number | string | null;
+  estadio?: string | null;
+  // El backend devuelve venue solo en la versión EN; en /api/partidos
+  // se infiere de equipoLocal === 'Algeciras CF'.
+}
+
+/**
+ * Construye el label de un partido tal como lo espera el selector del modal:
+ *   "J5 vs Real Murcia · 12 oct"
+ * Si no hay matchday, omite el prefijo "J{n}".
+ */
+function buildMatchLabel(p: PartidoAPI, rival: string): string {
+  const fecha = formatKickoffShort(p.fecha);
+  const j = p.jornada != null && String(p.jornada).trim() !== '' ? `J${p.jornada} ` : '';
+  return `${j}vs ${rival} · ${fecha}`.trim();
+}
+
+function formatKickoffShort(iso: string): string {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const dia = String(d.getDate()).padStart(2, '0');
+    const meses = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+    return `${dia} ${meses[d.getMonth()]}`;
+  } catch { return ''; }
 }
 
 function QRFullscreenModal({ data, onClose }: { data: QRModalData | null; onClose: () => void }) {
@@ -84,6 +118,38 @@ export default function MisAbonosScreen() {
   const [matchQrError, setMatchQrError] = useState<string | null>(null);
   const [matchQrData, setMatchQrData] = useState<AbonoQrResponse | null>(null);
   const [matchQrAbono, setMatchQrAbono] = useState<Abono | null>(null);
+  const [matchOptions, setMatchOptions] = useState<QrTicketMatchOption[]>([]);
+  const [selectedMatchId, setSelectedMatchId] = useState<number | undefined>(undefined);
+
+  /**
+   * Carga la lista de partidos de casa futuros y la prepara para el selector.
+   * Filtra venue==home (= equipoLocal Algeciras CF) y fecha >= hoy.
+   */
+  const loadHomeUpcomingMatches = useCallback(async (): Promise<QrTicketMatchOption[]> => {
+    try {
+      const { data } = await api.get<PartidoAPI[] | { partidos: PartidoAPI[] }>('/api/partidos');
+      const raw: PartidoAPI[] = Array.isArray(data)
+        ? data
+        : (data as any)?.partidos ?? [];
+      const todayMs = new Date(new Date().toDateString()).getTime();
+      const home = raw
+        .filter((p) => {
+          if (!p?.fecha) return false;
+          const isHome = (p.equipoLocal ?? '').trim().toLowerCase().includes('algeciras');
+          if (!isHome) return false;
+          const t = new Date(p.fecha).getTime();
+          return !isNaN(t) && t >= todayMs;
+        })
+        .sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+      return home.map((p) => ({
+        id: p.id,
+        label: buildMatchLabel(p, p.equipoVisitante || 'rival'),
+        kickoff_at: p.fecha,
+      }));
+    } catch {
+      return [];
+    }
+  }, []);
 
   const load = useCallback(async () => {
     if (!user) { setLoading(false); return; }
@@ -107,9 +173,16 @@ export default function MisAbonosScreen() {
     setMatchQrLoading(true);
     setMatchQrError(null);
     if (!matchId) setMatchQrData(null);
+    // Cargamos en paralelo el QR y la lista de partidos disponibles para
+    // el selector. El selector no es bloqueante: si falla queda vacío.
+    const matchesPromise = loadHomeUpcomingMatches();
     try {
       const resp = await fetchAbonoMatchQr(abono.id, matchId);
       setMatchQrData(resp);
+      const options = await matchesPromise;
+      setMatchOptions(options);
+      // Sincronizamos el seleccionado con lo que devolvió el backend.
+      setSelectedMatchId(resp.match?.id ?? matchId ?? options[0]?.id);
     } catch (e: any) {
       const status = e?.response?.status;
       let msg = e?.response?.data?.message
@@ -118,26 +191,53 @@ export default function MisAbonosScreen() {
         || 'No se pudo cargar el QR';
       if (status === 404) msg = 'No hay próximo partido de local disponible';
       setMatchQrError(msg);
+      // Aun en error mostramos el selector si tenemos lista — el usuario
+      // puede cambiar a otro partido y reintentar.
+      try {
+        const options = await matchesPromise;
+        setMatchOptions(options);
+        setSelectedMatchId(matchId ?? options[0]?.id);
+      } catch { /* ignore */ }
     } finally {
       setMatchQrLoading(false);
     }
-  }, []);
+  }, [loadHomeUpcomingMatches]);
 
   const closeMatchQr = useCallback(() => {
     setMatchQrVisible(false);
     setMatchQrData(null);
     setMatchQrError(null);
     setMatchQrAbono(null);
+    setMatchOptions([]);
+    setSelectedMatchId(undefined);
   }, []);
 
-  const onChangeMatch = useCallback(() => {
-    // Selector lista de upcoming home matches — pendiente de endpoint dedicado.
-    // De momento avisamos al usuario para no romper el flujo.
-    Alert.alert(
-      'Cambiar de partido',
-      'El selector de partidos estará disponible próximamente. Por ahora se muestra el QR del próximo partido de local.',
-    );
-  }, []);
+  /**
+   * Cuando el usuario elige otro partido en el selector del modal,
+   * re-llamamos a /api/me/abonos/{id}/qr?match=newId y refrescamos
+   * el QR + la info del partido.
+   */
+  const onChangeMatch = useCallback(async (newMatchId: number) => {
+    if (!matchQrAbono) return;
+    setSelectedMatchId(newMatchId);
+    setMatchQrLoading(true);
+    setMatchQrError(null);
+    try {
+      const resp = await fetchAbonoMatchQr(matchQrAbono.id, newMatchId);
+      setMatchQrData(resp);
+    } catch (e: any) {
+      const status = e?.response?.status;
+      let msg = e?.response?.data?.message
+        || e?.response?.data?.msg
+        || e?.message
+        || 'No se pudo cargar el QR';
+      if (status === 404) msg = 'No hay QR disponible para ese partido';
+      setMatchQrError(msg);
+      setMatchQrData(null);
+    } finally {
+      setMatchQrLoading(false);
+    }
+  }, [matchQrAbono]);
 
   const confirmarLiberar = (abonoId: number) => {
     Alert.alert(
@@ -236,6 +336,9 @@ export default function MisAbonosScreen() {
         subtitle={matchSubtitle}
         loading={matchQrLoading}
         error={matchQrError}
+        matchOptions={matchOptions.length > 0 ? matchOptions : undefined}
+        selectedMatchId={selectedMatchId}
+        onMatchChange={matchOptions.length > 0 ? onChangeMatch : undefined}
         footer={
           <View style={{ alignItems: 'center', width: '100%' }}>
             {!!abonoNombre && <Text style={styles.matchFooterName}>{abonoNombre}</Text>}
@@ -243,10 +346,26 @@ export default function MisAbonosScreen() {
             <Text style={styles.matchFooterHint}>
               Muestra este QR al personal de la puerta.{'\n'}Sólo válido para este partido.
             </Text>
-            <View style={styles.matchFooterButtons}>
-              <TouchableOpacity style={styles.matchSecondaryBtn} onPress={onChangeMatch}>
-                <Text style={styles.matchSecondaryBtnText}>Cambiar de partido</Text>
+            {/* Botones nativos Wallet — visibles solo en el OS correspondiente. */}
+            {matchQrAbono && Platform.OS === 'ios' && (
+              <TouchableOpacity
+                style={styles.walletAppleBtn}
+                onPress={() => addToAppleWallet(matchQrAbono.id)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.walletAppleBtnText}>🍎  Añadir a Apple Wallet</Text>
               </TouchableOpacity>
+            )}
+            {matchQrAbono && Platform.OS === 'android' && (
+              <TouchableOpacity
+                style={styles.walletGoogleBtn}
+                onPress={() => addToGoogleWallet(matchQrAbono.id)}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.walletGoogleBtnText}>Save to Google Wallet</Text>
+              </TouchableOpacity>
+            )}
+            <View style={styles.matchFooterButtons}>
               <TouchableOpacity style={styles.matchPrimaryBtn} onPress={closeMatchQr}>
                 <Text style={styles.matchPrimaryBtnText}>Cerrar</Text>
               </TouchableOpacity>
@@ -494,4 +613,26 @@ const styles = StyleSheet.create({
     borderRadius: 8,
   },
   matchPrimaryBtnText: { color: '#fff', fontWeight: 'bold', fontSize: 14 },
+  // Botón Apple Wallet (sólo iOS) — estilo negro estándar Apple.
+  walletAppleBtn: {
+    backgroundColor: '#000',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    marginTop: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  walletAppleBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
+  // Botón Google Wallet (sólo Android) — estilo branding Google.
+  walletGoogleBtn: {
+    backgroundColor: '#000',
+    paddingVertical: 12,
+    paddingHorizontal: 28,
+    borderRadius: 10,
+    marginTop: 14,
+    width: '100%',
+    alignItems: 'center',
+  },
+  walletGoogleBtnText: { color: '#fff', fontWeight: '600', fontSize: 15 },
 });
