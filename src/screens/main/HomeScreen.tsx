@@ -292,6 +292,17 @@ export default function HomeScreen() {
               {user ? `Hola, ${user.nombre || user.email}` : 'Bienvenido, aficionado'}
             </Text>
           </View>
+          {/* Acceso rápido a la búsqueda — antes BusquedaScreen era
+              orfana (registrada en MainStack pero sin entry point). */}
+          <TouchableOpacity
+            onPress={() => navigation.navigate('Busqueda')}
+            style={styles.searchBtn}
+            accessibilityLabel="Buscar"
+            accessibilityRole="button"
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Text style={styles.searchIcon}>🔍</Text>
+          </TouchableOpacity>
         </View>
 
         {/* ACTION BUTTONS */}
@@ -574,6 +585,13 @@ const styles = StyleSheet.create({
   clubSubFaint: { color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
   clubFed:  { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 2.4, marginTop: 4 },
   welcome:  { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6 },
+  searchBtn: {
+    width: 40, height: 40, borderRadius: 20,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center', justifyContent: 'center',
+    alignSelf: 'flex-start',
+  },
+  searchIcon: { fontSize: 18 },
 
   // ACTIONS
   // 4 botones — paddingVertical/gap reducidos para que quepan en móviles

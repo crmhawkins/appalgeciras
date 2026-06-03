@@ -11,6 +11,7 @@ import ProductoDetalleScreen from '../screens/main/ProductoDetalleScreen';
 import EstadioScreen from '../screens/main/EstadioScreen';
 import EstadioWebViewScreen from '../screens/abonos/EstadioWebViewScreen';
 import BusquedaScreen from '../screens/main/BusquedaScreen';
+import WebPageScreen from '../screens/main/WebPageScreen';
 import RenovacionAbonoScreen from '../screens/renovacion/RenovacionAbonoScreen';
 import { colors } from '../theme/colors';
 
@@ -26,6 +27,7 @@ export type MainStackParamList = {
   Estadio: undefined;
   EstadioPlano: { matchId?: number; type?: 'abono' | 'entrada' } | undefined;
   Busqueda: undefined;
+  WebPage: { path: string; title: string };
   RenovarAbono: undefined;
 };
 
@@ -67,6 +69,7 @@ export default function MainStack() {
         }}
       />
       <Stack.Screen name="Busqueda" component={BusquedaScreen} options={{ headerShown: false }} />
+      <Stack.Screen name="WebPage" component={WebPageScreen} options={{ headerShown: false }} />
       <Stack.Screen
         name="RenovarAbono"
         component={RenovacionAbonoScreen}

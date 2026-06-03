@@ -8,16 +8,30 @@ interface MenuItem {
   icon: string;
   label: string;
   screen: string;
+  params?: any;
+  section?: string;
 }
 
 const ITEMS: MenuItem[] = [
-  { icon: '📰', label: 'Noticias', screen: 'NoticiasTab' },
-  { icon: '⚽', label: 'Partidos', screen: 'Partidos' },
-  { icon: '👥', label: 'Plantilla', screen: 'PlantillaTab' },
-  { icon: '🎟️', label: 'Comprar Entrada (Plano)', screen: 'EstadioPlano' },
-  { icon: '🏟️', label: 'Estadio Nuevo Mirador', screen: 'Estadio' },
-  { icon: '🛍️', label: 'Tienda', screen: 'TiendaTab' },
-  { icon: '🏅', label: 'Socios', screen: 'SociosTab' },
+  // --- Contenido del club ---
+  { icon: '🔍', label: 'Buscar',           screen: 'Busqueda',     section: 'EXPLORAR' },
+  { icon: '📰', label: 'Noticias',         screen: 'NoticiasTab',  section: 'EXPLORAR' },
+  { icon: '⚽', label: 'Partidos',          screen: 'Partidos',     section: 'EXPLORAR' },
+  { icon: '👥', label: 'Plantilla',        screen: 'PlantillaTab', section: 'EXPLORAR' },
+
+  // --- Compra ---
+  { icon: '🎟️', label: 'Comprar Entrada',  screen: 'EstadioPlano', section: 'COMPRA' },
+  { icon: '🛍️', label: 'Tienda',           screen: 'TiendaTab',    section: 'COMPRA' },
+  { icon: '🏅', label: 'Socios',           screen: 'SociosTab',    section: 'COMPRA' },
+
+  // --- Información (WebView a la web Laravel con ?native=1) ---
+  { icon: '🏟️', label: 'Estadio Nuevo Mirador', screen: 'Estadio', section: 'INFORMACIÓN' },
+  { icon: '🛡️', label: 'El Club',          screen: 'WebPage',
+    params: { path: '/club',       title: 'El Club' },        section: 'INFORMACIÓN' },
+  { icon: '✉️', label: 'Contacto',         screen: 'WebPage',
+    params: { path: '/contacto',   title: 'Contacto' },       section: 'INFORMACIÓN' },
+  { icon: '🔒', label: 'Privacidad',       screen: 'WebPage',
+    params: { path: '/privacidad', title: 'Privacidad' },     section: 'INFORMACIÓN' },
 ];
 
 export default function MasScreen() {
@@ -30,18 +44,29 @@ export default function MasScreen() {
         <Text style={styles.headerSub}>Algeciras C.F.</Text>
       </View>
       <ScrollView contentContainerStyle={styles.container}>
-        {ITEMS.map((item) => (
-          <TouchableOpacity
-            key={item.screen}
-            style={styles.row}
-            onPress={() => navigation.navigate(item.screen)}
-            activeOpacity={0.75}
-          >
-            <Text style={styles.rowIcon}>{item.icon}</Text>
-            <Text style={styles.rowLabel}>{item.label}</Text>
-            <Text style={styles.rowArrow}>›</Text>
-          </TouchableOpacity>
-        ))}
+        {ITEMS.map((item, idx) => {
+          // Cabecera de sección — sólo cuando cambia respecto al anterior.
+          const prev = idx > 0 ? ITEMS[idx - 1] : null;
+          const showSection = item.section && (!prev || prev.section !== item.section);
+          // Clave única: el screen puede repetirse (WebPage usado 3 veces).
+          const key = `${item.screen}-${item.label}`;
+          return (
+            <React.Fragment key={key}>
+              {showSection && (
+                <Text style={styles.sectionTitle}>{item.section}</Text>
+              )}
+              <TouchableOpacity
+                style={styles.row}
+                onPress={() => navigation.navigate(item.screen, item.params)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.rowIcon}>{item.icon}</Text>
+                <Text style={styles.rowLabel}>{item.label}</Text>
+                <Text style={styles.rowArrow}>›</Text>
+              </TouchableOpacity>
+            </React.Fragment>
+          );
+        })}
       </ScrollView>
     </SafeAreaView>
   );
@@ -53,6 +78,15 @@ const styles = StyleSheet.create({
   headerTitle: { color: '#fff', fontSize: 20, fontWeight: 'bold' },
   headerSub: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
   container: { padding: 16 },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 'bold',
+    color: colors.textSecondary,
+    letterSpacing: 1.2,
+    marginTop: 10,
+    marginBottom: 8,
+    paddingLeft: 4,
+  },
   row: {
     flexDirection: 'row',
     alignItems: 'center',
