@@ -6,20 +6,28 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
+import api from '../../services/api';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import PhoneInput from '../../components/PhoneInput';
 import { ESCUDO_URL } from '../../constants';
 
 export default function RegisterScreen() {
-  const { register } = useAuth();
+  const { register, login } = useAuth();
   const navigation = useNavigation<any>();
   const [nombre, setNombre] = useState('');
+  const [apellidos, setApellidos] = useState('');
   const [email, setEmail] = useState('');
   const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [dni, setDni] = useState('');
+  // Fecha en formato YYYY-MM-DD (mismo que el backend espera)
+  const [fechaNacimiento, setFechaNacimiento] = useState('');
+  const [direccion, setDireccion] = useState('');
+  const [codigoPostal, setCodigoPostal] = useState('');
+  const [ciudad, setCiudad] = useState('');
+  const [provincia, setProvincia] = useState('Cádiz');
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -37,8 +45,22 @@ export default function RegisterScreen() {
   const confirmRef = useRef<RNTextInput>(null);
 
   const handleRegister = async () => {
-    if (!nombre || !email || !password || !confirmPassword) {
+    // Todos los campos son obligatorios por requisito del club (regla
+    // 2026-06-02): nombre, apellidos, email, tel, DNI, dirección y fecha
+    // de nacimiento. El backend valida lo mismo y rechaza si falta cualquiera.
+    if (!nombre.trim() || !apellidos.trim() || !email.trim()
+        || !telefono.trim() || !dni.trim() || !fechaNacimiento.trim()
+        || !direccion.trim() || !codigoPostal.trim() || !ciudad.trim()
+        || !password || !confirmPassword) {
       setError('Rellena todos los campos obligatorios');
+      return;
+    }
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento.trim())) {
+      setError('Fecha de nacimiento debe ser AAAA-MM-DD (ej. 1990-05-23)');
+      return;
+    }
+    if (!/^\d{5}$/.test(codigoPostal.trim())) {
+      setError('El código postal debe tener 5 dígitos');
       return;
     }
     if (password !== confirmPassword) {
@@ -53,7 +75,24 @@ export default function RegisterScreen() {
     setDuplicateField(null);
     setLoading(true);
     try {
-      await register(nombre.trim(), email.trim().toLowerCase(), password, dni.trim() || undefined, telefono.trim() || undefined);
+      // Llamamos al endpoint directamente para poder mandar TODOS los
+      // campos. El helper `register` del AuthContext solo aceptaba 5 y
+      // no nos sirve para el registro completo. Tras crear la cuenta,
+      // hacemos login(email,pw) para guardar el token y entrar.
+      await api.post('/api/user/create', {
+        nombre:           nombre.trim() + ' ' + apellidos.trim(),
+        apellidos:        apellidos.trim(),
+        email:            email.trim().toLowerCase(),
+        password,
+        telefono:         telefono.trim(),
+        dni:              dni.trim().toUpperCase(),
+        fecha_nacimiento: fechaNacimiento.trim(),
+        direccion:        direccion.trim(),
+        codigo_postal:    codigoPostal.trim(),
+        ciudad:           ciudad.trim(),
+        provincia:        provincia.trim() || 'Cádiz',
+      });
+      await login(email.trim().toLowerCase(), password);
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e: any) {
       // El backend Laravel devuelve 422 con shape:
@@ -120,6 +159,16 @@ export default function RegisterScreen() {
               placeholder="Tu nombre"
               autoCapitalize="words"
               returnKeyType="next"
+            />
+
+            <Text style={styles.label}>Apellidos *</Text>
+            <TextInput
+              style={styles.input}
+              value={apellidos}
+              onChangeText={setApellidos}
+              placeholder="Primer y segundo apellido"
+              autoCapitalize="words"
+              returnKeyType="next"
               onSubmitEditing={() => emailRef.current?.focus()}
               blurOnSubmit={false}
             />
@@ -139,10 +188,10 @@ export default function RegisterScreen() {
               blurOnSubmit={false}
             />
 
-            <Text style={styles.label}>Teléfono</Text>
+            <Text style={styles.label}>Teléfono *</Text>
             <PhoneInput value={telefono} onChange={setTelefono} />
 
-            <Text style={styles.label}>DNI</Text>
+            <Text style={styles.label}>DNI / NIE *</Text>
             <TextInput
               ref={dniRef}
               style={styles.input}
@@ -150,6 +199,62 @@ export default function RegisterScreen() {
               onChangeText={setDni}
               placeholder="12345678Z"
               autoCapitalize="characters"
+              returnKeyType="next"
+              maxLength={9}
+            />
+
+            <Text style={styles.label}>Fecha de nacimiento *</Text>
+            <TextInput
+              style={styles.input}
+              value={fechaNacimiento}
+              onChangeText={setFechaNacimiento}
+              placeholder="AAAA-MM-DD (ej. 1990-05-23)"
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+              returnKeyType="next"
+              maxLength={10}
+            />
+
+            <Text style={styles.label}>Dirección *</Text>
+            <TextInput
+              style={styles.input}
+              value={direccion}
+              onChangeText={setDireccion}
+              placeholder="Calle Real 123, 4ºB"
+              autoCapitalize="words"
+              returnKeyType="next"
+            />
+
+            <Text style={styles.label}>Código Postal *</Text>
+            <TextInput
+              style={styles.input}
+              value={codigoPostal}
+              onChangeText={setCodigoPostal}
+              placeholder="11201"
+              keyboardType="number-pad"
+              maxLength={5}
+              returnKeyType="next"
+            />
+
+            <Text style={styles.label}>Ciudad *</Text>
+            <TextInput
+              style={styles.input}
+              value={ciudad}
+              onChangeText={setCiudad}
+              placeholder="Algeciras"
+              autoCapitalize="words"
+              returnKeyType="next"
+              onSubmitEditing={() => passRef.current?.focus()}
+              blurOnSubmit={false}
+            />
+
+            <Text style={styles.label}>Provincia</Text>
+            <TextInput
+              style={styles.input}
+              value={provincia}
+              onChangeText={setProvincia}
+              placeholder="Cádiz"
+              autoCapitalize="words"
               returnKeyType="next"
               onSubmitEditing={() => passRef.current?.focus()}
               blurOnSubmit={false}
