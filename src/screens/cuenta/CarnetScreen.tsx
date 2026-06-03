@@ -36,6 +36,12 @@ export default function CarnetScreen() {
       .finally(() => setLoading(false));
   }, [user?.id]);
 
+  // 2026-06-03: priorizar la URL PNG REAL del backend (la misma que la
+  // web), firmada con HMAC y válida en la puerta del estadio. Antes
+  // generábamos un QR local con react-native-qrcode-svg que NO se
+  // validaba en la puerta — confundía al socio.
+  const qrImageUrl = (abono as any)?.qrImageUrl as string | undefined;
+
   const qrValue =
     abono?.codigoAcceso ||
     abono?.codigoAbonado ||
@@ -74,11 +80,23 @@ export default function CarnetScreen() {
         <View style={styles.qrBox}>
           {loading ? (
             <ActivityIndicator size="large" color={colors.primary} />
+          ) : qrImageUrl ? (
+            // PNG real del backend (mismo QR que la web, firmado HMAC).
+            <Image
+              source={{ uri: qrImageUrl }}
+              style={{ width: qrSize, height: qrSize }}
+              resizeMode="contain"
+            />
           ) : (
+            // Fallback: solo aficionados sin abono → QR informativo
+            // local. No se valida en puerta pero el socio aún puede ver
+            // su nº de socio en formato escaneable.
             <QRCode value={qrValue} size={qrSize} backgroundColor="#fff" color="#000" />
           )}
         </View>
-        <Text style={styles.hint}>Muestra este código en el acceso</Text>
+        <Text style={styles.hint}>
+          {qrImageUrl ? 'Muestra este código en el acceso' : 'Hazte abonado para tu QR de acceso'}
+        </Text>
       </View>
     </SafeAreaView>
   );

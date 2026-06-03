@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import {
   View, Text, StyleSheet, FlatList, ActivityIndicator,
-  RefreshControl, TouchableOpacity, Alert, Modal, Platform,
+  RefreshControl, TouchableOpacity, Alert, Modal, Platform, Image,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
@@ -428,9 +428,22 @@ export default function MisAbonosScreen() {
               >
                 <Text style={styles.codigoLabel}>Código de acceso · Toca para ampliar</Text>
                 <View style={styles.qrPreviewBox}>
-                  <QRCode value={item.codigoAcceso} size={80} />
+                  {/* QR PNG real del backend (la misma imagen firmada que
+                      la web). Antes generábamos QR local que renderizaba
+                      'undefined' cuando codigoAcceso no llegaba. */}
+                  {(item as any).qrImageUrl ? (
+                    <Image
+                      source={{ uri: (item as any).qrImageUrl }}
+                      style={{ width: 80, height: 80 }}
+                      resizeMode="contain"
+                    />
+                  ) : (
+                    <QRCode value={item.codigoAcceso ?? `ACF-${item.id}`} size={80} />
+                  )}
                 </View>
-                <Text style={styles.codigoCodigo}>{item.codigoAcceso}</Text>
+                <Text style={styles.codigoCodigo}>
+                  {item.codigoAcceso ?? `ACF-${String(item.id).padStart(5, '0')}`}
+                </Text>
               </TouchableOpacity>
             )}
             {item.activo && (
