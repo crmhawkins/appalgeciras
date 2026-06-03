@@ -154,13 +154,17 @@ export default function FanZoneScreen() {
     } catch {}
   }, []);
 
+  // 2026-06-03: usamos user?.id en deps en lugar de user entero. user es
+  // un objeto que cambia de referencia cada vez que AuthContext re-renderiza
+  // → recreaba loadMiVoto → recreaba load → useEffect(load) loop. Con id
+  // solo, la dep es primitiva y solo cambia en login/logout.
   const loadMiVoto = useCallback(async (pid: number) => {
     if (!user) return;
     try {
       const { data } = await api.get(`/api/fanzone/${pid}/mi-voto`);
       setMiVoto(data.voto);
     } catch {}
-  }, [user]);
+  }, [user?.id]);
 
   const load = useCallback(async () => {
     setLoading(true);
