@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
+import { humanizeError } from '../../services/errors';
 import { ESCUDO_URL } from '../../constants';
 
 export default function LoginScreen() {
@@ -34,11 +35,9 @@ export default function LoginScreen() {
       await login(email.trim(), password);
       navigation.navigate('Main' as never);
     } catch (e: any) {
-      const msg =
-        e?.response?.data?.msg ||
-        e?.message ||
-        'Error al iniciar sesión';
-      setError(msg);
+      // humanizeError convierte "Request failed with status code 500",
+      // "Network Error", timeout, etc. en frases amigables en castellano.
+      setError(humanizeError(e, 'login'));
     } finally {
       setLoading(false);
     }

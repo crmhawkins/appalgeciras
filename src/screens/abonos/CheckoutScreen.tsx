@@ -16,6 +16,7 @@ import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import * as WebBrowser from 'expo-web-browser';
 import * as Haptics from 'expo-haptics';
 import api, { API_BASE_URL } from '../../services/api';
+import { humanizeError } from '../../services/errors';
 import { clearCached } from '../../services/cache';
 import { getToken } from '../../services/auth';
 import { colors } from '../../theme/colors';
@@ -102,9 +103,7 @@ export default function CheckoutScreen() {
         setCouponError(data?.message || 'Código no válido');
       }
     } catch (e: any) {
-      setCouponError(
-        e?.response?.data?.message || 'No se pudo validar el cupón',
-      );
+      setCouponError(humanizeError(e));
     } finally {
       setCouponLoading(false);
     }
@@ -192,12 +191,7 @@ export default function CheckoutScreen() {
         navigation.navigate('Gradas');
       }
     } catch (e: any) {
-      const msg =
-        e?.response?.data?.message ||
-        e?.response?.data?.msg ||
-        e?.message ||
-        'No se pudo iniciar el pago';
-      Alert.alert('Error', msg);
+      Alert.alert('Error', humanizeError(e, 'checkout'));
     } finally {
       setLoading(false);
     }

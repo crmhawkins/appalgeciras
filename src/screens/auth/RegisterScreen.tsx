@@ -7,6 +7,7 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import api from '../../services/api';
+import { humanizeError } from '../../services/errors';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
 import PhoneInput from '../../components/PhoneInput';
@@ -111,7 +112,9 @@ export default function RegisterScreen() {
         const allErrs = Object.values(errs).flat() as string[];
         setError(allErrs.join('\n'));
       } else {
-        setError(data?.message || data?.msg || e?.message || 'Error al registrarse');
+        // Cualquier otro error (red, timeout, 500…) lo humanizamos
+        // para evitar "Request failed with status code 500" feo.
+        setError(humanizeError(e, 'register'));
       }
     } finally {
       setLoading(false);

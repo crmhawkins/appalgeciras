@@ -7,6 +7,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { colors } from '../../theme/colors';
 import api from '../../services/api';
+import { humanizeError } from '../../services/errors';
 import { ESCUDO_URL } from '../../constants';
 
 export default function RecuperarPasswordScreen() {
@@ -29,7 +30,7 @@ export default function RecuperarPasswordScreen() {
       await api.post('/api/authenticate/recuperar-password', { email: email.trim().toLowerCase() });
       setSent(true);
     } catch (e: any) {
-      const msg = e?.response?.data?.msg || e?.message || 'No se pudo enviar el email';
+      const msg = humanizeError(e, 'recover');
       setError(msg);
       Alert.alert('Error', msg);
     } finally {
