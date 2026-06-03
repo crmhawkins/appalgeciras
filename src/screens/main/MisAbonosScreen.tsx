@@ -310,8 +310,10 @@ export default function MisAbonosScreen() {
   const matchSubtitle = matchQrData?.match?.kickoff_at
     ? formatKickoff(matchQrData.match.kickoff_at)
     : '';
+  // 2026-06-03: filtrar undefined → antes mostraba "undefined undefined"
+  // cuando matchQrAbono no traía nombre/apellidos del backend.
   const abonoNombre = matchQrAbono
-    ? `${matchQrAbono.nombre} ${matchQrAbono.apellidos}`
+    ? [matchQrAbono.nombre, matchQrAbono.apellidos].filter(Boolean).join(' ').trim()
     : (matchQrData?.customerName ?? '');
   const asientoTexto = matchQrData?.asiento || matchQrData?.zone || '';
 

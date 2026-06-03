@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState, useCallback } from 'react';
+import React, { createContext, useContext, useEffect, useState, useCallback, useRef } from 'react';
 import { Platform } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import Constants from 'expo-constants';
@@ -80,12 +80,21 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setUser(null);
   }, []);
 
+  // 2026-06-03: REF en lugar de dependencia de `user` para mantener una
+  // referencia ESTABLE de updateUser. Antes esta función se recreaba
+  // en cada cambio de `user`, lo que reventaba `useCallback` en pantallas
+  // que la usaban como dependencia (MiCuentaHomeScreen, FanZoneScreen…) y
+  // provocaba LOOPS INFINITOS de fetch → "Tu temporada/Cerrar sesión/
+  // FanZone parpadeando constantemente".
+  const userRef = useRef(user);
+  useEffect(() => { userRef.current = user; }, [user]);
+
   const updateUser = useCallback(async (updated: Partial<Usuario>) => {
-    if (!user) return;
-    const merged = { ...user, ...updated };
+    if (!userRef.current) return;
+    const merged = { ...userRef.current, ...updated };
     setUser(merged);
     await saveUser(merged).catch(() => {});
-  }, [user]);
+  }, []); // sin deps → misma referencia para siempre
 
   return (
     <AuthContext.Provider value={{ user, token, loading, login, register, logout, updateUser }}>
