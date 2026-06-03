@@ -282,7 +282,12 @@ export default function HomeScreen() {
             />
           )}
           <View style={{ flex: 1 }}>
-            <Text style={styles.clubName}>Algeciras CF</Text>
+            {/* Lockup oficial — coincide con el header de la web. */}
+            <Text style={styles.clubName}>ALGECIRAS</Text>
+            <Text style={styles.clubSub}>
+              CLUB <Text style={styles.clubSubFaint}>DE</Text> FÚTBOL
+            </Text>
+            <Text style={styles.clubFed}>PRIMERA FEDERACIÓN</Text>
             <Text style={styles.welcome}>
               {user ? `Hola, ${user.nombre || user.email}` : 'Bienvenido, aficionado'}
             </Text>
@@ -564,8 +569,11 @@ const styles = StyleSheet.create({
   },
   escudoText: { color: colors.secondary, fontWeight: 'bold', fontSize: 14 },
   escudoImg: { width: 60, height: 60 },
-  clubName: { color: colors.white, fontSize: 20, fontWeight: 'bold' },
-  welcome: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+  clubName: { color: colors.primary, fontSize: 22, fontWeight: '900', letterSpacing: 1 },
+  clubSub:  { color: colors.primary, fontSize: 11, fontWeight: '700', letterSpacing: 1.5, marginTop: 1 },
+  clubSubFaint: { color: 'rgba(255,255,255,0.7)', fontWeight: '500' },
+  clubFed:  { color: colors.primary, fontSize: 10, fontWeight: '900', letterSpacing: 2.4, marginTop: 4 },
+  welcome:  { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 6 },
 
   // ACTIONS
   // 4 botones — paddingVertical/gap reducidos para que quepan en móviles
