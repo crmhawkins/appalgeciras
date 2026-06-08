@@ -97,8 +97,11 @@ rel_close_abs = find_block_close(src, rel_open_abs)
 rel_block = src[rel_open_abs:rel_close_abs]
 
 # Quita cualquier signingConfig anterior y pon el nuestro al principio.
+# OJO con el regex: usamos [ \t]* en vez de \s* para no consumir el newline
+# que separa de la siguiente línea (esto causaba que `signingConfig` se
+# pegara a `def enableShrinkResources` en el caso del template Expo moderno).
 rel_block_new = re.sub(
-    r"\n\s*signingConfig\s+signingConfigs\.[a-zA-Z]+\s*",
+    r"[ \t]*signingConfig[ \t]+signingConfigs\.[a-zA-Z]+[ \t]*\n",
     "",
     rel_block,
 )
