@@ -46,48 +46,84 @@ release_block = """release {
             }
         }"""
 
-# CASO 1 (template Expo antiguo): hay 'release { storeFile ... }' precreado
-#         con valores debug. Lo reemplazamos.
-m = re.search(r"release\s*\{[^{}]*storeFile[^{}]*\}", src, re.DOTALL)
-if m:
-    src = src[:m.start()] + release_block + src[m.end():]
-    path.write_text(src, encoding="utf-8")
-    print("Reemplazado release { storeFile ... } existente OK")
-    sys.exit(0)
+def find_block_close(text, open_pos):
+    """Devuelve la posición del '}' que cierra el '{' situado en open_pos-1.
+    open_pos debe apuntar al carácter inmediatamente DESPUÉS del '{' abierto.
+    """
+    depth = 1
+    i = open_pos
+    while i < len(text) and depth > 0:
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+        i += 1
+    return i - 1
 
-# CASO 2 (Expo prebuild moderno): solo hay signingConfigs.debug. Añadimos
-#         release antes del cierre del bloque signingConfigs.
-m_sig = re.search(r"signingConfigs\s*\{", src)
-if not m_sig:
-    print("ERROR: no encontré bloque signingConfigs en build.gradle", file=sys.stderr)
-    sys.exit(2)
+# PASO 1: Asegurar que signingConfigs tiene un bloque release {} con nuestras
+# propiedades. Si existe uno previo (con storeFile), lo reemplazamos; si no,
+# lo añadimos antes del cierre del bloque signingConfigs.
+m_existing_release = re.search(r"release\s*\{[^{}]*storeFile[^{}]*\}", src, re.DOTALL)
+if m_existing_release:
+    src = src[:m_existing_release.start()] + release_block + src[m_existing_release.end():]
+    print("PASO 1: reemplazado release { storeFile ... } existente")
+else:
+    m_sig = re.search(r"signingConfigs\s*\{", src)
+    if not m_sig:
+        print("ERROR: no encontré bloque signingConfigs en build.gradle", file=sys.stderr)
+        sys.exit(2)
+    close_pos = find_block_close(src, m_sig.end())
+    src = src[:close_pos] + "        " + release_block + "\n    " + src[close_pos:]
+    print("PASO 1: añadido release { ... } dentro de signingConfigs")
 
-# Cierre balanceado de signingConfigs
-i = m_sig.end()
-depth = 1
-while i < len(src) and depth > 0:
-    if src[i] == "{":
-        depth += 1
-    elif src[i] == "}":
-        depth -= 1
-    i += 1
-close_pos = i - 1  # pos del '}' que cierra signingConfigs
+# PASO 2: Forzar que buildTypes.release use signingConfigs.release.
+# Localizamos el bloque buildTypes { ... release { ... } } y le inyectamos
+# signingConfig signingConfigs.release al inicio, REEMPLAZANDO cualquier
+# signingConfig signingConfigs.debug que Expo haya puesto.
+m_bt = re.search(r"buildTypes\s*\{", src)
+if not m_bt:
+    print("ERROR: no encontré buildTypes en build.gradle", file=sys.stderr)
+    sys.exit(3)
+bt_close = find_block_close(src, m_bt.end())
+bt_inner = src[m_bt.end():bt_close]
 
-src = src[:close_pos] + "        " + release_block + "\n    " + src[close_pos:]
+# dentro de buildTypes, busca 'release {'
+m_release_bt = re.search(r"release\s*\{", bt_inner)
+if not m_release_bt:
+    print("ERROR: no encontré buildTypes.release en build.gradle", file=sys.stderr)
+    sys.exit(4)
+rel_open_abs = m_bt.end() + m_release_bt.end()  # posición tras '{'
+rel_close_abs = find_block_close(src, rel_open_abs)
+rel_block = src[rel_open_abs:rel_close_abs]
 
-# Además: asegurar que buildTypes.release usa signingConfigs.release.
-if "signingConfig signingConfigs.release" not in src:
-    src = re.sub(
-        r"(buildTypes\s*\{[\s\S]*?release\s*\{)",
-        r"\1\n            signingConfig signingConfigs.release",
-        src, count=1,
-    )
+# Quita cualquier signingConfig anterior y pon el nuestro al principio.
+rel_block_new = re.sub(
+    r"\n\s*signingConfig\s+signingConfigs\.[a-zA-Z]+\s*",
+    "",
+    rel_block,
+)
+rel_block_new = "\n            signingConfig signingConfigs.release" + rel_block_new
+
+src = src[:rel_open_abs] + rel_block_new + src[rel_close_abs:]
+print("PASO 2: buildTypes.release ahora usa signingConfigs.release (forzado)")
 
 path.write_text(src, encoding="utf-8")
-print("Inyectado release { ... } dentro de signingConfigs OK")
 PYEOF
 echo "---- build.gradle (signingConfigs region):"
 awk '/signingConfigs/,/^    \}$/' "$GRADLE_FILE" | head -25 || true
+echo "---- build.gradle (buildTypes region):"
+awk '/buildTypes/,/^    \}$/' "$GRADLE_FILE" | head -30 || true
+
+# Verificación final — falla el script si algo no está correcto.
+if ! grep -q "ALGECIRAS_RELEASE_STORE_FILE" "$GRADLE_FILE"; then
+  echo "ERROR: keystore prop no inyectada" >&2
+  exit 5
+fi
+if ! grep -q "signingConfig signingConfigs.release" "$GRADLE_FILE"; then
+  echo "ERROR: buildTypes.release no usa signingConfigs.release" >&2
+  exit 6
+fi
+echo "[OK] Verificación final passed."
 
 # -------------------------------------------------------------------------
 # Fastlane runtime deps missing on hosted runner (Ruby 3.2 + fastlane 2.235)
