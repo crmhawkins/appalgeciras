@@ -333,7 +333,7 @@ end
 platform :android do
   desc "Build AAB firmado y subir a Google Play (internal track)"
   lane :internal do
-    package_name = ENV["APP_PACKAGE_NAME"] || "es.algecirascf.abonos"
+    package_name = ENV["APP_PACKAGE_NAME"] || "com.algecirascf.app"
 
     # Decodificar keystore desde env (base64 → fichero temporal).
     keystore_path = File.expand_path("../android/app/algeciras-release.keystore")
@@ -380,5 +380,31 @@ platform :android do
     )
 
     UI.success("✅ AAB subido a Google Play Console (track: internal, status: draft). Promoción a producción manual.")
+  end
+
+  desc "Build AAB firmado SIN subir a Play (artifact-only). Para primer release manual."
+  lane :build_only do
+    # Idéntico a :internal pero sin supply al final.
+    # Útil cuando todavía no hay Service Account vinculado en Play Console,
+    # o cuando los cuestionarios (Data Safety, Content Rating) están a medias
+    # y supply rechaza porque la app no está en estado "Ready to publish".
+    keystore_path = File.expand_path("../android/app/algeciras-release.keystore")
+    require "base64"
+    File.write(keystore_path, Base64.decode64(ENV["ANDROID_KEYSTORE_BASE64"]))
+
+    gradle(
+      task: "bundle",
+      build_type: "Release",
+      project_dir: "android/",
+      properties: {
+        "ALGECIRAS_RELEASE_STORE_FILE"     => keystore_path,
+        "ALGECIRAS_RELEASE_KEY_ALIAS"      => ENV["ANDROID_KEY_ALIAS"],
+        "ALGECIRAS_RELEASE_STORE_PASSWORD" => ENV["ANDROID_KEYSTORE_PASSWORD"],
+        "ALGECIRAS_RELEASE_KEY_PASSWORD"   => ENV["ANDROID_KEY_PASSWORD"],
+      }
+    )
+
+    aab_path = "android/app/build/outputs/bundle/release/app-release.aab"
+    UI.success("✅ AAB compilado: #{aab_path} — descárgalo desde el artifact del workflow y súbelo a Play Console.")
   end
 end

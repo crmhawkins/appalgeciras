@@ -25,8 +25,8 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#C8102E"
       },
-      "package": "es.algecirascf.abonos",
-      "versionCode": 4,
+      "package": "com.algecirascf.app",
+      "versionCode": 5,
       "permissions": [
         "INTERNET"
       ],
