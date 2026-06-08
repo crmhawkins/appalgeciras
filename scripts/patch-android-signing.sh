@@ -88,3 +88,20 @@ print("Inyectado release { ... } dentro de signingConfigs OK")
 PYEOF
 echo "---- build.gradle (signingConfigs region):"
 awk '/signingConfigs/,/^    \}$/' "$GRADLE_FILE" | head -25 || true
+
+# -------------------------------------------------------------------------
+# Fastlane runtime deps missing on hosted runner (Ruby 3.2 + fastlane 2.235)
+# -------------------------------------------------------------------------
+# El `gem install fastlane -NV` del workflow no instala todas las gemas
+# transitivas que cargan las actions por defecto (entre ellas
+# create_app_on_managed_play_store -> google-apis-playcustomapp_v1 ->
+# representable/json -> multi_json). En CI Linux Ruby 3.2 esto rompe el
+# arranque de fastlane con:
+#   Could not find 'multi_json' (>= 1.14.1) (Gem::MissingSpecError)
+#
+# Como NO podemos editar el workflow (PAT sin scope `workflow`), instalamos
+# las gemas aquí mismo — este script SÍ se commitea libre.
+echo "---- Installing fastlane runtime gems missing on hosted runner..."
+gem install multi_json json representable --no-document --conservative 2>&1 | tail -5 || {
+    echo "WARN: gem install falló (puede estar ya instalado). Continuando."
+}
