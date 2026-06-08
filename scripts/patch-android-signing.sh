@@ -37,7 +37,7 @@ import re, sys, pathlib
 path = pathlib.Path(sys.argv[1])
 src = path.read_text(encoding="utf-8")
 
-new_block = """release {
+release_block = """release {
             if (project.hasProperty('ALGECIRAS_RELEASE_STORE_FILE')) {
                 storeFile     file(project.property('ALGECIRAS_RELEASE_STORE_FILE'))
                 storePassword project.property('ALGECIRAS_RELEASE_STORE_PASSWORD')
@@ -46,18 +46,45 @@ new_block = """release {
             }
         }"""
 
-# Busca el bloque release { ... } dentro de signingConfigs { ... }.
-# Patrón: línea con 'release {' y bloque balanceado hasta el cierre '}'.
-pat = re.compile(
-    r"release\s*\{[^{}]*storeFile[^{}]*\}",
-    re.DOTALL,
-)
-m = pat.search(src)
-if not m:
-    print("ERROR: no encontré el bloque release { storeFile ... } en build.gradle", file=sys.stderr)
+# CASO 1 (template Expo antiguo): hay 'release { storeFile ... }' precreado
+#         con valores debug. Lo reemplazamos.
+m = re.search(r"release\s*\{[^{}]*storeFile[^{}]*\}", src, re.DOTALL)
+if m:
+    src = src[:m.start()] + release_block + src[m.end():]
+    path.write_text(src, encoding="utf-8")
+    print("Reemplazado release { storeFile ... } existente OK")
+    sys.exit(0)
+
+# CASO 2 (Expo prebuild moderno): solo hay signingConfigs.debug. Añadimos
+#         release antes del cierre del bloque signingConfigs.
+m_sig = re.search(r"signingConfigs\s*\{", src)
+if not m_sig:
+    print("ERROR: no encontré bloque signingConfigs en build.gradle", file=sys.stderr)
     sys.exit(2)
 
-new = src[:m.start()] + new_block + src[m.end():]
-path.write_text(new, encoding="utf-8")
-print("Patched signingConfigs.release OK")
+# Cierre balanceado de signingConfigs
+i = m_sig.end()
+depth = 1
+while i < len(src) and depth > 0:
+    if src[i] == "{":
+        depth += 1
+    elif src[i] == "}":
+        depth -= 1
+    i += 1
+close_pos = i - 1  # pos del '}' que cierra signingConfigs
+
+src = src[:close_pos] + "        " + release_block + "\n    " + src[close_pos:]
+
+# Además: asegurar que buildTypes.release usa signingConfigs.release.
+if "signingConfig signingConfigs.release" not in src:
+    src = re.sub(
+        r"(buildTypes\s*\{[\s\S]*?release\s*\{)",
+        r"\1\n            signingConfig signingConfigs.release",
+        src, count=1,
+    )
+
+path.write_text(src, encoding="utf-8")
+print("Inyectado release { ... } dentro de signingConfigs OK")
 PYEOF
+echo "---- build.gradle (signingConfigs region):"
+awk '/signingConfigs/,/^    \}$/' "$GRADLE_FILE" | head -25 || true
