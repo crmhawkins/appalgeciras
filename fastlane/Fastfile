@@ -363,23 +363,31 @@ platform :android do
 
     aab_path = "android/app/build/outputs/bundle/release/app-release.aab"
 
-    # Service account JSON: vuelca a fichero temporal y supply lo lee.
-    sa_path = File.expand_path("../play-service-account.json")
-    File.write(sa_path, Base64.decode64(ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64"]))
-
-    supply(
-      package_name: package_name,
-      track: "internal",                 # internal | alpha | beta | production
-      aab: aab_path,
-      json_key: sa_path,
-      release_status: "draft",            # publicar manualmente desde Play Console la 1ª vez
-      skip_upload_metadata: true,        # se sube manualmente la 1ª release
-      skip_upload_changelogs: true,
-      skip_upload_images: true,
-      skip_upload_screenshots: true,
-    )
-
-    UI.success("✅ AAB subido a Google Play Console (track: internal, status: draft). Promoción a producción manual.")
+    # PRIMERA RELEASE: NO ejecutamos `supply` porque la app es nueva en Play
+    # Console y todavía no tiene track `internal` creado ni Service Account
+    # vinculado. El AAB queda como artifact del workflow para subir manual.
+    # Cuando Play Console esté listo (track creado + SA enlazado + secret
+    # GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64 configurado), descomentar el bloque
+    # `supply(...)` de abajo.
+    if ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64"].to_s.length > 0
+      sa_path = File.expand_path("../play-service-account.json")
+      File.write(sa_path, Base64.decode64(ENV["GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64"]))
+      supply(
+        package_name: package_name,
+        track: "internal",
+        aab: aab_path,
+        json_key: sa_path,
+        release_status: "draft",
+        skip_upload_metadata: true,
+        skip_upload_changelogs: true,
+        skip_upload_images: true,
+        skip_upload_screenshots: true,
+      )
+      UI.success("✅ AAB subido a Google Play Console (track: internal, status: draft).")
+    else
+      UI.important("⚠️  GOOGLE_PLAY_SERVICE_ACCOUNT_JSON_B64 no configurado → solo build, sin upload a Play.")
+      UI.success("✅ AAB compilado: #{aab_path} — descárgalo del artifact y súbelo manual.")
+    end
   end
 
   desc "Build AAB firmado SIN subir a Play (artifact-only). Para primer release manual."
