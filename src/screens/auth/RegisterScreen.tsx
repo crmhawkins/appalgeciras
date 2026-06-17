@@ -10,58 +10,35 @@ import api from '../../services/api';
 import { humanizeError } from '../../services/errors';
 import { colors } from '../../theme/colors';
 import { useAuth } from '../../context/AuthContext';
-import PhoneInput from '../../components/PhoneInput';
 import { ESCUDO_URL } from '../../constants';
 
+/**
+ * Registro MÍNIMO (Apple Guideline 5.1.1): el alta solo pide nombre, email y
+ * contraseña. Los datos personales (DNI, teléfono, fecha nac., dirección) NO se
+ * piden aquí — el DNI se solicita en la COMPRA de un abono/entrada nominativa
+ * (donde legalmente hace falta) y se guarda en la misma cuenta.
+ */
 export default function RegisterScreen() {
-  const { register, login } = useAuth();
+  const { login } = useAuth();
   const navigation = useNavigation<any>();
   const [nombre, setNombre] = useState('');
-  const [apellidos, setApellidos] = useState('');
   const [email, setEmail] = useState('');
-  const [telefono, setTelefono] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
-  const [dni, setDni] = useState('');
-  // Fecha en formato YYYY-MM-DD (mismo que el backend espera)
-  const [fechaNacimiento, setFechaNacimiento] = useState('');
-  const [direccion, setDireccion] = useState('');
-  const [codigoPostal, setCodigoPostal] = useState('');
-  const [ciudad, setCiudad] = useState('');
-  const [provincia, setProvincia] = useState('Cádiz');
   const [showPass, setShowPass] = useState(false);
   const [showConfirmPass, setShowConfirmPass] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  // duplicateField:
-  //   'email'   → CTA "Iniciar sesión" + prellena email + opcional "He olvidado mi contraseña"
-  //   'dni'     → CTA "Iniciar sesión" (puede que el DNI esté asignado a otra cuenta)
-  //   null      → error genérico (sin CTA, solo texto rojo)
-  const [duplicateField, setDuplicateField] = useState<'email' | 'dni' | null>(null);
+  // 'email' → CTA "Iniciar sesión" + opcional "He olvidado mi contraseña"
+  const [duplicateField, setDuplicateField] = useState<'email' | null>(null);
 
   const emailRef = useRef<RNTextInput>(null);
-  const telefonoRef = useRef<RNTextInput>(null);
-  const dniRef = useRef<RNTextInput>(null);
   const passRef = useRef<RNTextInput>(null);
   const confirmRef = useRef<RNTextInput>(null);
 
   const handleRegister = async () => {
-    // Todos los campos son obligatorios por requisito del club (regla
-    // 2026-06-02): nombre, apellidos, email, tel, DNI, dirección y fecha
-    // de nacimiento. El backend valida lo mismo y rechaza si falta cualquiera.
-    if (!nombre.trim() || !apellidos.trim() || !email.trim()
-        || !telefono.trim() || !dni.trim() || !fechaNacimiento.trim()
-        || !direccion.trim() || !codigoPostal.trim() || !ciudad.trim()
-        || !password || !confirmPassword) {
-      setError('Rellena todos los campos obligatorios');
-      return;
-    }
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(fechaNacimiento.trim())) {
-      setError('Fecha de nacimiento debe ser AAAA-MM-DD (ej. 1990-05-23)');
-      return;
-    }
-    if (!/^\d{5}$/.test(codigoPostal.trim())) {
-      setError('El código postal debe tener 5 dígitos');
+    if (!nombre.trim() || !email.trim() || !password || !confirmPassword) {
+      setError('Rellena tu nombre, email y contraseña');
       return;
     }
     if (password !== confirmPassword) {
@@ -76,44 +53,25 @@ export default function RegisterScreen() {
     setDuplicateField(null);
     setLoading(true);
     try {
-      // Llamamos al endpoint directamente para poder mandar TODOS los
-      // campos. El helper `register` del AuthContext solo aceptaba 5 y
-      // no nos sirve para el registro completo. Tras crear la cuenta,
-      // hacemos login(email,pw) para guardar el token y entrar.
+      // Alta mínima: solo nombre, email y contraseña. El resto de datos
+      // (DNI, etc.) se piden en la compra de un abono/entrada.
       await api.post('/api/user/create', {
-        nombre:           nombre.trim() + ' ' + apellidos.trim(),
-        apellidos:        apellidos.trim(),
-        email:            email.trim().toLowerCase(),
+        nombre:   nombre.trim(),
+        email:    email.trim().toLowerCase(),
         password,
-        telefono:         telefono.trim(),
-        dni:              dni.trim().toUpperCase(),
-        fecha_nacimiento: fechaNacimiento.trim(),
-        direccion:        direccion.trim(),
-        codigo_postal:    codigoPostal.trim(),
-        ciudad:           ciudad.trim(),
-        provincia:        provincia.trim() || 'Cádiz',
       });
       await login(email.trim().toLowerCase(), password);
       navigation.reset({ index: 0, routes: [{ name: 'Main' }] });
     } catch (e: any) {
-      // El backend Laravel devuelve 422 con shape:
-      //   { message: "El primer error", errors: { email: ["..."], dni: ["..."] } }
-      // Si el campo duplicado es `email` o `dni`, mostramos CTA accionable
-      // ("Iniciar sesión" pre-rellenando el email) en lugar de solo texto.
       const data = e?.response?.data;
       const errs = data?.errors || {};
       if (errs.email && Array.isArray(errs.email)) {
         setDuplicateField('email');
         setError(errs.email[0]);
-      } else if (errs.dni && Array.isArray(errs.dni)) {
-        setDuplicateField('dni');
-        setError(errs.dni[0]);
       } else if (typeof errs === 'object' && Object.keys(errs).length > 0) {
         const allErrs = Object.values(errs).flat() as string[];
         setError(allErrs.join('\n'));
       } else {
-        // Cualquier otro error (red, timeout, 500…) lo humanizamos
-        // para evitar "Request failed with status code 500" feo.
         setError(humanizeError(e, 'register'));
       }
     } finally {
@@ -122,7 +80,6 @@ export default function RegisterScreen() {
   };
 
   const handleGoLogin = () => {
-    // Navega a la pantalla de login con el email pre-rellenado.
     navigation.navigate('Login', { prefilledEmail: email.trim().toLowerCase() });
   };
 
@@ -162,16 +119,6 @@ export default function RegisterScreen() {
               placeholder="Tu nombre"
               autoCapitalize="words"
               returnKeyType="next"
-            />
-
-            <Text style={styles.label}>Apellidos *</Text>
-            <TextInput
-              style={styles.input}
-              value={apellidos}
-              onChangeText={setApellidos}
-              placeholder="Primer y segundo apellido"
-              autoCapitalize="words"
-              returnKeyType="next"
               onSubmitEditing={() => emailRef.current?.focus()}
               blurOnSubmit={false}
             />
@@ -186,78 +133,6 @@ export default function RegisterScreen() {
               autoCapitalize="none"
               keyboardType="email-address"
               autoCorrect={false}
-              returnKeyType="next"
-              onSubmitEditing={() => telefonoRef.current?.focus()}
-              blurOnSubmit={false}
-            />
-
-            <Text style={styles.label}>Teléfono *</Text>
-            <PhoneInput value={telefono} onChange={setTelefono} />
-
-            <Text style={styles.label}>DNI / NIE *</Text>
-            <TextInput
-              ref={dniRef}
-              style={styles.input}
-              value={dni}
-              onChangeText={setDni}
-              placeholder="12345678Z"
-              autoCapitalize="characters"
-              returnKeyType="next"
-              maxLength={9}
-            />
-
-            <Text style={styles.label}>Fecha de nacimiento *</Text>
-            <TextInput
-              style={styles.input}
-              value={fechaNacimiento}
-              onChangeText={setFechaNacimiento}
-              placeholder="AAAA-MM-DD (ej. 1990-05-23)"
-              autoCapitalize="none"
-              keyboardType="numbers-and-punctuation"
-              returnKeyType="next"
-              maxLength={10}
-            />
-
-            <Text style={styles.label}>Dirección *</Text>
-            <TextInput
-              style={styles.input}
-              value={direccion}
-              onChangeText={setDireccion}
-              placeholder="Calle Real 123, 4ºB"
-              autoCapitalize="words"
-              returnKeyType="next"
-            />
-
-            <Text style={styles.label}>Código Postal *</Text>
-            <TextInput
-              style={styles.input}
-              value={codigoPostal}
-              onChangeText={setCodigoPostal}
-              placeholder="11201"
-              keyboardType="number-pad"
-              maxLength={5}
-              returnKeyType="next"
-            />
-
-            <Text style={styles.label}>Ciudad *</Text>
-            <TextInput
-              style={styles.input}
-              value={ciudad}
-              onChangeText={setCiudad}
-              placeholder="Algeciras"
-              autoCapitalize="words"
-              returnKeyType="next"
-              onSubmitEditing={() => passRef.current?.focus()}
-              blurOnSubmit={false}
-            />
-
-            <Text style={styles.label}>Provincia</Text>
-            <TextInput
-              style={styles.input}
-              value={provincia}
-              onChangeText={setProvincia}
-              placeholder="Cádiz"
-              autoCapitalize="words"
               returnKeyType="next"
               onSubmitEditing={() => passRef.current?.focus()}
               blurOnSubmit={false}
@@ -302,6 +177,11 @@ export default function RegisterScreen() {
               </TouchableOpacity>
             </View>
 
+            <Text style={styles.hint}>
+              Solo necesitamos tu nombre, email y contraseña. Los datos para tu
+              abono o entrada (como el DNI) se te pedirán al comprarla.
+            </Text>
+
             {error && (
               <View style={styles.errorBox}>
                 <Text style={styles.errorBoxIcon}>{duplicateField ? '👤' : '⚠️'}</Text>
@@ -314,13 +194,6 @@ export default function RegisterScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity style={styles.errorBoxCtaSecondary} onPress={handleRecuperarPassword}>
                         <Text style={styles.errorBoxCtaSecondaryText}>He olvidado la contraseña</Text>
-                      </TouchableOpacity>
-                    </View>
-                  )}
-                  {duplicateField === 'dni' && (
-                    <View style={styles.errorBoxCtas}>
-                      <TouchableOpacity style={styles.errorBoxCtaPrimary} onPress={handleGoLogin}>
-                        <Text style={styles.errorBoxCtaPrimaryText}>Iniciar sesión</Text>
                       </TouchableOpacity>
                     </View>
                   )}
@@ -390,6 +263,7 @@ const styles = StyleSheet.create({
   },
   eyeBtn: { paddingHorizontal: 12, paddingVertical: 10 },
   eyeText: { fontSize: 18 },
+  hint: { fontSize: 13, color: colors.textSecondary, marginTop: 14, lineHeight: 18 },
   error: { color: colors.error, marginTop: 12, textAlign: 'center' },
   errorBox: {
     marginTop: 16,
